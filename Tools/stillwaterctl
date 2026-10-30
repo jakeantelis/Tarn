@@ -1,0 +1,53 @@
+#!/bin/zsh
+set -u
+
+STATUS_FILE="$HOME/Library/Application Support/Stillwater/status.json"
+
+usage() {
+    cat <<'USAGE'
+usage: stillwaterctl <command>
+
+  start [minutes]     start a work round (default length, or 15, 25, 45, 60, 90 and more)
+  pause | resume      pause or resume the timer
+  toggle              start or pause
+  stop                reset the current round
+  skip                skip to the next phase
+  break               start a break now
+  breathe [full]      open Breathe mode (add "full" for full screen)
+  sound on|off|toggle       ambient sound
+  sound <preset>            rainy, ocean, forest, quiet
+  clear | restore     hide other windows (never quits apps) and bring them back
+  status [--json]     show what Stillwater is doing
+USAGE
+}
+
+send() { open -g "stillwater://$1"; }
+
+cmd="${1:-status}"
+case "$cmd" in
+    start|work)
+        if [[ -n "${2:-}" ]]; then
+            [[ "$2" =~ ^[0-9]+$ ]] || { echo "minutes must be a number" >&2; exit 2; }
+            send "start?minutes=$2"
+        else send "start"; fi ;;
+    pause|resume|toggle|stop|skip|break|clear|restore) send "$cmd" ;;
+    breathe)
+        if [[ "${2:-}" == "full" ]]; then send "breathe?fullscreen=1"; else send "breathe"; fi ;;
+    sound)
+        case "${2:-toggle}" in
+            on|off|toggle) send "sound?state=$2" ;;
+            *) send "sound?preset=$2" ;;
+        esac ;;
+    status)
+        if [[ ! -f "$STATUS_FILE" ]]; then echo "Stillwater has not run yet."; exit 1; fi
+        if [[ "${2:-}" == "--json" ]]; then cat "$STATUS_FILE"; echo; exit 0; fi
+        mode=$(plutil -extract mode raw "$STATUS_FILE")
+        phase=$(plutil -extract phase raw "$STATUS_FILE")
+        running=$(plutil -extract running raw "$STATUS_FILE")
+        secs=$(plutil -extract remainingSeconds raw "$STATUS_FILE")
+        done_today=$(plutil -extract completedToday raw "$STATUS_FILE")
+        printf '%s, %s, %02d:%02d left, %s, %s rounds today\n' "$mode" "$phase" $((secs/60)) $((secs%60)) \
+            "$([[ $running == true ]] && echo running || echo paused)" "$done_today" ;;
+    -h|--help|help) usage ;;
+    *) usage; exit 2 ;;
+esac

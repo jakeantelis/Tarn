@@ -184,6 +184,21 @@ final class SoundEngine: ObservableObject {
     private var generators: [Soundscape: SoundGenerator] = [:]
     private var players: [Soundscape: AVAudioPlayerNode] = [:]
     private var phaseFactor: Float = 1
+    @Published var sleepMinutes = 0
+    private var sleepWork: DispatchWorkItem?
+
+    /// Fades the sounds out after the chosen time. 0 turns it off.
+    func setSleep(minutes: Int) {
+        sleepMinutes = minutes
+        sleepWork?.cancel()
+        guard minutes > 0 else { return }
+        let w = DispatchWorkItem { [weak self] in
+            self?.stop()
+            self?.sleepMinutes = 0
+        }
+        sleepWork = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(minutes) * 60, execute: w)
+    }
     private var built = false
 
     static let maxLayers = 3

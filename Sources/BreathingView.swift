@@ -57,6 +57,7 @@ struct BreathPattern: Identifiable, Hashable {
 struct BreathingView: View {
     var compact = false
     @AppStorage("guideMe") private var guideMe = false
+    @ObservedObject private var cleared = ScreenClearer.shared
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
     @State private var pattern = BreathPattern.settle
     @State private var start = Date()
@@ -114,6 +115,11 @@ struct BreathingView: View {
                             Button { BreatheOverlay.shared.show() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
                                 .buttonStyle(CircleButtonStyle())
                                 .help("Full screen")
+                            Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
+                                Image(systemName: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
+                            }
+                            .buttonStyle(CircleButtonStyle(on: cleared.isCleared))
+                            .help(cleared.isCleared ? "Bring your windows back" : "Hide other windows so you can breathe. Nothing is quit.")
                             Button { guideMe.toggle() } label: { Image(systemName: "text.bubble") }
                                 .buttonStyle(CircleButtonStyle(on: guideMe))
                                 .help("Guide me with gentle prompts")

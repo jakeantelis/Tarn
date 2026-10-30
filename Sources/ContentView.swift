@@ -1,4 +1,5 @@
 import SwiftUI
+import ServiceManagement
 
 extension Color {
     static let matcha = Color(red: 0.50, green: 0.76, blue: 0.46)
@@ -24,7 +25,7 @@ struct ContentView: View {
         else { g = [Color(red: 0.22, green: 0.42, blue: 0.30).opacity(0.30), Color(red: 0.16, green: 0.26, blue: 0.24).opacity(0.10)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
     }
-    private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 ? 2 : 0) : (tab == 2 ? 2 : 1) }
+    private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 || tab == 3 ? tab : 0) : (tab == 2 ? 2 : 1) }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -37,12 +38,13 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                PillPicker(items: timer.mode.hasTimer ? [0, 2] : [1, 2],
-                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 0 ? "Timer" : "Breathe") }
+                PillPicker(items: timer.mode.hasTimer ? [0, 3, 2] : [1, 2],
+                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Breathe")) }
                     .padding(.horizontal, 30)
 
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
+                case 3: StatsTab(stats: StatsStore.shared)
                 case 1:
                     VStack(spacing: 10) {
                         BreathingView()
@@ -101,6 +103,14 @@ enum Lines {
         ("Soften your shoulders. Unclench your jaw.", nil),
         ("This moment is enough.", nil),
     ]
+    static let breakIdeas = [
+        "Stand up and stretch your back.",
+        "Look at something far away for a few breaths.",
+        "Drink a glass of water.",
+        "Roll your shoulders back and let them drop.",
+        "Step outside for a minute if you can.",
+        "Shake out your hands and wrists.",
+    ]
     static func focusQuote(round: Int) -> Quote { focus[round % focus.count] }
     static func calmQuote(_ i: Int) -> Quote { calm[i % calm.count] }
 }
@@ -149,7 +159,25 @@ struct TimerTab: View {
     private var showBloom: Bool { timer.phase.isBreak && timer.breakStyle == .breathe }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
+            if !timer.phase.isBreak {
+                if timer.isRunning && !timer.intention.isEmpty {
+                    Text(timer.intention).font(.callout.weight(.medium)).lineLimit(1)
+                } else if !timer.isRunning {
+                    TextField("What are you working on?", text: Binding(get: { timer.intention }, set: { timer.objectWillChange.send(); timer.intention = $0 }))
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.secondary.opacity(0.12)))
+                }
+            }
+            TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                if timer.eyeRest, ctx.date < timer.eyeRestUntil {
+                    Label("Look 20 feet away for 20 seconds", systemImage: "eye")
+                        .font(.caption).padding(.horizontal, 12).padding(.vertical, 5)
+                        .background(Capsule().fill(Color.amber.opacity(0.25)))
+                }
+            }
             if showBloom {
                 VStack(spacing: 4) {
                     BreathingView(compact: true)
@@ -203,13 +231,51 @@ struct TimerTab: View {
             if timer.phase == .work {
                 QuoteLine(text: Lines.focusQuote(round: timer.completedRounds).text, author: Lines.focusQuote(round: timer.completedRounds).author)
             } else {
-                QuoteLine(text: Lines.calmQuote(timer.completedRounds).text, author: Lines.calmQuote(timer.completedRounds).author)
+                QuoteLine(text: Lines.breakIdeas[timer.completedRounds % Lines.breakIdeas.count])
             }
 
             Text("Round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+struct StatsTab: View {
+    @ObservedObject var stats: StatsStore
+
+    var body: some View {
+        let week = stats.week
+        let top = max(1, week.map { $0.stats.minutes }.max() ?? 1)
+        VStack(spacing: 16) {
+            HStack(spacing: 0) {
+                stat("\(stats.today.rounds)", "rounds today")
+                stat("\(stats.today.minutes)", "minutes today")
+                stat("\(stats.streak)", stats.streak == 1 ? "day streak" : "day streak")
+            }
+            HStack(alignment: .bottom, spacing: 10) {
+                ForEach(Array(week.enumerated()), id: \.offset) { _, d in
+                    VStack(spacing: 6) {
+                        Capsule()
+                            .fill(d.isToday ? Color.matcha : Color.matcha.opacity(0.45))
+                            .frame(width: 22, height: max(6, 110 * Double(d.stats.minutes) / Double(top)))
+                        Text(d.label).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(height: 140, alignment: .bottom)
+            Text("\(week.reduce(0) { $0 + $1.stats.rounds }) rounds this week. Saved only on this Mac.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(minHeight: 230, alignment: .top)
+    }
+
+    private func stat(_ big: String, _ small: String) -> some View {
+        VStack(spacing: 2) {
+            Text(big).font(.system(size: 28, weight: .light, design: .rounded))
+            Text(small).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -240,6 +306,10 @@ struct MixerTab: View {
                 }
                 .font(.callout)
             }
+            HStack {
+                Text("Fade out after").font(.caption).foregroundStyle(.secondary)
+                PillPicker(items: [0, 15, 30, 60], selection: Binding(get: { sound.sleepMinutes }, set: { sound.setSleep(minutes: $0) })) { $0 == 0 ? "Off" : "\($0)m" }
+            }
             Text("Up to \(SoundEngine.maxLayers) sounds at once keeps the mix calm.")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -266,8 +336,18 @@ struct SettingsTab: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(mode == .pomodoro ? "Work settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
+            GroupBox("General") {
+                Toggle("Open Stillwater at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
+                    .padding(.vertical, 4)
+            }
         }
         .font(.callout)
+    }
+
+    @State private var loginOn = SMAppService.mainApp.status == .enabled
+    private func setLogin(_ on: Bool) {
+        do { if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() } } catch {}
+        loginOn = SMAppService.mainApp.status == .enabled
     }
 
     private func minutesBinding(_ key: ReferenceWritableKeyPath<PomodoroTimer, Int>) -> Binding<Date> {
@@ -282,6 +362,14 @@ struct SettingsTab: View {
 
     private var pomodoro: some View {
         VStack(alignment: .leading, spacing: 12) {
+            GroupBox("Quick starts") {
+                HStack(spacing: 6) {
+                    ForEach(QuickStart.all) { q in
+                        Button(q.name) { q.apply(timer: timer, sound: sound) }
+                            .buttonStyle(CapsuleButtonStyle())
+                    }
+                }.padding(.vertical, 4)
+            }
             GroupBox("Rounds") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Pick a focus length on the Timer tab. Breaks scale with it.")
@@ -297,6 +385,7 @@ struct SettingsTab: View {
             GroupBox("Deep focus") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Pause when the Mac sleeps or locks", isOn: bind({ timer.pauseOnLock }, { timer.pauseOnLock = $0 }))
+                    Toggle("Remind me to rest my eyes every 20 minutes", isOn: bind({ timer.eyeRest }, { timer.eyeRest = $0 }))
                     Toggle("Hide the menu bar countdown", isOn: bind({ timer.hideCountdown }, { timer.hideCountdown = $0 }))
                     TextField("Shortcut to run when focus starts", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
                     TextField("Shortcut to run when focus ends", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
@@ -368,6 +457,26 @@ struct SettingsTab: View {
             }
             Text("Sounds for Breathe are mixed on the Sounds tab and play when you turn them on.")
                 .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct QuickStart: Identifiable {
+    let name: String
+    let minutes: Int
+    let preset: String?
+    var id: String { name }
+    static let all = [
+        QuickStart(name: "Deep work", minutes: 90, preset: "Rainy cabin"),
+        QuickStart(name: "Study", minutes: 45, preset: "Forest morning"),
+        QuickStart(name: "Sprint", minutes: 15, preset: nil),
+    ]
+
+    @MainActor func apply(timer: PomodoroTimer, sound: SoundEngine) {
+        timer.setFocusMinutes(minutes)
+        if let preset, let p = SoundPreset.all.first(where: { $0.name == preset }) {
+            UserDefaults.standard.set(true, forKey: "soundEnabled")
+            sound.applyPreset(p)
         }
     }
 }

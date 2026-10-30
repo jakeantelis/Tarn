@@ -3,8 +3,9 @@ import AppKit
 
 @main
 struct StillwaterApp: App {
-    @StateObject private var timer = PomodoroTimer()
-    @StateObject private var sound = SoundEngine()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    @StateObject private var timer = AppModel.shared.timer
+    @StateObject private var sound = AppModel.shared.sound
 
     var body: some Scene {
         MenuBarExtra {

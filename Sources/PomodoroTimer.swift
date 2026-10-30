@@ -49,6 +49,11 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("chime") var chime = true
     @AppStorage("fullScreenBreaks") var fullScreenBreaks = false
+    @AppStorage("intention") var intention = ""
+    @AppStorage("eyeRest") var eyeRest = false
+    @Published var eyeRestUntil = Date.distantPast
+    private var lastEyeBlock = 0
+    private var lastWritten = -1
     @AppStorage("focusStartShortcut") var focusStartShortcut = ""
     @AppStorage("focusEndShortcut") var focusEndShortcut = ""
     @AppStorage("pauseOnLock") var pauseOnLock = true
@@ -178,11 +183,13 @@ final class PomodoroTimer: ObservableObject {
         endDate = Date().addingTimeInterval(remaining)
         isRunning = true
         setFocusActive(phase == .work)
+        if phase == .work { ScreenClearer.shared.restore() }
         let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
         RunLoop.main.add(t, forMode: .common)
         ticker = t
+        writeStatus()
     }
 
     func pause() {
@@ -212,14 +219,40 @@ final class PomodoroTimer: ObservableObject {
     private func tick() {
         guard let endDate else { return }
         remaining = max(0, endDate.timeIntervalSinceNow)
+        if eyeRest, phase == .work {
+            let block = Int((duration(for: .work) - remaining) / 1200)
+            if block > lastEyeBlock, remaining > 90 {
+                eyeRestUntil = Date().addingTimeInterval(20)
+                NSSound(named: "Tink")?.play()
+            }
+            lastEyeBlock = block
+        }
+        if Int(remaining) != lastWritten { writeStatus() }
         if remaining <= 0 {
+            if phase == .work { StatsStore.shared.record(minutes: Int(duration(for: .work) / 60)) }
             stopTicker()
             if chime { NSSound(named: "Glass")?.play() }
             advance(autoStart: autoStartNext)
         }
     }
 
+    /// Writes a small status file so stillwaterctl status can read it.
+    func writeStatus() {
+        lastWritten = Int(remaining)
+        let dict: [String: Any] = [
+            "mode": mode.rawValue.lowercased(),
+            "phase": phase.rawValue,
+            "running": isRunning,
+            "remainingSeconds": Int(remaining),
+            "completedToday": StatsStore.shared.today.rounds,
+        ]
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Stillwater")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let data = try? JSONSerialization.data(withJSONObject: dict) { try? data.write(to: dir.appendingPathComponent("status.json")) }
+    }
+
     private func advance(autoStart: Bool) {
+        lastEyeBlock = 0
         if phase == .work {
             completedRounds += 1
             phase = completedRounds % roundsPerSet == 0 ? .longBreak : .shortBreak
