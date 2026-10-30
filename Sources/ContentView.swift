@@ -72,8 +72,8 @@ struct ContentView: View {
 
 enum Lines {
     static let focus = ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus")
-    /// Meditations 4.3, George Long translation (1862, public domain).
-    static let breathe = ("Nowhere can a man retire with more quiet or more freedom from trouble than into his own soul.", "Marcus Aurelius")
+    /// Letters to Lucilius 13, Richard Gummere translation (1917, public domain).
+    static let breathe = ("We suffer more often in imagination than in reality.", "Seneca")
     /// Our own words, so there is nothing to attribute or license.
     static let calm = [
         "Nothing to do right now. Just breathe.",
