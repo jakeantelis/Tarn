@@ -13,7 +13,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 12) {
             if showSettings {
-                SettingsTab(timer: timer, sound: sound)
+                SettingsTab(timer: timer, sound: sound, mode: timer.mode)
             } else {
                 Picker("", selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) {
                     ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
@@ -138,6 +138,17 @@ struct MixerTab: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(SoundPreset.all) { p in
+                        Button { sound.applyPreset(p) } label: {
+                            Label(p.name, systemImage: p.symbol).font(.caption)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            }
             ForEach(Soundscape.allCases) { s in
                 HStack(spacing: 10) {
                     Image(systemName: s.symbol).frame(width: 20).foregroundStyle(.secondary)
@@ -150,68 +161,97 @@ struct MixerTab: View {
                 }
                 .font(.callout)
             }
+            Text("Up to \(SoundEngine.maxLayers) sounds at once keeps the mix calm.")
+                .font(.caption).foregroundStyle(.secondary)
         }
-        .frame(minHeight: 190, alignment: .top)
+        .frame(minHeight: 230, alignment: .top)
     }
 }
 
 struct SettingsTab: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
-    @AppStorage("soundEnabled") private var soundEnabled = false
+    let mode: Mode
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
     @AppStorage("voiceGuide") private var voiceGuide = false
+    @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
+    @AppStorage("soundEnabled") private var soundEnabled = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
+
+    private func bind<T>(_ get: @escaping () -> T, _ set: @escaping (T) -> Void) -> Binding<T> {
+        Binding(get: get, set: { timer.objectWillChange.send(); set($0) })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Stillwater has two modes. Pomodoro runs timed focus rounds with breaks. Breathe is a calm bloom and optional ambient sound, with no timer. Use either one, or let Pomodoro breaks open into guided breathing.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(mode == .pomodoro ? "Pomodoro settings" : "Breathe settings").font(.headline)
+            if mode == .pomodoro { pomodoro } else { breathe }
+        }
+        .font(.callout)
+    }
 
-            GroupBox("Pomodoro") {
+    private var pomodoro: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GroupBox("Rounds") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Pick a focus length on the Timer tab: 15, 25, 45, 60 or 90 minutes. Breaks and long breaks scale with it.")
+                    Text("Pick a focus length on the Timer tab. Breaks scale with it.")
                         .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Picker("Breaks", selection: Binding(get: { timer.breakStyle }, set: { timer.objectWillChange.send(); timer.breakStyleRaw = $0.rawValue })) {
+                    Picker("Breaks", selection: bind({ timer.breakStyle }, { timer.breakStyleRaw = $0.rawValue })) {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
-                    Toggle("Start next round automatically", isOn: Binding(get: { timer.autoStartNext }, set: { timer.objectWillChange.send(); timer.autoStartNext = $0 }))
-                    Toggle("Play a chime when a round ends", isOn: Binding(get: { timer.chime }, set: { timer.objectWillChange.send(); timer.chime = $0 }))
-                }
-                .padding(.vertical, 4)
+                    Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
+                    Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
+                }.padding(.vertical, 4)
             }
-
-            GroupBox("Breathing") {
-                VStack(alignment: .leading, spacing: 4) {
-                    Picker("Visual", selection: $breathStyle) {
-                        ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
-                    }
-                    .pickerStyle(.segmented)
-                    Toggle("Spoken cues (Breathe in, Hold, And out)", isOn: $voiceGuide)
-                    Text("Uses your Mac's built in voice, offline. Off by default. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.vertical, 4)
-            }
-
-            GroupBox("Sound") {
+            GroupBox("Deep focus") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play ambient sounds with Pomodoro", isOn: $soundEnabled)
+                    Toggle("Pause when the Mac sleeps or locks", isOn: bind({ timer.pauseOnLock }, { timer.pauseOnLock = $0 }))
+                    Toggle("Hide the menu bar countdown", isOn: bind({ timer.hideCountdown }, { timer.hideCountdown = $0 }))
+                    TextField("Shortcut to run when focus starts", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
+                    TextField("Shortcut to run when focus ends", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
+                    Text("Name a Shortcut from the Shortcuts app, for example one that turns on a Focus mode to silence notifications. Leave blank to skip.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Background sound") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Play sounds with Pomodoro", isOn: $soundEnabled)
                     if soundEnabled {
                         Picker("Play during", selection: $scopeRaw) {
                             ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
                         }
+                        Text(scopeRaw == SoundScope.always.rawValue ? "Soft during work, fuller on breaks. Choose the mix on the Sounds tab." : "Choose the mix on the Sounds tab.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    Text(scopeRaw == SoundScope.always.rawValue ? "Both plays softly during work and fuller on breaks. Off by default." : "Off by default. You can still turn sounds on any time from the Sounds tab.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
+                }.padding(.vertical, 4)
             }
         }
-        .font(.callout)
+    }
+
+    private var breathe: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GroupBox("Visual") {
+                Picker("Style", selection: $breathStyle) {
+                    ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented).labelsHidden().padding(.vertical, 4)
+            }
+            GroupBox("Full screen") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Hide other apps while breathing", isOn: $hideOthers)
+                    Text("The Full screen button on the Breathe tab dims every screen so you can breathe. Press Esc to leave, and your apps come back.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Voice") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Spoken cues (Breathe in, Hold, And out)", isOn: $voiceGuide)
+                    Text("Uses your Mac's built in voice, offline. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            Text("Sounds for Breathe are mixed on the Sounds tab and play when you turn them on.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 }

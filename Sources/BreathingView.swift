@@ -69,6 +69,13 @@ struct BreathingView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                Button {
+                    BreatheOverlay.shared.show()
+                } label: {
+                    Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right")
+                }
+                .buttonStyle(.borderless)
+                .font(.callout)
             }
 
             TimelineView(.animation) { ctx in

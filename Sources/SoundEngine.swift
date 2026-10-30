@@ -24,6 +24,20 @@ enum Soundscape: String, CaseIterable, Identifiable {
     }
 }
 
+struct SoundPreset: Identifiable {
+    let name: String
+    let symbol: String
+    let mix: [Soundscape: Double]
+    var id: String { name }
+
+    static let all = [
+        SoundPreset(name: "Rainy cabin", symbol: "cloud.rain", mix: [.rain: 0.7, .wind: 0.2]),
+        SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
+        SoundPreset(name: "Forest morning", symbol: "bird", mix: [.forest: 0.7, .stream: 0.3]),
+        SoundPreset(name: "Quiet wind", symbol: "wind", mix: [.wind: 0.6]),
+    ]
+}
+
 /// Procedural, endlessly looping ambient generator. No audio files, so no licensing risk.
 final class SoundGenerator: @unchecked Sendable {
     let kind: Soundscape
@@ -172,7 +186,22 @@ final class SoundEngine: ObservableObject {
     private var phaseFactor: Float = 1
     private var built = false
 
-    func setLevel(_ level: Double, for s: Soundscape) {
+    static let maxLayers = 3
+
+    func applyPreset(_ preset: SoundPreset) {
+        for s in Soundscape.allCases { setLevel(preset.mix[s] ?? 0, for: s, enforceCap: false) }
+        if !isPlaying { play() }
+    }
+
+    func setLevel(_ level: Double, for s: Soundscape, enforceCap: Bool = true) {
+        // More than a few layers at once sounds muddy, so the quietest other layer steps aside.
+        if enforceCap, level > 0 {
+            let others = Soundscape.allCases.filter { $0 != s && (levels[$0] ?? 0) > 0 }
+            if others.count >= Self.maxLayers, let quietest = others.min(by: { (levels[$0] ?? 0) < (levels[$1] ?? 0) }) {
+                levels[quietest] = 0
+                UserDefaults.standard.set(0.0, forKey: "vol_\(quietest.rawValue)")
+            }
+        }
         levels[s] = level
         UserDefaults.standard.set(level, forKey: "vol_\(s.rawValue)")
         applyGains()

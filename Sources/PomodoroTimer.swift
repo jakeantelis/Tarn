@@ -48,11 +48,42 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("autoStartNext") var autoStartNext = true
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("chime") var chime = true
+    @AppStorage("focusStartShortcut") var focusStartShortcut = ""
+    @AppStorage("focusEndShortcut") var focusEndShortcut = ""
+    @AppStorage("pauseOnLock") var pauseOnLock = true
+    @AppStorage("hideCountdown") var hideCountdown = false
+    private var focusActive = false
 
     private var endDate: Date?
     private var ticker: Timer?
 
-    init() { remaining = duration(for: .work) }
+    init() {
+        remaining = duration(for: .work)
+        let pause: (Notification) -> Void = { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.pauseOnLock else { return }
+                self.pause()
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main, using: pause)
+        DistributedNotificationCenter.default().addObserver(forName: NSNotification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: pause)
+    }
+
+    /// Runs a Shortcut the user named (for example to switch on Do Not Disturb). Nothing runs unless they set one.
+    private func runShortcut(_ name: String) {
+        let n = name.trimmingCharacters(in: .whitespaces)
+        guard !n.isEmpty else { return }
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
+        task.arguments = ["run", n]
+        try? task.run()
+    }
+
+    private func setFocusActive(_ on: Bool) {
+        guard on != focusActive else { return }
+        focusActive = on
+        runShortcut(on ? focusStartShortcut : focusEndShortcut)
+    }
 
     func setFocusMinutes(_ m: Int) {
         objectWillChange.send()
@@ -108,6 +139,7 @@ final class PomodoroTimer: ObservableObject {
         guard !isRunning else { return }
         endDate = Date().addingTimeInterval(remaining)
         isRunning = true
+        setFocusActive(phase == .work)
         let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -136,6 +168,7 @@ final class PomodoroTimer: ObservableObject {
         ticker = nil
         endDate = nil
         isRunning = false
+        setFocusActive(false)
     }
 
     private func tick() {

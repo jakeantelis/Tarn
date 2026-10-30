@@ -10,7 +10,7 @@ struct StillwaterApp: App {
             ContentView(timer: timer, sound: sound)
         } label: {
             Group {
-                if timer.mode.hasTimer && (timer.isRunning || timer.remaining < timer.duration(for: timer.phase)) {
+                if timer.mode.hasTimer && !timer.hideCountdown && (timer.isRunning || timer.remaining < timer.duration(for: timer.phase)) {
                     Text(timer.clockText).monospacedDigit()
                 } else {
                     Image(systemName: "leaf")
