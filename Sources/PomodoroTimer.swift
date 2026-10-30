@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 enum Mode: String, CaseIterable, Identifiable {
-    case pomodoro = "Work", breathe = "Breathe"
+    case pomodoro = "Focus", breathe = "Breathe"
     var id: String { rawValue }
     var hasTimer: Bool { self == .pomodoro }
     var blurb: String {

@@ -125,7 +125,7 @@ struct Welcome: View {
             Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.matcha)
             Text("Welcome to Stillwater").font(.title3.weight(.medium))
             VStack(alignment: .leading, spacing: 10) {
-                Label("**Work** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
+                Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
                 Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
                 Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
             }
@@ -333,7 +333,7 @@ struct SettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(mode == .pomodoro ? "Work settings" : "Breathe settings").font(.headline)
+            Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
             GroupBox("General") {
                 Toggle("Open Stillwater at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
@@ -425,7 +425,7 @@ struct SettingsTab: View {
             .padding(.vertical, 2)
             GroupBox("Background sound") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play sounds while working", isOn: $soundEnabled)
+                    Toggle("Play sounds while focusing", isOn: $soundEnabled)
                     if soundEnabled {
                         Picker("Play during", selection: $scopeRaw) {
                             ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
