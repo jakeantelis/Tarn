@@ -152,19 +152,7 @@ struct TimerTab: View {
                 .frame(height: 190)
             } else {
                 ZStack {
-                    TimelineView(.animation(paused: !timer.isRunning)) { ctx in
-                        let p = 0.5 + 0.5 * sin(ctx.date.timeIntervalSinceReferenceDate * 2 * .pi / 4 - .pi / 2)
-                        Circle()
-                            .stroke((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(timer.isRunning ? 0.05 + 0.10 * p : 0.05), lineWidth: 8 + 7 * (timer.isRunning ? p : 0))
-                            .scaleEffect(1 + 0.035 * (timer.isRunning ? p : 0))
-                    }
-                    Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 8)
-                    Circle()
-                        .trim(from: 0, to: timer.progress)
-                        .stroke(timer.phase.isBreak ? Color.purple.opacity(0.7) : Color.matcha,
-                                style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.25), value: timer.progress)
+                    LensView(progress: timer.progress, running: timer.isRunning)
                     VStack(spacing: 6) {
                         Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS")
                             .font(.caption.weight(.semibold))
@@ -180,8 +168,8 @@ struct TimerTab: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(width: 170, height: 170)
-                .frame(height: 190)
+                .frame(width: 200, height: 200)
+                .frame(height: 200)
             }
 
             if !timer.phase.isBreak { HStack(spacing: 6) {
@@ -275,6 +263,16 @@ struct SettingsTab: View {
         .font(.callout)
     }
 
+    private func minutesBinding(_ key: ReferenceWritableKeyPath<PomodoroTimer, Int>) -> Binding<Date> {
+        Binding(get: {
+            Calendar.current.date(bySettingHour: timer[keyPath: key] / 60, minute: timer[keyPath: key] % 60, second: 0, of: Date()) ?? Date()
+        }, set: { d in
+            let c = Calendar.current.dateComponents([.hour, .minute], from: d)
+            timer.objectWillChange.send()
+            timer[keyPath: key] = (c.hour ?? 0) * 60 + (c.minute ?? 0)
+        })
+    }
+
     private var pomodoro: some View {
         VStack(alignment: .leading, spacing: 12) {
             GroupBox("Rounds") {
@@ -297,6 +295,32 @@ struct SettingsTab: View {
                     TextField("Shortcut to run when focus ends", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
                     Text("Name a Shortcut from the Shortcuts app, for example one that turns on a Focus mode to silence notifications. Leave blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Schedule") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Start work automatically on a schedule", isOn: bind({ timer.scheduleEnabled }, { timer.scheduleEnabled = $0 }))
+                    if timer.scheduleEnabled {
+                        HStack {
+                            DatePicker("From", selection: minutesBinding(\.scheduleStart), displayedComponents: .hourAndMinute)
+                            DatePicker("to", selection: minutesBinding(\.scheduleEnd), displayedComponents: .hourAndMinute)
+                        }
+                        HStack(spacing: 4) {
+                            ForEach(0..<7, id: \.self) { d in
+                                let on = timer.scheduleDays & (1 << d) != 0
+                                Button(["S", "M", "T", "W", "T", "F", "S"][d]) {
+                                    timer.objectWillChange.send()
+                                    timer.scheduleDays ^= (1 << d)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(width: 26, height: 26)
+                                .background(Circle().fill(on ? Color.matcha : Color.secondary.opacity(0.15)))
+                                .foregroundStyle(on ? Color.white : Color.primary)
+                            }
+                        }
+                        Text("Rounds and breaks then run on their own between these times, on the days you pick. The app needs to be open.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
                 }.padding(.vertical, 4)
             }
             GroupBox("Background sound") {

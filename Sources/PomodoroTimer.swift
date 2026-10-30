@@ -55,6 +55,15 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("hideCountdown") var hideCountdown = false
     private var focusActive = false
 
+    // Daily schedule: auto start the first round at a set time and stop at the end time.
+    @AppStorage("scheduleEnabled") var scheduleEnabled = false
+    @AppStorage("scheduleStart") var scheduleStart = 9 * 60          // minutes after midnight
+    @AppStorage("scheduleEnd") var scheduleEnd = 17 * 60
+    @AppStorage("scheduleDays") var scheduleDays = 0b0111110          // Sun=bit0 ... Sat=bit6, default Mon to Fri
+    @AppStorage("scheduleLastStart") private var lastStartDay = ""
+    @AppStorage("scheduleLastEnd") private var lastEndDay = ""
+    private var scheduleTimer: Timer?
+
     private var endDate: Date?
     private var ticker: Timer?
 
@@ -66,8 +75,28 @@ final class PomodoroTimer: ObservableObject {
                 self.pause()
             }
         }
+        let st = Timer(timeInterval: 15, repeats: true) { [weak self] _ in Task { @MainActor in self?.checkSchedule() } }
+        RunLoop.main.add(st, forMode: .common)
+        scheduleTimer = st
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main, using: pause)
         DistributedNotificationCenter.default().addObserver(forName: NSNotification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: pause)
+    }
+
+    private func checkSchedule() {
+        guard scheduleEnabled, mode.hasTimer else { return }
+        let cal = Calendar.current, now = Date()
+        let weekday = cal.component(.weekday, from: now) - 1            // Sunday = 0
+        guard scheduleDays & (1 << weekday) != 0 else { return }
+        let minute = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
+        let day = ISO8601DateFormatter().string(from: cal.startOfDay(for: now))
+        if minute >= scheduleStart, minute < scheduleEnd, lastStartDay != day {
+            lastStartDay = day
+            if !isRunning { phase = .work; completedRounds = 0; remaining = duration(for: .work); start() }
+        }
+        if minute >= scheduleEnd, lastEndDay != day, lastStartDay == day {
+            lastEndDay = day
+            reset()
+        }
     }
 
     /// Runs a Shortcut the user named (for example to switch on Do Not Disturb). Nothing runs unless they set one.
