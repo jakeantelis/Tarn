@@ -32,11 +32,12 @@ struct PillPicker<T: Hashable>: View {
 struct CapsuleButtonStyle: ButtonStyle {
     var prominent = false
     var large = false
+    var small = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(large ? .title3.weight(.medium) : .callout)
-            .padding(.horizontal, large ? 26 : 14)
-            .padding(.vertical, large ? 9 : 6)
+            .font(large ? .title3.weight(.medium) : (small ? .caption : .callout))
+            .padding(.horizontal, large ? 26 : (small ? 10 : 14))
+            .padding(.vertical, large ? 9 : (small ? 5 : 6))
             .foregroundStyle(prominent ? Color.white : Color.primary)
             .background { if prominent { Capsule().fill(.tint) } else { Capsule().fill(Color.secondary.opacity(0.18)) } }
             .opacity(configuration.isPressed ? 0.75 : 1)

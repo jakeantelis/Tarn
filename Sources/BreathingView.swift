@@ -109,25 +109,25 @@ struct BreathingView: View {
                     .padding(.vertical, 6)
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 160 : 230)
-                .overlay(alignment: .topTrailing) {
-                    if !compact {
-                        VStack(spacing: 6) {
-                            Button { BreatheOverlay.shared.show() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
-                                .buttonStyle(CircleButtonStyle())
-                                .help("Full screen")
-                            Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
-                                Image(systemName: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
-                            }
-                            .buttonStyle(CircleButtonStyle(on: cleared.isCleared))
-                            .help(cleared.isCleared ? "Bring your windows back" : "Hide other windows so you can breathe. Nothing is quit.")
-                            Button { guideMe.toggle() } label: { Image(systemName: "text.bubble") }
-                                .buttonStyle(CircleButtonStyle(on: guideMe))
-                                .help("Guide me with gentle prompts")
-                        }
-                    }
-                }
                 .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
                 .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
+            }
+
+            if !compact {
+                HStack(spacing: 6) {
+                    Button { BreatheOverlay.shared.show() } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
+                        .buttonStyle(CapsuleButtonStyle(small: true))
+                        .help("Dim every screen so you can breathe. Esc leaves.")
+                    Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
+                        Label(cleared.isCleared ? "Bring back" : "Hide others", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
+                    }
+                    .buttonStyle(CapsuleButtonStyle(prominent: cleared.isCleared, small: true))
+                    .help("Hides other windows. Nothing is quit.")
+                    Button { guideMe.toggle() } label: { Label("Guide", systemImage: "text.bubble") }
+                        .buttonStyle(CapsuleButtonStyle(prominent: guideMe, small: true))
+                        .help("Gentle prompts while you breathe")
+                }
+                .font(.caption)
             }
         }
     }

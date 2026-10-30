@@ -192,7 +192,7 @@ struct TimerTab: View {
                 ZStack {
                     LensView(progress: timer.progress, running: timer.isRunning)
                     VStack(spacing: 6) {
-                        Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS")
+                        Text((timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS") + "  \(timer.completedRounds % timer.roundsPerSet + 1)/\(timer.roundsPerSet)")
                             .font(.caption.weight(.semibold))
                             .tracking(1.5)
                             .padding(.horizontal, 10).padding(.vertical, 3)
@@ -232,14 +232,10 @@ struct TimerTab: View {
             }
 
             if timer.phase == .work {
-                QuoteLine(text: Lines.focusQuote(round: timer.completedRounds).text, author: Lines.focusQuote(round: timer.completedRounds).author)
+                if !timer.isRunning { QuoteLine(text: Lines.focusQuote(round: timer.completedRounds).text, author: Lines.focusQuote(round: timer.completedRounds).author) }
             } else {
                 QuoteLine(text: Lines.breakIdeas[timer.completedRounds % Lines.breakIdeas.count])
             }
-
-            Text("Round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 }
@@ -385,6 +381,8 @@ struct SettingsTab: View {
                     Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
             }
+            DisclosureGroup("Advanced") {
+              VStack(alignment: .leading, spacing: 12) {
             GroupBox("Deep focus") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Pause when the Mac sleeps or locks", isOn: bind({ timer.pauseOnLock }, { timer.pauseOnLock = $0 }))
@@ -422,6 +420,9 @@ struct SettingsTab: View {
                     }
                 }.padding(.vertical, 4)
             }
+              }
+            }
+            .padding(.vertical, 2)
             GroupBox("Background sound") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Play sounds while working", isOn: $soundEnabled)
