@@ -12,6 +12,7 @@ struct ContentView: View {
         self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab); _showSettings = State(initialValue: startInSettings)
     }
     @State private var showSettings = false
+    @AppStorage("welcomed") private var welcomed = false
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
     private var breakTint: some View { Color.purple.opacity(onBreak ? 0.14 : 0) }
@@ -75,6 +76,7 @@ struct ContentView: View {
         .background(breakTint)
         .tint(.matcha)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
+        .overlay { if !welcomed { Welcome { welcomed = true } } }
     }
 }
 
@@ -99,6 +101,29 @@ enum Lines {
     ]
     static func focusQuote(round: Int) -> Quote { focus[round % focus.count] }
     static func calmQuote(_ i: Int) -> Quote { calm[i % calm.count] }
+}
+
+struct Welcome: View {
+    let done: () -> Void
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.matcha)
+            Text("Welcome to Stillwater").font(.title3.weight(.medium))
+            VStack(alignment: .leading, spacing: 10) {
+                Label("**Focus** runs Pomodoro rounds. Breaks open into gentle breathing.", systemImage: "timer")
+                Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
+                Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
+            }
+            .font(.callout)
+            .labelStyle(.titleAndIcon)
+            Button("Get started", action: done)
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.regularMaterial)
+    }
 }
 
 struct QuoteLine: View {
@@ -133,10 +158,10 @@ struct TimerTab: View {
             } else {
                 ZStack {
                     TimelineView(.animation(paused: !timer.isRunning)) { ctx in
-                        let p = 0.5 + 0.5 * sin(ctx.date.timeIntervalSinceReferenceDate * 2 * .pi / 4)
+                        let p = 0.5 + 0.5 * sin(ctx.date.timeIntervalSinceReferenceDate * 2 * .pi / 4 - .pi / 2)
                         Circle()
-                            .stroke((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(timer.isRunning ? 0.10 + 0.14 * p : 0.08), lineWidth: 8 + 10 * (timer.isRunning ? p : 0))
-                            .scaleEffect(1 + 0.05 * (timer.isRunning ? p : 0))
+                            .stroke((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(timer.isRunning ? 0.05 + 0.10 * p : 0.05), lineWidth: 8 + 7 * (timer.isRunning ? p : 0))
+                            .scaleEffect(1 + 0.035 * (timer.isRunning ? p : 0))
                     }
                     Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 8)
                     Circle()
@@ -158,7 +183,7 @@ struct TimerTab: View {
                 .frame(height: 190)
             }
 
-            HStack(spacing: 6) {
+            if !timer.phase.isBreak { HStack(spacing: 6) {
                 ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
                     Button("\(m)") { timer.setFocusMinutes(m) }
                         .buttonStyle(.plain)
@@ -169,7 +194,7 @@ struct TimerTab: View {
                         .foregroundStyle(timer.focusMinutes == m ? Color.white : Color.primary)
                 }
                 Text("min").font(.caption).foregroundStyle(.secondary)
-            }
+            } }
 
             HStack(spacing: 10) {
                 Button(timer.isRunning ? "Pause" : "Start") { timer.toggle() }
@@ -243,7 +268,7 @@ struct SettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(mode == .pomodoro ? "Pomodoro settings" : "Breathe settings").font(.headline)
+            Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
         }
         .font(.callout)
@@ -274,7 +299,7 @@ struct SettingsTab: View {
             }
             GroupBox("Background sound") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play sounds with Pomodoro", isOn: $soundEnabled)
+                    Toggle("Play sounds while focusing", isOn: $soundEnabled)
                     if soundEnabled {
                         Picker("Play during", selection: $scopeRaw) {
                             ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }

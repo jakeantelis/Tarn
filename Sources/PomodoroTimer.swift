@@ -2,12 +2,12 @@ import SwiftUI
 import AppKit
 
 enum Mode: String, CaseIterable, Identifiable {
-    case pomodoro = "Pomodoro", breathe = "Breathe"
+    case pomodoro = "Focus", breathe = "Breathe"
     var id: String { rawValue }
     var hasTimer: Bool { self == .pomodoro }
     var blurb: String {
         switch self {
-        case .pomodoro: return "Focus in rounds with timed breaks."
+        case .pomodoro: return "Pomodoro rounds with calm, timed breaks."
         case .breathe: return "Slow down any time. No timer needed."
         }
     }
