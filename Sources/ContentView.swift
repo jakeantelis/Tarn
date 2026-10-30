@@ -6,6 +6,8 @@ struct ContentView: View {
     @State private var tab = 0          // 0 timer, 1 breathe, 2 sounds
     @State private var showSettings = false
 
+    private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
+    private var breakTint: some View { Color.purple.opacity(onBreak ? 0.14 : 0) }
     private var effectiveTab: Int { timer.mode.hasTimer ? tab : max(tab, 1) }
 
     var body: some View {
@@ -59,6 +61,8 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
+        .background(breakTint)
+        .animation(.easeInOut(duration: 1.2), value: onBreak)
     }
 }
 
@@ -78,6 +82,12 @@ struct TimerTab: View {
                 .frame(height: 190)
             } else {
                 ZStack {
+                    TimelineView(.animation(paused: !timer.isRunning)) { ctx in
+                        let p = 0.5 + 0.5 * sin(ctx.date.timeIntervalSinceReferenceDate * 2 * .pi / 4)
+                        Circle()
+                            .stroke((timer.phase.isBreak ? Color.teal : Color.orange).opacity(timer.isRunning ? 0.10 + 0.14 * p : 0.08), lineWidth: 8 + 10 * (timer.isRunning ? p : 0))
+                            .scaleEffect(1 + 0.05 * (timer.isRunning ? p : 0))
+                    }
                     Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 8)
                     Circle()
                         .trim(from: 0, to: timer.progress)
@@ -139,6 +149,7 @@ struct SettingsTab: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
     @AppStorage("soundEnabled") private var soundEnabled = false
+    @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
 
@@ -172,6 +183,10 @@ struct SettingsTab: View {
 
             GroupBox("Breathing") {
                 VStack(alignment: .leading, spacing: 4) {
+                    Picker("Visual", selection: $breathStyle) {
+                        ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
                     Toggle("Spoken cues (Breathe in, Hold, And out)", isOn: $voiceGuide)
                     Text("Uses your Mac's built in voice, offline. Off by default. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -188,7 +203,7 @@ struct SettingsTab: View {
                             ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
                         }
                     }
-                    Text("Off by default. You can still turn sounds on any time from the Sounds tab.")
+                    Text(scopeRaw == SoundScope.always.rawValue ? "Both plays softly during work and fuller on breaks. Off by default." : "Off by default. You can still turn sounds on any time from the Sounds tab.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)

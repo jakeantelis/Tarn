@@ -60,7 +60,7 @@ final class SoundGenerator: @unchecked Sendable {
     func render(_ out: UnsafeMutablePointer<Float>, frames: Int) {
         let dt = 1.0 / sampleRate
         for i in 0..<frames {
-            smoothGain += (gain - smoothGain) * 0.0008
+            smoothGain += (gain - smoothGain) * 0.00001
             let w = white()
             var s: Float = 0
             switch kind {
@@ -169,6 +169,7 @@ final class SoundEngine: ObservableObject {
     private let engine = AVAudioEngine()
     private var generators: [Soundscape: SoundGenerator] = [:]
     private var players: [Soundscape: AVAudioPlayerNode] = [:]
+    private var phaseFactor: Float = 1
     private var built = false
 
     func setLevel(_ level: Double, for s: Soundscape) {
@@ -178,8 +179,8 @@ final class SoundEngine: ObservableObject {
     }
 
     private func applyGains() {
-        for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) : 0 }
-        for (s, p) in players { p.volume = isPlaying ? Float(levels[s] ?? 0) : 0 }
+        for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
+        for (s, p) in players { p.volume = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
     }
 
     private func build() {
@@ -221,6 +222,8 @@ final class SoundEngine: ObservableObject {
         guard d.bool(forKey: "soundEnabled") else { if isPlaying { stop() }; return }
         if mode == .breathe { return }   // Breathe mode is driven by the Sounds toggle
         let scope = SoundScope(rawValue: d.string(forKey: "soundScope") ?? "") ?? .always
+        let factor: Float = (scope == .always && !phase.isBreak) ? 0.4 : 1
+        if factor != phaseFactor { phaseFactor = factor; applyGains() }
         let want: Bool
         switch scope {
         case .always: want = timerRunning
@@ -242,7 +245,7 @@ final class SoundEngine: ObservableObject {
     func stop() {
         applyGainsAfter(playing: false)
         // let the gain ramp finish, then pause the engine to save power
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
             guard let self, !self.isPlaying else { return }
             self.engine.pause()
         }

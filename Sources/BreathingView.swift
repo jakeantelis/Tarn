@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum BreathStyle: String, CaseIterable, Identifiable {
+    case fill = "Fill", bloom = "Bloom", rings = "Rings"
+    var id: String { rawValue }
+}
+
 struct BreathPattern: Identifiable, Hashable {
     let id: String
     let name: String
@@ -40,6 +45,7 @@ struct BreathPattern: Identifiable, Hashable {
 
 struct BreathingView: View {
     var compact = false
+    @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
     @State private var pattern = BreathPattern.calm
     @State private var start = Date()
 
@@ -58,13 +64,22 @@ struct BreathingView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .onChange(of: pattern) { _, _ in start = Date() }
+                Picker("", selection: $styleRaw) {
+                    ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
 
             TimelineView(.animation) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 ZStack {
-                    BloomCanvas(scale: s.scale, time: t)
+                    switch BreathStyle(rawValue: styleRaw) ?? .fill {
+                    case .fill: FillCanvas(scale: s.scale, time: t)
+                    case .bloom: BloomCanvas(scale: s.scale, time: t)
+                    case .rings: RingsCanvas(scale: s.scale, time: t)
+                    }
                     Text(s.label)
                         .font(.system(.title3, design: .rounded).weight(.light))
                         .foregroundStyle(.primary.opacity(0.85))
@@ -116,6 +131,66 @@ struct BloomCanvas: View {
             g.fill(Path(ellipseIn: CGRect(x: c.x - hr, y: c.y - hr, width: hr * 2, height: hr * 2)),
                    with: .radialGradient(Gradient(colors: [greens[0].opacity(0.9), greens[1].opacity(0.25)]),
                                          center: c, startRadius: 0, endRadius: hr))
+        }
+    }
+}
+
+/// Round vessel; water rises on the inhale and drains on the exhale.
+struct FillCanvas: View {
+    let scale: Double
+    let time: Double
+
+    var body: some View {
+        Canvas { g, size in
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+            let r = min(size.width, size.height) / 2 - 8
+            let vessel = Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+            let level = c.y + r - (2 * r) * (0.08 + 0.84 * scale)
+            g.drawLayer { l in
+                l.clip(to: vessel)
+                for (i, alpha) in [0.30, 0.45].enumerated() {
+                    var wave = Path()
+                    let phase = time * (0.9 + 0.4 * Double(i)) + Double(i) * 1.7
+                    wave.move(to: CGPoint(x: c.x - r, y: c.y + r))
+                    var x = c.x - r
+                    while x <= c.x + r {
+                        let y = level + sin((x / 22) + phase) * (3.0 + Double(i)) 
+                        wave.addLine(to: CGPoint(x: x, y: y))
+                        x += 3
+                    }
+                    wave.addLine(to: CGPoint(x: c.x + r, y: c.y + r))
+                    wave.closeSubpath()
+                    l.fill(wave, with: .linearGradient(
+                        Gradient(colors: [Color.teal.opacity(alpha), Color.blue.opacity(alpha + 0.15)]),
+                        startPoint: CGPoint(x: c.x, y: level), endPoint: CGPoint(x: c.x, y: c.y + r)))
+                }
+            }
+            g.stroke(vessel, with: .color(Color.teal.opacity(0.55)), lineWidth: 2)
+            g.fill(Path(ellipseIn: CGRect(x: c.x - r * 0.62, y: c.y - r * 0.85, width: r * 0.5, height: r * 0.22)),
+                   with: .color(.white.opacity(0.10)))
+        }
+    }
+}
+
+/// Glowing orb with ripples that travel outward as you breathe.
+struct RingsCanvas: View {
+    let scale: Double
+    let time: Double
+
+    var body: some View {
+        Canvas { g, size in
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+            let base = min(size.width, size.height) / 2
+            for k in 0..<4 {
+                let f = (time * 0.15 + Double(k) / 4).truncatingRemainder(dividingBy: 1)
+                let rr = base * (0.35 + 0.65 * f) * (0.75 + 0.25 * scale)
+                g.stroke(Path(ellipseIn: CGRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2)),
+                         with: .color(Color.indigo.opacity(0.35 * (1 - f))), lineWidth: 1.5)
+            }
+            let orb = base * (0.22 + 0.22 * scale)
+            g.fill(Path(ellipseIn: CGRect(x: c.x - orb, y: c.y - orb, width: orb * 2, height: orb * 2)),
+                   with: .radialGradient(Gradient(colors: [Color.white.opacity(0.9), Color.indigo.opacity(0.5), Color.indigo.opacity(0.05)]),
+                                         center: c, startRadius: 0, endRadius: orb))
         }
     }
 }

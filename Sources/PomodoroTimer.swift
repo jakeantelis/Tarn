@@ -32,9 +32,9 @@ enum BreakStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// When ambient sound plays during Pomodoro sessions.
+/// When ambient sound plays during Pomodoro sessions. Both is soft during work and fuller on breaks.
 enum SoundScope: String, CaseIterable, Identifiable {
-    case always = "Always", focus = "Focus only", breaks = "Breaks only"
+    case focus = "Work", breaks = "Breaks", always = "Both"
     var id: String { rawValue }
 }
 
