@@ -49,8 +49,8 @@ struct StillwaterApp: App {
             NSColor.black.setStroke()
             for k in 0..<6 {
                 let a = CGFloat(k) / 6 * 2 * .pi
-                let petal = NSBezierPath(ovalIn: NSRect(x: -1.9, y: -(3.2 + 1.0 * o), width: 3.8, height: 2 * (3.2 + 1.0 * o)))
-                var t = AffineTransform(translationByX: c.x + cos(a) * (2.6 + 1.6 * o), byY: c.y + sin(a) * (2.6 + 1.6 * o))
+                let petal = NSBezierPath(ovalIn: NSRect(x: -1.8, y: -(2.9 + 1.0 * o), width: 3.6, height: 2 * (2.9 + 1.0 * o)))
+                var t = AffineTransform(translationByX: c.x + cos(a) * (2.4 + 1.55 * o), byY: c.y + sin(a) * (2.4 + 1.55 * o))
                 t.rotate(byRadians: a - .pi / 2)
                 petal.transform(using: t)
                 petal.lineWidth = 1.0
