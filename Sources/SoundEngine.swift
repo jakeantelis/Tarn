@@ -215,6 +215,21 @@ final class SoundEngine: ObservableObject {
         engine.mainMixerNode.outputVolume = 0.8
     }
 
+    /// Called whenever timer state changes. Sound is opt in and off by default.
+    func sync(mode: Mode, phase: Phase, timerRunning: Bool) {
+        let d = UserDefaults.standard
+        guard d.bool(forKey: "soundEnabled") else { if isPlaying { stop() }; return }
+        if mode == .breathe { return }   // Breathe mode is driven by the Sounds toggle
+        let scope = SoundScope(rawValue: d.string(forKey: "soundScope") ?? "") ?? .always
+        let want: Bool
+        switch scope {
+        case .always: want = timerRunning
+        case .focus: want = timerRunning && !phase.isBreak
+        case .breaks: want = timerRunning && phase.isBreak
+        }
+        if want != isPlaying { want ? play() : stop() }
+    }
+
     func toggle() { isPlaying ? stop() : play() }
 
     func play() {

@@ -9,12 +9,21 @@ struct StillwaterApp: App {
         MenuBarExtra {
             ContentView(timer: timer, sound: sound)
         } label: {
-            if timer.isRunning || timer.remaining < timer.duration(for: timer.phase) {
-                Text(timer.clockText).monospacedDigit()
-            } else {
-                Image(systemName: "leaf")
+            Group {
+                if timer.mode.hasTimer && (timer.isRunning || timer.remaining < timer.duration(for: timer.phase)) {
+                    Text(timer.clockText).monospacedDigit()
+                } else {
+                    Image(systemName: "leaf")
+                }
             }
+            .onChange(of: timer.isRunning) { _, _ in syncSound() }
+            .onChange(of: timer.phase) { _, _ in syncSound() }
+            .onChange(of: timer.mode) { _, _ in syncSound() }
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private func syncSound() {
+        sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
     }
 }

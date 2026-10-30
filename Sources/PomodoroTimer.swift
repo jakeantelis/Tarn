@@ -2,11 +2,20 @@ import SwiftUI
 import AppKit
 
 enum Mode: String, CaseIterable, Identifiable {
-    case work = "Work", study = "Study", relax = "Relax"
+    case pomodoro = "Pomodoro", breathe = "Breathe"
     var id: String { rawValue }
-    var hasTimer: Bool { self != .relax }
-    /// Rounds before a long break.
-    var roundsPerSet: Int { self == .study ? 3 : 4 }
+    var hasTimer: Bool { self == .pomodoro }
+    var blurb: String {
+        switch self {
+        case .pomodoro: return "Focus in rounds with timed breaks."
+        case .breathe: return "Slow down any time. No timer needed."
+        }
+    }
+}
+
+enum Preset: String, CaseIterable, Identifiable {
+    case classic = "Classic", deep = "Deep", custom = "Custom"
+    var id: String { rawValue }
 }
 
 enum Phase: String {
@@ -17,26 +26,52 @@ enum Phase: String {
     var isBreak: Bool { self != .work }
 }
 
+/// What happens when a break starts.
+enum BreakStyle: String, CaseIterable, Identifiable {
+    case breathe = "Guided breathing", plain = "Plain countdown"
+    var id: String { rawValue }
+}
+
+/// When ambient sound plays during Pomodoro sessions.
+enum SoundScope: String, CaseIterable, Identifiable {
+    case always = "Always", focus = "Focus only", breaks = "Breaks only"
+    var id: String { rawValue }
+}
+
 @MainActor
 final class PomodoroTimer: ObservableObject {
-    @Published var mode: Mode = Mode(rawValue: UserDefaults.standard.string(forKey: "mode") ?? "") ?? .work
+    @Published var mode: Mode = Mode(rawValue: UserDefaults.standard.string(forKey: "mode") ?? "") ?? .pomodoro
     @Published var phase: Phase = .work
     @Published var remaining: TimeInterval = 25 * 60
     @Published var isRunning = false
     @Published var completedRounds = 0
 
-    @AppStorage("workMinutes") var workMinutes = 25
-    @AppStorage("shortBreakMinutes") var shortBreakMinutes = 5
-    @AppStorage("longBreakMinutes") var longBreakMinutes = 15
-    @AppStorage("studyMinutes") var studyMinutes = 50
-    @AppStorage("studyBreakMinutes") var studyBreakMinutes = 10
-    @AppStorage("studyLongBreakMinutes") var studyLongBreakMinutes = 20
+    @AppStorage("preset") var presetRaw = Preset.classic.rawValue
+    @AppStorage("customWorkMinutes") var customWork = 25
+    @AppStorage("customShortMinutes") var customShort = 5
+    @AppStorage("customLongMinutes") var customLong = 15
     @AppStorage("autoStartNext") var autoStartNext = true
+    @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
+    @AppStorage("chime") var chime = true
 
     private var endDate: Date?
     private var ticker: Timer?
 
     init() { remaining = duration(for: .work) }
+
+    var preset: Preset {
+        get { Preset(rawValue: presetRaw) ?? .classic }
+        set {
+            objectWillChange.send()
+            presetRaw = newValue.rawValue
+            if !isRunning { remaining = duration(for: phase) }
+        }
+    }
+
+    var breakStyle: BreakStyle { BreakStyle(rawValue: breakStyleRaw) ?? .breathe }
+
+    /// Rounds before a long break.
+    var roundsPerSet: Int { preset == .deep ? 3 : 4 }
 
     func setMode(_ new: Mode) {
         guard new != mode else { return }
@@ -49,11 +84,16 @@ final class PomodoroTimer: ObservableObject {
     }
 
     func duration(for phase: Phase) -> TimeInterval {
-        let study = mode == .study
+        let m: (work: Int, short: Int, long: Int)
+        switch preset {
+        case .classic: m = (25, 5, 15)
+        case .deep: m = (50, 10, 20)
+        case .custom: m = (customWork, customShort, customLong)
+        }
         switch phase {
-        case .work: return TimeInterval((study ? studyMinutes : workMinutes) * 60)
-        case .shortBreak: return TimeInterval((study ? studyBreakMinutes : shortBreakMinutes) * 60)
-        case .longBreak: return TimeInterval((study ? studyLongBreakMinutes : longBreakMinutes) * 60)
+        case .work: return TimeInterval(m.work * 60)
+        case .shortBreak: return TimeInterval(m.short * 60)
+        case .longBreak: return TimeInterval(m.long * 60)
         }
     }
 
@@ -108,7 +148,7 @@ final class PomodoroTimer: ObservableObject {
         remaining = max(0, endDate.timeIntervalSinceNow)
         if remaining <= 0 {
             stopTicker()
-            NSSound(named: "Glass")?.play()
+            if chime { NSSound(named: "Glass")?.play() }
             advance(autoStart: autoStartNext)
         }
     }
@@ -116,7 +156,7 @@ final class PomodoroTimer: ObservableObject {
     private func advance(autoStart: Bool) {
         if phase == .work {
             completedRounds += 1
-            phase = completedRounds % mode.roundsPerSet == 0 ? .longBreak : .shortBreak
+            phase = completedRounds % roundsPerSet == 0 ? .longBreak : .shortBreak
         } else {
             phase = .work
         }

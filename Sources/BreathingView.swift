@@ -39,17 +39,26 @@ struct BreathPattern: Identifiable, Hashable {
 }
 
 struct BreathingView: View {
+    var compact = false
     @State private var pattern = BreathPattern.calm
     @State private var start = Date()
 
     var body: some View {
+        content
+            .onAppear { VoiceGuide.shared.reset() }
+            .onDisappear { VoiceGuide.shared.reset() }
+    }
+
+    private var content: some View {
         VStack(spacing: 12) {
-            Picker("", selection: $pattern) {
-                ForEach(BreathPattern.all) { Text($0.name).tag($0) }
+            if !compact {
+                Picker("", selection: $pattern) {
+                    ForEach(BreathPattern.all) { Text($0.name).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .onChange(of: pattern) { _, _ in start = Date() }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .onChange(of: pattern) { _, _ in start = Date() }
 
             TimelineView(.animation) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
@@ -60,7 +69,8 @@ struct BreathingView: View {
                         .font(.system(.title3, design: .rounded).weight(.light))
                         .foregroundStyle(.primary.opacity(0.85))
                 }
-                .frame(maxWidth: .infinity, minHeight: 230)
+                .frame(maxWidth: .infinity, minHeight: compact ? 160 : 230)
+                .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
             }
         }
     }
