@@ -35,7 +35,11 @@ struct ContentView: View {
 
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
-                case 1: BreathingView()
+                case 1:
+                    VStack(spacing: 10) {
+                        BreathingView()
+                        QuoteLine(text: Lines.calm[Calendar.current.component(.minute, from: Date()) % Lines.calm.count])
+                    }
                 default: MixerTab(sound: sound)
                 }
             }
@@ -63,6 +67,33 @@ struct ContentView: View {
         .frame(width: 300)
         .background(breakTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
+    }
+}
+
+enum Lines {
+    static let focus = ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus")
+    /// Our own words, so there is nothing to attribute or license.
+    static let calm = [
+        "Nothing to do right now. Just breathe.",
+        "Let the next breath be slower than the last.",
+        "You are allowed to rest.",
+        "Soften your shoulders. Unclench your jaw.",
+        "This moment is enough.",
+    ]
+}
+
+struct QuoteLine: View {
+    let text: String
+    var author: String? = nil
+    var body: some View {
+        VStack(spacing: 2) {
+            Text("\u{201C}\(text)\u{201D}")
+                .font(.system(.caption, design: .serif).italic())
+            if let author { Text(author).font(.caption2) }
+        }
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -124,6 +155,12 @@ struct TimerTab: View {
                     .keyboardShortcut(.space, modifiers: [])
                 Button("Reset") { timer.reset() }
                 Button("Skip") { timer.skip() }
+            }
+
+            if timer.phase == .work {
+                QuoteLine(text: Lines.focus.0, author: Lines.focus.1)
+            } else {
+                QuoteLine(text: Lines.calm[timer.completedRounds % Lines.calm.count])
             }
 
             Text("Round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
