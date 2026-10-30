@@ -6,6 +6,8 @@
 	<string>Stillwater</string>
 	<key>CFBundleExecutable</key>
 	<string>Stillwater</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.antelislabs.stillwater</string>
 	<key>CFBundleName</key>

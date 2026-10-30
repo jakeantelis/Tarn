@@ -13,11 +13,6 @@ enum Mode: String, CaseIterable, Identifiable {
     }
 }
 
-enum Preset: String, CaseIterable, Identifiable {
-    case classic = "Classic", deep = "Deep", custom = "Custom"
-    var id: String { rawValue }
-}
-
 enum Phase: String {
     case work = "Focus"
     case shortBreak = "Short break"
@@ -46,10 +41,10 @@ final class PomodoroTimer: ObservableObject {
     @Published var isRunning = false
     @Published var completedRounds = 0
 
-    @AppStorage("preset") var presetRaw = Preset.classic.rawValue
-    @AppStorage("customWorkMinutes") var customWork = 25
-    @AppStorage("customShortMinutes") var customShort = 5
-    @AppStorage("customLongMinutes") var customLong = 15
+    /// Focus length in minutes. Breaks scale with it (see breakMinutes).
+    @AppStorage("focusMinutes") var focusMinutes = 25
+    static let focusChoices = [15, 25, 45, 60, 90]
+
     @AppStorage("autoStartNext") var autoStartNext = true
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("chime") var chime = true
@@ -59,19 +54,25 @@ final class PomodoroTimer: ObservableObject {
 
     init() { remaining = duration(for: .work) }
 
-    var preset: Preset {
-        get { Preset(rawValue: presetRaw) ?? .classic }
-        set {
-            objectWillChange.send()
-            presetRaw = newValue.rawValue
-            if !isRunning { remaining = duration(for: phase) }
+    func setFocusMinutes(_ m: Int) {
+        objectWillChange.send()
+        focusMinutes = m
+        if !isRunning && phase == .work { remaining = duration(for: .work) }
+    }
+
+    private var breakMinutes: (short: Int, long: Int) {
+        switch focusMinutes {
+        case ..<31: return (5, 15)
+        case ..<46: return (10, 20)
+        case ..<61: return (10, 25)
+        default: return (15, 30)
         }
     }
 
     var breakStyle: BreakStyle { BreakStyle(rawValue: breakStyleRaw) ?? .breathe }
 
     /// Rounds before a long break.
-    var roundsPerSet: Int { preset == .deep ? 3 : 4 }
+    var roundsPerSet: Int { focusMinutes > 30 ? 3 : 4 }
 
     func setMode(_ new: Mode) {
         guard new != mode else { return }
@@ -84,16 +85,10 @@ final class PomodoroTimer: ObservableObject {
     }
 
     func duration(for phase: Phase) -> TimeInterval {
-        let m: (work: Int, short: Int, long: Int)
-        switch preset {
-        case .classic: m = (25, 5, 15)
-        case .deep: m = (50, 10, 20)
-        case .custom: m = (customWork, customShort, customLong)
-        }
         switch phase {
-        case .work: return TimeInterval(m.work * 60)
-        case .shortBreak: return TimeInterval(m.short * 60)
-        case .longBreak: return TimeInterval(m.long * 60)
+        case .work: return TimeInterval(focusMinutes * 60)
+        case .shortBreak: return TimeInterval(breakMinutes.short * 60)
+        case .longBreak: return TimeInterval(breakMinutes.long * 60)
         }
     }
 

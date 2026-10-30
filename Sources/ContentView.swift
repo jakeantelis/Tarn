@@ -108,6 +108,16 @@ struct TimerTab: View {
                 .frame(height: 190)
             }
 
+            HStack(spacing: 6) {
+                ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
+                    Button("\(m)") { timer.setFocusMinutes(m) }
+                        .buttonStyle(.bordered)
+                        .tint(timer.focusMinutes == m ? .accentColor : .secondary)
+                        .controlSize(.small)
+                }
+                Text("min").font(.caption).foregroundStyle(.secondary)
+            }
+
             HStack(spacing: 10) {
                 Button(timer.isRunning ? "Pause" : "Start") { timer.toggle() }
                     .buttonStyle(.borderedProminent)
@@ -116,7 +126,7 @@ struct TimerTab: View {
                 Button("Skip") { timer.skip() }
             }
 
-            Text("\(timer.preset.rawValue)  ·  round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
+            Text("Round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -162,16 +172,9 @@ struct SettingsTab: View {
 
             GroupBox("Pomodoro") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Picker("Rounds", selection: Binding(get: { timer.preset }, set: { timer.preset = $0 })) {
-                        ForEach(Preset.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    Text(presetNote).font(.caption).foregroundStyle(.secondary)
-                    if timer.preset == .custom {
-                        Stepper("Focus \(timer.customWork) min", value: Binding(get: { timer.customWork }, set: { timer.objectWillChange.send(); timer.customWork = $0 }), in: 1...120)
-                        Stepper("Short break \(timer.customShort) min", value: Binding(get: { timer.customShort }, set: { timer.objectWillChange.send(); timer.customShort = $0 }), in: 1...60)
-                        Stepper("Long break \(timer.customLong) min", value: Binding(get: { timer.customLong }, set: { timer.objectWillChange.send(); timer.customLong = $0 }), in: 1...90)
-                    }
+                    Text("Pick a focus length on the Timer tab: 15, 25, 45, 60 or 90 minutes. Breaks and long breaks scale with it.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     Picker("Breaks", selection: Binding(get: { timer.breakStyle }, set: { timer.objectWillChange.send(); timer.breakStyleRaw = $0.rawValue })) {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
@@ -210,13 +213,5 @@ struct SettingsTab: View {
             }
         }
         .font(.callout)
-    }
-
-    private var presetNote: String {
-        switch timer.preset {
-        case .classic: return "25 min focus, 5 min break, 15 min long break every 4 rounds."
-        case .deep: return "50 min focus, 10 min break, 20 min long break every 3 rounds."
-        case .custom: return "Set your own lengths."
-        }
     }
 }
