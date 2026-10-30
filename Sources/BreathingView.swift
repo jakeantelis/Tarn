@@ -56,6 +56,7 @@ struct BreathPattern: Identifiable, Hashable {
 
 struct BreathingView: View {
     var compact = false
+    @Environment(\.popoverActive) private var active
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
@@ -80,7 +81,7 @@ struct BreathingView: View {
                 .onChange(of: pattern) { _, _ in start = Date() }
             }
 
-            TimelineView(.animation) { ctx in
+            TimelineView(.animation(paused: !active)) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 ZStack {

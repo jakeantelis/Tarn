@@ -176,6 +176,9 @@ final class SoundEngine: ObservableObject {
         if engine.isRunning { player.play() }
     }
     private var phaseFactor: Float = 1
+    private var autoPlaying = false
+    private var targets: [Soundscape: Float] = [:]
+    private var fadeTimer: Timer?
     @Published var sleepMinutes = 0
     private var sleepWork: DispatchWorkItem?
 
@@ -217,7 +220,28 @@ final class SoundEngine: ObservableObject {
     private func applyGains() {
         for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
         if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
-        for (s, p) in players { p.volume = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
+        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
+        startFade()
+    }
+
+    /// Eases recorded loops toward their target volume, so sound fades in and out instead of clicking.
+    private func startFade() {
+        guard fadeTimer == nil else { return }
+        let t = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.fadeStep() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        fadeTimer = t
+    }
+
+    private func fadeStep() {
+        var moving = false
+        for (s, p) in players {
+            let target = targets[s] ?? 0
+            let diff = target - p.volume
+            if abs(diff) < 0.004 { p.volume = target } else { p.volume += diff * 0.06; moving = true }
+        }
+        if !moving { fadeTimer?.invalidate(); fadeTimer = nil }
     }
 
     private func build() {
@@ -246,24 +270,32 @@ final class SoundEngine: ObservableObject {
         engine.mainMixerNode.outputVolume = 0.8
     }
 
-    /// Called whenever timer state changes. Sound is opt in and off by default.
+    /// Called whenever the timer changes. Timer driven sound is opt in and off by default, and it only ever
+    /// stops sound that it started itself, so a mix you turned on by hand is left alone.
     func sync(mode: Mode, phase: Phase, timerRunning: Bool) {
         let d = UserDefaults.standard
-        guard d.bool(forKey: "soundEnabled") else { if isPlaying { stop() }; return }
-        if mode == .breathe { return }   // Breathe mode is driven by the Sounds toggle
+        guard d.bool(forKey: "soundEnabled"), mode.hasTimer else {
+            if autoPlaying { autoPlaying = false; stop() }
+            return
+        }
         let scope = SoundScope(rawValue: d.string(forKey: "soundScope") ?? "") ?? .always
-        let factor: Float = (scope == .always && !phase.isBreak) ? 0.4 : 1
-        if factor != phaseFactor { phaseFactor = factor; applyGains() }
         let want: Bool
         switch scope {
         case .always: want = timerRunning
         case .focus: want = timerRunning && !phase.isBreak
         case .breaks: want = timerRunning && phase.isBreak
         }
-        if want != isPlaying { want ? play() : stop() }
+        if want {
+            let factor: Float = (scope == .always && !phase.isBreak) ? 0.4 : 1
+            if factor != phaseFactor { phaseFactor = factor; applyGains() }
+            if !isPlaying { autoPlaying = true; play() }
+        } else if isPlaying, autoPlaying {
+            autoPlaying = false
+            stop()
+        }
     }
 
-    func toggle() { isPlaying ? stop() : play() }
+    func toggle() { autoPlaying = false; isPlaying ? stop() : play() }
 
     func play() {
         build()

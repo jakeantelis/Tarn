@@ -16,6 +16,7 @@ struct ContentView: View {
         self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab); _showSettings = State(initialValue: startInSettings)
     }
     @State private var showSettings = false
+    @State private var popoverActive = true
     @AppStorage("welcomed") private var welcomed = false
     @AppStorage("focusPalette") private var paletteKey = "red"
 
@@ -81,6 +82,8 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
+        .background(PopoverVisibilityReader(active: $popoverActive))
+        .environment(\.popoverActive, popoverActive)
         .background(breakTint)
         .tint(timer.mode == .breathe ? Color.water : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
@@ -224,6 +227,8 @@ struct TimerTab: View {
                         .background(Circle()
                             .fill(timer.focusMinutes == m ? Color.focusTint : Color.secondary.opacity(0.15)))
                         .foregroundStyle(timer.focusMinutes == m ? Color.onTint : Color.primary)
+                        .accessibilityLabel("\(m) minutes")
+                        .accessibilityAddTraits(timer.focusMinutes == m ? .isSelected : [])
                 }
                 Text("min").font(.caption).foregroundStyle(.secondary)
             } }

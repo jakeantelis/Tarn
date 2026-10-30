@@ -69,6 +69,9 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("scheduleLastEnd") private var lastEndDay = ""
     private var scheduleTimer: Timer?
 
+    /// Called after the timer starts, stops, changes phase or changes mode, so sound and screen effects follow the timer itself.
+    var onStateChange: (() -> Void)?
+
     private var endDate: Date?
     private var ticker: Timer?
 
@@ -94,7 +97,7 @@ final class PomodoroTimer: ObservableObject {
         guard scheduleDays & (1 << weekday) != 0 else { return }
         let minute = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
         let day = ISO8601DateFormatter().string(from: cal.startOfDay(for: now))
-        if minute >= scheduleStart, minute < scheduleEnd, lastStartDay != day {
+        if minute >= scheduleStart, minute < min(scheduleEnd, scheduleStart + 10), lastStartDay != day {
             lastStartDay = day
             if !isRunning { phase = .work; completedRounds = 0; remaining = duration(for: .work); start() }
         }
@@ -111,6 +114,9 @@ final class PomodoroTimer: ObservableObject {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
         task.arguments = ["run", n]
+        task.standardOutput = FileHandle.nullDevice
+        task.standardError = FileHandle.nullDevice
+        task.terminationHandler = { _ in }
         try? task.run()
     }
 
@@ -156,6 +162,24 @@ final class PomodoroTimer: ObservableObject {
         phase = .work
         completedRounds = 0
         remaining = duration(for: .work)
+        onStateChange?()
+    }
+
+    /// Starts a fresh focus round, from any phase.
+    func startWork(minutes: Int? = nil) {
+        stopTicker()
+        if let minutes { focusMinutes = minutes; objectWillChange.send() }
+        phase = .work
+        remaining = duration(for: .work)
+        start()
+    }
+
+    /// Starts a break now, from any phase.
+    func startBreak() {
+        stopTicker()
+        phase = (completedRounds + 1) % roundsPerSet == 0 ? .longBreak : .shortBreak
+        remaining = duration(for: phase)
+        start()
     }
 
     func duration(for phase: Phase) -> TimeInterval {
@@ -190,6 +214,7 @@ final class PomodoroTimer: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         ticker = t
         writeStatus()
+        onStateChange?()
     }
 
     func pause() {
@@ -205,7 +230,7 @@ final class PomodoroTimer: ObservableObject {
 
     func skip() {
         stopTicker()
-        advance(autoStart: false)
+        advance(autoStart: false, completed: false)
     }
 
     private func stopTicker() {
@@ -214,6 +239,8 @@ final class PomodoroTimer: ObservableObject {
         endDate = nil
         isRunning = false
         setFocusActive(false)
+        writeStatus()
+        onStateChange?()
     }
 
     private func tick() {
@@ -251,15 +278,15 @@ final class PomodoroTimer: ObservableObject {
         if let data = try? JSONSerialization.data(withJSONObject: dict) { try? data.write(to: dir.appendingPathComponent("status.json")) }
     }
 
-    private func advance(autoStart: Bool) {
+    private func advance(autoStart: Bool, completed: Bool = true) {
         lastEyeBlock = 0
         if phase == .work {
-            completedRounds += 1
-            phase = completedRounds % roundsPerSet == 0 ? .longBreak : .shortBreak
+            if completed { completedRounds += 1 }
+            phase = completedRounds % roundsPerSet == 0 && completed ? .longBreak : .shortBreak
         } else {
             phase = .work
         }
         remaining = duration(for: phase)
-        if autoStart { start() }
+        if autoStart { start() } else { writeStatus(); onStateChange?() }
     }
 }

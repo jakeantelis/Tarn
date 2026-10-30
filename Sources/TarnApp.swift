@@ -6,6 +6,7 @@ struct TarnApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var timer = AppModel.shared.timer
     @StateObject private var sound = AppModel.shared.sound
+    @ObservedObject private var model = AppModel.shared
 
     var body: some Scene {
         MenuBarExtra {
@@ -13,37 +14,58 @@ struct TarnApp: App {
         } label: {
             HStack(spacing: 4) {
                 if timer.mode.hasTimer && (timer.isRunning || timer.remaining < timer.duration(for: timer.phase)) {
-                    Image(nsImage: ringIcon(progress: timer.progress))
+                    Image(nsImage: Self.ringIcon(progress: timer.progress))
                     if !timer.hideCountdown { Text(timer.clockText).monospacedDigit() }
                 } else {
-                    if timer.mode == .breathe {
-                        TimelineView(.periodic(from: .now, by: 0.25)) { ctx in
-                            let b = BreathPattern.settle.state(at: ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 600))
-                            Image(nsImage: Self.flowerIcon(open: b.scale))
-                        }
-                    } else {
-                        Image(nsImage: Self.flowerIcon(open: 0.5))
-                    }
+                    Image(nsImage: Self.flowerIcon(open: timer.mode == .breathe ? Double(model.flowerStep) / 12 : 0.5))
                 }
             }
-            .onChange(of: timer.isRunning) { _, _ in syncSound() }
-            .onChange(of: timer.phase) { _, new in
-                syncSound()
-                guard timer.fullScreenBreaks, timer.isRunning, timer.mode.hasTimer else { return }
-                if new.isBreak { BreatheOverlay.shared.show() } else { BreatheOverlay.shared.close() }
-            }
-            .onChange(of: timer.mode) { _, _ in syncSound() }
         }
         .menuBarExtraStyle(.window)
     }
 
-    private func syncSound() {
-        sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
+    /// Menu bar flower: six petals that open and close with `open` (0 to 1). A template, so it follows the menu bar tint.
+    /// Images are cached and reused. A fresh NSImage on every body evaluation makes the status item
+    /// redraw forever (it was growing memory at about 70 MB a second), so each frame is built once.
+    private static var flowerCache: [Int: NSImage] = [:]
+    private static var ringCache: [Int: NSImage] = [:]
+
+    static func flowerIcon(open: Double) -> NSImage {
+        let key = Int((max(0, min(1, open)) * 12).rounded())
+        if let cached = flowerCache[key] { return cached }
+        let img = makeFlower(open: Double(key) / 12)
+        flowerCache[key] = img
+        return img
     }
 
-    /// Menu bar flower: six petals that open and close with `open` (0 to 1). A template, so it follows the menu bar tint.
-    static func flowerIcon(open: Double) -> NSImage {
-        let img = NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
+    private static func ringIcon(progress: Double) -> NSImage {
+        let key = Int((max(0, min(1, progress)) * 120).rounded())
+        if let cached = ringCache[key] { return cached }
+        let img = makeRing(progress: Double(key) / 120)
+        ringCache[key] = img
+        return img
+    }
+
+    /// Draws into a real bitmap (2x) so the menu bar gets a static image, not a drawing handler it re-runs.
+    private static func bitmapIcon(size: NSSize, draw: (NSRect) -> Void) -> NSImage {
+        let scale = 2
+        let px = NSSize(width: size.width * CGFloat(scale), height: size.height * CGFloat(scale))
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(px.width), pixelsHigh: Int(px.height),
+                                   bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        draw(NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        let img = NSImage(size: size)
+        img.addRepresentation(rep)
+        img.isTemplate = true
+        return img
+    }
+
+    private static func makeFlower(open: Double) -> NSImage {
+        let img = bitmapIcon(size: NSSize(width: 16, height: 16)) { rect in
             let c = NSPoint(x: rect.midX, y: rect.midY)
             let o = CGFloat(open)
             NSColor.black.setStroke()
@@ -58,16 +80,14 @@ struct TarnApp: App {
             }
             NSColor.black.setFill()
             NSBezierPath(ovalIn: NSRect(x: c.x - 1.3, y: c.y - 1.3, width: 2.6, height: 2.6)).fill()
-            return true
         }
-        img.isTemplate = true
         return img
     }
 
     /// Small ring that fills as the round progresses; drawn as a template so it follows the menu bar tint.
-    private func ringIcon(progress: Double) -> NSImage {
+    private static func makeRing(progress: Double) -> NSImage {
         let size = NSSize(width: 14, height: 14)
-        let img = NSImage(size: size, flipped: false) { rect in
+        let img = bitmapIcon(size: size) { rect in
             let r = rect.insetBy(dx: 2, dy: 2)
             let track = NSBezierPath(ovalIn: r)
             track.lineWidth = 1.6
@@ -81,9 +101,7 @@ struct TarnApp: App {
             arc.lineCapStyle = .round
             NSColor.black.setStroke()
             arc.stroke()
-            return true
         }
-        img.isTemplate = true
         return img
     }
 }

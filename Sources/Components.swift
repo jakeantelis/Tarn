@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Capsule shaped segmented control with a sliding highlight.
 struct PillPicker<T: Hashable>: View {
@@ -11,16 +12,21 @@ struct PillPicker<T: Hashable>: View {
         HStack(spacing: 2) {
             ForEach(items, id: \.self) { item in
                 let on = item == selection
-                Text(title(item))
-                    .font(.callout.weight(on ? .semibold : .regular))
-                    .foregroundStyle(on ? Color.onTint : Color.primary.opacity(0.75))
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity)
-                    .background {
-                        if on { Capsule().fill(.tint).matchedGeometryEffect(id: "pill", in: ns) }
-                    }
-                    .contentShape(Capsule())
-                    .onTapGesture { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { selection = item } }
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { selection = item }
+                } label: {
+                    Text(title(item))
+                        .font(.callout.weight(on ? .semibold : .regular))
+                        .foregroundStyle(on ? Color.onTint : Color.primary.opacity(0.75))
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity)
+                        .background {
+                            if on { Capsule().fill(.tint).matchedGeometryEffect(id: "pill", in: ns) }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
         .padding(3)
@@ -63,6 +69,7 @@ struct CircleButtonStyle: ButtonStyle {
 struct LensView: View {
     let progress: Double
     let running: Bool
+    @Environment(\.popoverActive) private var active
 
     var body: some View {
         ZStack {
@@ -78,7 +85,7 @@ struct LensView: View {
     }
 
     private var lens: some View {
-        TimelineView(.animation(paused: !running)) { ctx in
+        TimelineView(.animation(paused: !running || !active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let pulse = running ? 0.5 + 0.5 * sin(t * 2 * .pi / 3 - .pi / 2) : 0.3
             Canvas { g, size in
@@ -116,5 +123,59 @@ struct LensView: View {
                 }
             }
         }
+    }
+}
+
+/// True while the menu bar popover is actually on screen. Animations pause when it is not, so Tarn
+/// uses almost no CPU while you work in other apps.
+private struct PopoverActiveKey: EnvironmentKey { static let defaultValue = true }
+extension EnvironmentValues {
+    var popoverActive: Bool {
+        get { self[PopoverActiveKey.self] }
+        set { self[PopoverActiveKey.self] = newValue }
+    }
+}
+
+struct PopoverVisibilityReader: NSViewRepresentable {
+    @Binding var active: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        DispatchQueue.main.async { context.coordinator.attach(to: v.window) }
+        return v
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.binding = $active
+        if context.coordinator.window == nil {
+            DispatchQueue.main.async { context.coordinator.attach(to: nsView.window) }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(binding: $active) }
+
+    final class Coordinator {
+        var binding: Binding<Bool>
+        weak var window: NSWindow?
+        private var observer: NSObjectProtocol?
+        init(binding: Binding<Bool>) { self.binding = binding }
+
+        func attach(to window: NSWindow?) {
+            guard let window, self.window !== window else { return }
+            self.window = window
+            observer = NotificationCenter.default.addObserver(
+                forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { [weak self] _ in
+                self?.refresh()
+            }
+            refresh()
+        }
+
+        private func refresh() {
+            guard let window else { return }
+            let visible = window.occlusionState.contains(.visible) && window.isVisible
+            if binding.wrappedValue != visible { binding.wrappedValue = visible }
+        }
+
+        deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
     }
 }
