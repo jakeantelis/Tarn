@@ -13,7 +13,7 @@ struct PillPicker<T: Hashable>: View {
                 let on = item == selection
                 Text(title(item))
                     .font(.callout.weight(on ? .semibold : .regular))
-                    .foregroundStyle(on ? Color.white : Color.primary.opacity(0.75))
+                    .foregroundStyle(on ? Color.onTint : Color.primary.opacity(0.75))
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity)
                     .background {
@@ -35,10 +35,11 @@ struct CapsuleButtonStyle: ButtonStyle {
     var small = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .lineLimit(1)
             .font(large ? .title3.weight(.medium) : (small ? .caption : .callout))
             .padding(.horizontal, large ? 26 : (small ? 10 : 14))
             .padding(.vertical, large ? 9 : (small ? 5 : 6))
-            .foregroundStyle(prominent ? Color.white : Color.primary)
+            .foregroundStyle(prominent ? Color.onTint : Color.primary)
             .background { if prominent { Capsule().fill(.tint) } else { Capsule().fill(Color.secondary.opacity(0.18)) } }
             .opacity(configuration.isPressed ? 0.75 : 1)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -52,7 +53,7 @@ struct CircleButtonStyle: ButtonStyle {
         configuration.label
             .font(.callout)
             .frame(width: 28, height: 28)
-            .foregroundStyle(on ? Color.white : Color.primary.opacity(0.8))
+            .foregroundStyle(on ? Color.onTint : Color.primary.opacity(0.8))
             .background { if on { Circle().fill(.tint) } else { Circle().fill(Color.secondary.opacity(0.18)) } }
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
@@ -71,8 +72,8 @@ struct LensView: View {
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
                 let base = min(size.width, size.height) / 2
                 let f = max(0, min(1, 1 - progress))          // time left
-                let green = Color(red: 0.50, green: 0.76, blue: 0.46)
-                let amber = Color(red: 0.98, green: 0.80, blue: 0.48)
+                let green = Color(red: 0.95, green: 0.72, blue: 0.40)
+                let amber = Color(red: 1.0, green: 0.88, blue: 0.62)
                 func circle(_ r: Double) -> Path { Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)) }
 
                 // time left, as an arc on the outer rim

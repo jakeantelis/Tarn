@@ -2,7 +2,8 @@ import SwiftUI
 import ServiceManagement
 
 extension Color {
-    static let matcha = Color(red: 0.50, green: 0.76, blue: 0.46)
+    static let onTint = Color(red: 0.13, green: 0.11, blue: 0.09)
+    static let focusTint = Color(red: 0.95, green: 0.72, blue: 0.40)
     static let amber = Color(red: 0.98, green: 0.80, blue: 0.48)
     static let water = Color(red: 0.32, green: 0.64, blue: 0.78)
 }
@@ -22,7 +23,7 @@ struct ContentView: View {
         let g: [Color]
         if timer.mode == .breathe { g = [Color.water.opacity(0.14), Color.water.opacity(0.04)] }
         else if onBreak { g = [Color.purple.opacity(0.20), Color.purple.opacity(0.06)] }
-        else { g = [Color(red: 0.22, green: 0.42, blue: 0.30).opacity(0.30), Color(red: 0.16, green: 0.26, blue: 0.24).opacity(0.10)] }
+        else { g = [Color(red: 0.50, green: 0.32, blue: 0.14).opacity(0.30), Color(red: 0.28, green: 0.20, blue: 0.14).opacity(0.10)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
     }
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 || tab == 3 ? tab : 0) : (tab == 2 ? 2 : 1) }
@@ -80,7 +81,7 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 300)
         .background(breakTint)
-        .tint(timer.mode == .breathe ? Color.water : Color.matcha)
+        .tint(timer.mode == .breathe ? Color.water : Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
         .animation(.easeInOut(duration: 0.6), value: timer.mode)
         .overlay { if !welcomed { Welcome { welcomed = true } } }
@@ -122,7 +123,7 @@ struct Welcome: View {
     let done: () -> Void
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.matcha)
+            Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.focusTint)
             Text("Welcome to Stillwater").font(.title3.weight(.medium))
             VStack(alignment: .leading, spacing: 10) {
                 Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
@@ -196,8 +197,8 @@ struct TimerTab: View {
                             .font(.caption.weight(.semibold))
                             .tracking(1.5)
                             .padding(.horizontal, 10).padding(.vertical, 3)
-                            .background(Capsule().fill((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(0.22)))
-                            .foregroundStyle(timer.phase.isBreak ? Color.purple : Color.matcha)
+                            .background(Capsule().fill((timer.phase.isBreak ? Color.purple : Color.focusTint).opacity(0.22)))
+                            .foregroundStyle(timer.phase.isBreak ? Color.purple : Color.focusTint)
                         Text(timer.clockText)
                             .font(.system(size: 46, weight: .light, design: .rounded))
                             .monospacedDigit()
@@ -217,8 +218,8 @@ struct TimerTab: View {
                         .font(.callout.monospacedDigit())
                         .frame(width: 36, height: 36)
                         .background(Circle()
-                            .fill(timer.focusMinutes == m ? Color.matcha : Color.secondary.opacity(0.15)))
-                        .foregroundStyle(timer.focusMinutes == m ? Color.white : Color.primary)
+                            .fill(timer.focusMinutes == m ? Color.focusTint : Color.secondary.opacity(0.15)))
+                        .foregroundStyle(timer.focusMinutes == m ? Color.onTint : Color.primary)
                 }
                 Text("min").font(.caption).foregroundStyle(.secondary)
             } }
@@ -256,7 +257,7 @@ struct StatsTab: View {
                 ForEach(Array(week.enumerated()), id: \.offset) { _, d in
                     VStack(spacing: 6) {
                         Capsule()
-                            .fill(d.isToday ? Color.matcha : Color.matcha.opacity(0.45))
+                            .fill(d.isToday ? Color.focusTint : Color.focusTint.opacity(0.45))
                             .frame(width: 22, height: max(6, 110 * Double(d.stats.minutes) / Double(top)))
                         Text(d.label).font(.caption2).foregroundStyle(.secondary)
                     }
@@ -411,8 +412,8 @@ struct SettingsTab: View {
                                 }
                                 .buttonStyle(.plain)
                                 .frame(width: 26, height: 26)
-                                .background(Circle().fill(on ? Color.matcha : Color.secondary.opacity(0.15)))
-                                .foregroundStyle(on ? Color.white : Color.primary)
+                                .background(Circle().fill(on ? Color.focusTint : Color.secondary.opacity(0.15)))
+                                .foregroundStyle(on ? Color.onTint : Color.primary)
                             }
                         }
                         Text("Rounds and breaks then run on their own between these times, on the days you pick. The app needs to be open.")

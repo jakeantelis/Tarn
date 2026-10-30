@@ -119,7 +119,7 @@ struct BreathingView: View {
                         .buttonStyle(CapsuleButtonStyle(small: true))
                         .help("Dim every screen so you can breathe. Esc leaves.")
                     Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
-                        Label(cleared.isCleared ? "Bring back" : "Hide others", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
+                        Label(cleared.isCleared ? "Bring back" : "Hide apps", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
                     }
                     .buttonStyle(CapsuleButtonStyle(prominent: cleared.isCleared, small: true))
                     .help("Hides other windows. Nothing is quit.")
