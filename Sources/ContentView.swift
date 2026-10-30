@@ -38,7 +38,8 @@ struct ContentView: View {
                 case 1:
                     VStack(spacing: 10) {
                         BreathingView()
-                        QuoteLine(text: Lines.breathe.0, author: Lines.breathe.1)
+                        let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
+                        QuoteLine(text: q.text, author: q.author)
                     }
                 default: MixerTab(sound: sound)
                 }
@@ -70,18 +71,27 @@ struct ContentView: View {
     }
 }
 
+typealias Quote = (text: String, author: String?)
+
 enum Lines {
-    static let focus = ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus")
-    /// Letters to Lucilius 13, Richard Gummere translation (1917, public domain).
-    static let breathe = ("We suffer more often in imagination than in reality.", "Seneca")
-    /// Our own words, so there is nothing to attribute or license.
-    static let calm = [
-        "Nothing to do right now. Just breathe.",
-        "Let the next breath be slower than the last.",
-        "You are allowed to rest.",
-        "Soften your shoulders. Unclench your jaw.",
-        "This moment is enough.",
+    /// Public domain translations. Check each wording against its source before release.
+    static let focus: [Quote] = [
+        ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus"),
+        ("While we are postponing, life speeds by.", "Seneca"),
+        ("Begin at once to live, and count each separate day as a separate life.", "Seneca"),
+        ("Difficulties strengthen the mind, as labor does the body.", "Seneca"),
     ]
+    /// Calm lines for Breathe and breaks: one Stoic quote, the rest in our own words.
+    static let calm: [Quote] = [
+        ("We suffer more often in imagination than in reality.", "Seneca"),
+        ("Nothing to do right now. Just breathe.", nil),
+        ("Let the next breath be slower than the last.", nil),
+        ("You are allowed to rest.", nil),
+        ("Soften your shoulders. Unclench your jaw.", nil),
+        ("This moment is enough.", nil),
+    ]
+    static func focusQuote(round: Int) -> Quote { focus[round % focus.count] }
+    static func calmQuote(_ i: Int) -> Quote { calm[i % calm.count] }
 }
 
 struct QuoteLine: View {
@@ -160,9 +170,9 @@ struct TimerTab: View {
             }
 
             if timer.phase == .work {
-                QuoteLine(text: Lines.focus.0, author: Lines.focus.1)
+                QuoteLine(text: Lines.focusQuote(round: timer.completedRounds).text, author: Lines.focusQuote(round: timer.completedRounds).author)
             } else {
-                QuoteLine(text: Lines.calm[timer.completedRounds % Lines.calm.count])
+                QuoteLine(text: Lines.calmQuote(timer.completedRounds).text, author: Lines.calmQuote(timer.completedRounds).author)
             }
 
             Text("Round \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)  ·  \(timer.completedRounds) done")
