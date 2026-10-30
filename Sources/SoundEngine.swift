@@ -2,13 +2,15 @@ import AVFoundation
 import SwiftUI
 
 enum Soundscape: String, CaseIterable, Identifiable {
-    case ocean, rain, forest, stream, wind
+    case ocean, rain, forest, birds, stream, lake, wind
     var id: String { rawValue }
     var title: String {
         switch self {
         case .ocean: return "Ocean"
         case .rain: return "Rain"
         case .forest: return "Forest"
+        case .birds: return "Birds"
+        case .lake: return "Lake"
         case .stream: return "Stream"
         case .wind: return "Wind"
         }
@@ -17,7 +19,9 @@ enum Soundscape: String, CaseIterable, Identifiable {
         switch self {
         case .ocean: return "water.waves"
         case .rain: return "cloud.rain"
-        case .forest: return "bird"
+        case .forest: return "tree"
+        case .birds: return "bird"
+        case .lake: return "sailboat"
         case .stream: return "drop"
         case .wind: return "wind"
         }
@@ -33,7 +37,8 @@ struct SoundPreset: Identifiable {
     static let all = [
         SoundPreset(name: "Rainy cabin", symbol: "cloud.rain", mix: [.rain: 0.7, .wind: 0.2]),
         SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
-        SoundPreset(name: "Forest morning", symbol: "bird", mix: [.forest: 0.7, .stream: 0.3]),
+        SoundPreset(name: "Forest morning", symbol: "tree", mix: [.forest: 0.55, .birds: 0.5, .stream: 0.3]),
+        SoundPreset(name: "Still lake", symbol: "sailboat", mix: [.lake: 0.7, .birds: 0.25]),
         SoundPreset(name: "Quiet wind", symbol: "wind", mix: [.wind: 0.6]),
     ]
 }
@@ -78,7 +83,7 @@ final class SoundGenerator: @unchecked Sendable {
             let w = white()
             var s: Float = 0
             switch kind {
-            case .ocean:
+            case .ocean, .lake:
                 phase += swellRate * dt
                 if phase > 1 { phase -= 1 }
                 lfo2 += 0.037 * dt
@@ -127,7 +132,7 @@ final class SoundGenerator: @unchecked Sendable {
                     s += Float(sin(2 * .pi * dropPhase)) * dropEnv
                     dropEnv *= 0.9975
                 }
-            case .forest:
+            case .forest, .birds:
                 // soft breeze bed
                 brown = (brown + 0.01 * w) / 1.01
                 lp1 += 0.03 * (w - lp1)
@@ -183,6 +188,22 @@ final class SoundEngine: ObservableObject {
     private let engine = AVAudioEngine()
     private var generators: [Soundscape: SoundGenerator] = [:]
     private var players: [Soundscape: AVAudioPlayerNode] = [:]
+    private var fileURLs: [Soundscape: URL] = [:]
+
+    /// Reads a bundled loop into memory the first time it is needed.
+    private func ensurePlayer(_ s: Soundscape) {
+        guard players[s] == nil, let url = fileURLs[s],
+              let file = try? AVAudioFile(forReading: url),
+              let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buf)) != nil else { return }
+        let player = AVAudioPlayerNode()
+        engine.attach(player)
+        engine.connect(player, to: engine.mainMixerNode, format: file.processingFormat)
+        player.volume = 0
+        player.scheduleBuffer(buf, at: nil, options: .loops)
+        players[s] = player
+        if engine.isRunning { player.play() }
+    }
     private var phaseFactor: Float = 1
     @Published var sleepMinutes = 0
     private var sleepWork: DispatchWorkItem?
@@ -224,6 +245,7 @@ final class SoundEngine: ObservableObject {
 
     private func applyGains() {
         for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
+        if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
         for (s, p) in players { p.volume = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
     }
 
@@ -234,15 +256,8 @@ final class SoundEngine: ObservableObject {
         let sr = format.sampleRate > 0 ? format.sampleRate : 44100
         let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
         for s in Soundscape.allCases {
-            if let url = ["wav", "caf", "m4a"].lazy.compactMap({ Bundle.main.url(forResource: s.rawValue, withExtension: $0, subdirectory: "Sounds") }).first,
-               let file = try? AVAudioFile(forReading: url),
-               let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
-               (try? file.read(into: buf)) != nil {
-                let player = AVAudioPlayerNode()
-                engine.attach(player)
-                engine.connect(player, to: engine.mainMixerNode, format: file.processingFormat)
-                player.scheduleBuffer(buf, at: nil, options: .loops)
-                players[s] = player
+            if let url = ["wav", "caf", "m4a"].lazy.compactMap({ Bundle.main.url(forResource: s.rawValue, withExtension: $0, subdirectory: "Sounds") }).first {
+                fileURLs[s] = url   // loaded on demand, so unused sounds cost no memory
                 continue
             }
             let gen = SoundGenerator(kind: s, sampleRate: sr)
