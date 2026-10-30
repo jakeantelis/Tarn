@@ -338,6 +338,7 @@ struct SettingsTab: View {
     let mode: Mode
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
+    @AppStorage("showInDock") private var showInDock = false
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -353,8 +354,15 @@ struct SettingsTab: View {
             Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
             GroupBox("General") {
-                Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
-                    .padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
+                    Toggle("Show Tarn in the Dock", isOn: $showInDock)
+                        .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
+                    Button("Open in a window") { WindowOpener.shared.show() }
+                        .buttonStyle(CapsuleButtonStyle(small: true))
+                    Text("If the menu bar icon is hard to find, a window works the same way.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.padding(.vertical, 4)
             }
             GroupBox("About") {
                 VStack(alignment: .leading, spacing: 6) {

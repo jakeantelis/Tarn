@@ -15,7 +15,7 @@ macOS only for now. Timer, breathing and sound logic is kept apart from the inte
 `./build.sh` builds `build/Tarn.app`. Add `run` to launch it.
 
 ## Command line
-`Tools/install-cli.sh` links `tarnctl` onto your PATH. Examples: `tarnctl start 45`, `tarnctl break`, `tarnctl breathe full`, `tarnctl sound forest`, `tarnctl clear` (hides other windows, never quits apps), `tarnctl restore`, `tarnctl status`. It talks to the app through `tarn://` links, so Shortcuts and Raycast can use them too.
+`Tools/install-cli.sh` links `tarnctl` onto your PATH. Examples: `tarnctl start 45`, `tarnctl break`, `tarnctl breathe full`, `tarnctl sound forest`, `tarnctl clear` (hides other windows, never quits apps), `tarnctl restore`, `tarnctl status`, `tarnctl window` (open Tarn in a normal window). It talks to the app through `tarn://` links, so Shortcuts and Raycast can use them too.
 
 ## Release
 `Tools/release.sh` builds a universal app, signs, notarizes and makes a DMG.

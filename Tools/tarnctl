@@ -16,6 +16,7 @@ usage: tarnctl <command>
   breathe [full]      open Breathe mode (add "full" for full screen)
   sound on|off|toggle       ambient sound
   sound <preset>            ocean, forest, dawn, quiet
+  window              open Tarn in a normal window
   clear | restore     hide other windows (never quits apps) and bring them back
   status [--json]     show what Tarn is doing
 USAGE
@@ -30,7 +31,7 @@ case "$cmd" in
             [[ "$2" =~ ^[0-9]+$ ]] || { echo "minutes must be a number" >&2; exit 2; }
             send "start?minutes=$2"
         else send "start"; fi ;;
-    pause|resume|toggle|stop|skip|break|clear|restore) send "$cmd" ;;
+    pause|resume|toggle|stop|skip|break|clear|restore|window) send "$cmd" ;;
     breathe)
         if [[ "${2:-}" == "full" ]]; then send "breathe?fullscreen=1"; else send "breathe"; fi ;;
     sound)

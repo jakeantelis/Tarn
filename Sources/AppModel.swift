@@ -73,6 +73,7 @@ final class AppModel: ObservableObject {
             }
             if let name = value("preset")?.lowercased(),
                let p = SoundPreset.all.first(where: { $0.name.lowercased().hasPrefix(name) }) { sound.applyPreset(p) }
+        case "window": WindowOpener.shared.show()
         case "clear": ScreenClearer.shared.clear()
         case "restore": ScreenClearer.shared.restore()
         default: break
@@ -82,6 +83,19 @@ final class AppModel: ObservableObject {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        WindowOpener.applyDockPolicy()
+        // On the very first launch, open a window so Tarn is easy to find even if the menu bar icon is hidden.
+        if UserDefaults.standard.object(forKey: "welcomed") == nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { WindowOpener.shared.show() }
+        }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        WindowOpener.shared.show()
+        return true
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         Task { @MainActor in urls.forEach { AppModel.shared.handle($0) } }
     }
