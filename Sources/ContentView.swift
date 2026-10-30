@@ -24,22 +24,15 @@ struct ContentView: View {
             if showSettings {
                 SettingsTab(timer: timer, sound: sound, mode: timer.mode)
             } else {
-                Picker("", selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) {
-                    ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) { $0.rawValue }
 
                 Text(timer.mode.blurb)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Picker("", selection: Binding(get: { effectiveTab }, set: { tab = $0 })) {
-                    if timer.mode.hasTimer { Text("Timer").tag(0) } else { Text("Breathe").tag(1) }
-                    Text("Sounds").tag(2)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                PillPicker(items: timer.mode.hasTimer ? [0, 2] : [1, 2],
+                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 0 ? "Timer" : "Breathe") }
+                    .padding(.horizontal, 30)
 
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
@@ -196,8 +189,8 @@ struct TimerTab: View {
                     Button("\(m)") { timer.setFocusMinutes(m) }
                         .buttonStyle(.plain)
                         .font(.callout.monospacedDigit())
-                        .frame(width: 34, height: 24)
-                        .background(RoundedRectangle(cornerRadius: 6)
+                        .frame(width: 36, height: 36)
+                        .background(Circle()
                             .fill(timer.focusMinutes == m ? Color.matcha : Color.secondary.opacity(0.15)))
                         .foregroundStyle(timer.focusMinutes == m ? Color.white : Color.primary)
                 }
@@ -205,12 +198,11 @@ struct TimerTab: View {
             } }
 
             HStack(spacing: 10) {
+                Button("Reset") { timer.reset() }.buttonStyle(CapsuleButtonStyle())
                 Button(timer.isRunning ? "Pause" : "Start") { timer.toggle() }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(CapsuleButtonStyle(prominent: true, large: true))
                     .keyboardShortcut(.space, modifiers: [])
-                Button("Reset") { timer.reset() }
-                Button("Skip") { timer.skip() }
+                Button("Skip") { timer.skip() }.buttonStyle(CapsuleButtonStyle())
             }
 
             if timer.phase == .work {
@@ -238,8 +230,7 @@ struct MixerTab: View {
                             .font(.caption)
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(CapsuleButtonStyle())
                 }
             }
             ForEach(Soundscape.allCases) { s in
@@ -326,10 +317,8 @@ struct SettingsTab: View {
     private var breathe: some View {
         VStack(alignment: .leading, spacing: 12) {
             GroupBox("Visual") {
-                Picker("Style", selection: $breathStyle) {
-                    ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
-                }
-                .pickerStyle(.segmented).labelsHidden().padding(.vertical, 4)
+                PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
+                    .padding(.vertical, 4)
             }
             GroupBox("Full screen") {
                 VStack(alignment: .leading, spacing: 4) {

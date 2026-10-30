@@ -63,7 +63,7 @@ struct BreathingView: View {
 
     var body: some View {
         content
-            .background(compact ? nil : RoundedRectangle(cornerRadius: 18)
+            .background(compact ? nil : RoundedRectangle(cornerRadius: 34)
                 .fill(LinearGradient(colors: [Color(red: 0.30, green: 0.40, blue: 0.62).opacity(0.22),
                                               Color(red: 0.25, green: 0.55, blue: 0.58).opacity(0.10)],
                                      startPoint: .top, endPoint: .bottom))
@@ -75,11 +75,7 @@ struct BreathingView: View {
     private var content: some View {
         VStack(spacing: 12) {
             if !compact {
-                Picker("", selection: $pattern) {
-                    ForEach(BreathPattern.all) { Text($0.name).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                PillPicker(items: BreathPattern.all, selection: $pattern) { $0.name }
                 .onChange(of: pattern) { _, _ in start = Date() }
             }
 
@@ -116,13 +112,12 @@ struct BreathingView: View {
                     if !compact {
                         VStack(spacing: 6) {
                             Button { BreatheOverlay.shared.show() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
+                                .buttonStyle(CircleButtonStyle())
                                 .help("Full screen")
-                            Toggle(isOn: $guideMe) { Image(systemName: "text.bubble") }
-                                .toggleStyle(.button)
+                            Button { guideMe.toggle() } label: { Image(systemName: "text.bubble") }
+                                .buttonStyle(CircleButtonStyle(on: guideMe))
                                 .help("Guide me with gentle prompts")
                         }
-                        .buttonStyle(.borderless)
-                        .controlSize(.small)
                     }
                 }
                 .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
