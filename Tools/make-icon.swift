@@ -27,7 +27,7 @@ func render(_ px: Int) -> Data {
         .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.46, options: [])
 
     // breath: soft rings drifting outward from the flower, fading as they go
-    for (i, r) in [0.27, 0.33, 0.39].enumerated() {
+    for (i, r) in [0.37, 0.42, 0.47].enumerated() {
         let ring = NSBezierPath(ovalIn: NSRect(x: c.x - s*r, y: c.y - s*r, width: s*r*2, height: s*r*2))
         ring.lineWidth = s * (0.014 - 0.003 * CGFloat(i))
         NSColor(red: 0.70, green: 0.82, blue: 1.0, alpha: 1).withAlphaComponent(0.26 - 0.08 * CGFloat(i)).setStroke()
@@ -46,18 +46,18 @@ func render(_ px: Int) -> Data {
             color.withAlphaComponent(0.55).setStroke(); p.lineWidth = s * 0.004; p.stroke()
         }
     }
-    petals(count: 8, orbit: s*0.155, length: s*0.15, width: s*0.068, turn: 0.0,
+    petals(count: 8, orbit: s*0.205, length: s*0.20, width: s*0.088, turn: 0.0,
            color: NSColor(red: 0.62, green: 0.78, blue: 1.0, alpha: 1))
-    petals(count: 8, orbit: s*0.11, length: s*0.115, width: s*0.06, turn: .pi / 8,
+    petals(count: 8, orbit: s*0.145, length: s*0.15, width: s*0.078, turn: .pi / 8,
            color: NSColor(red: 0.98, green: 0.72, blue: 0.82, alpha: 1))
-    petals(count: 6, orbit: s*0.065, length: s*0.08, width: s*0.045, turn: .pi / 6,
+    petals(count: 6, orbit: s*0.085, length: s*0.105, width: s*0.058, turn: .pi / 6,
            color: NSColor(red: 1.0, green: 0.86, blue: 0.62, alpha: 1))
 
     // glowing core
     NSGradient(colors: [NSColor(red: 1.0, green: 0.95, blue: 0.84, alpha: 1),
                         NSColor(red: 1.0, green: 0.75, blue: 0.55, alpha: 0.7),
                         NSColor(red: 1.0, green: 0.6, blue: 0.5, alpha: 0)])!
-        .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.11, options: [])
+        .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.14, options: [])
 
     // glass highlight on the top of the tile
     NSGradient(colors: [NSColor.white.withAlphaComponent(0.13), NSColor.white.withAlphaComponent(0)])!.draw(in: tileRect, angle: -90)
