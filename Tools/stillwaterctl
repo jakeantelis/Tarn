@@ -15,7 +15,7 @@ usage: stillwaterctl <command>
   break               start a break now
   breathe [full]      open Breathe mode (add "full" for full screen)
   sound on|off|toggle       ambient sound
-  sound <preset>            rainy, ocean, forest, quiet
+  sound <preset>            ocean, forest, dawn, quiet
   clear | restore     hide other windows (never quits apps) and bring them back
   status [--json]     show what Stillwater is doing
 USAGE

@@ -2,26 +2,22 @@ import AVFoundation
 import SwiftUI
 
 enum Soundscape: String, CaseIterable, Identifiable {
-    case ocean, rain, forest, birds, stream, wind
+    case ocean, forest, birds, stream
     var id: String { rawValue }
     var title: String {
         switch self {
         case .ocean: return "Ocean"
-        case .rain: return "Rain"
         case .forest: return "Forest"
         case .birds: return "Birds"
         case .stream: return "Stream"
-        case .wind: return "Wind"
         }
     }
     var symbol: String {
         switch self {
         case .ocean: return "water.waves"
-        case .rain: return "cloud.rain"
         case .forest: return "tree"
         case .birds: return "bird"
         case .stream: return "drop"
-        case .wind: return "wind"
         }
     }
 }
@@ -33,10 +29,10 @@ struct SoundPreset: Identifiable {
     var id: String { name }
 
     static let all = [
-        SoundPreset(name: "Rainy cabin", symbol: "cloud.rain", mix: [.rain: 0.7, .wind: 0.2]),
         SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
         SoundPreset(name: "Forest morning", symbol: "tree", mix: [.forest: 0.55, .birds: 0.5, .stream: 0.3]),
-        SoundPreset(name: "Quiet wind", symbol: "wind", mix: [.wind: 0.6]),
+        SoundPreset(name: "Dawn birds", symbol: "bird", mix: [.birds: 0.7, .forest: 0.25]),
+        SoundPreset(name: "Quiet brook", symbol: "drop", mix: [.stream: 0.7, .birds: 0.2]),
     ]
 }
 
@@ -45,7 +41,7 @@ final class SoundGenerator: @unchecked Sendable {
     let kind: Soundscape
     var gain: Float = 0
     private var smoothGain: Float = 0
-    private var trim: Float { kind == .ocean ? 0.5 : kind == .wind ? 0.7 : 1 }
+    private var trim: Float { kind == .ocean ? 0.5 : 1 }
     private let sampleRate: Double
 
     private var rng = SystemRandomNumberGenerator()
@@ -92,23 +88,6 @@ final class SoundGenerator: @unchecked Sendable {
                 lp2 += cutoff * (lp1 - lp2)
                 let foam = (w - lp1) * 0.12 * swell * swell
                 s = (lp2 * 1.6 + brown * 3.0 * (0.3 + swell)) * (0.25 + 0.75 * swell) + foam
-            case .rain:
-                // Steady soft rainfall: pink noise shaped to a gentle shhh, with no separate drops or clicks.
-                brown = 0.985 * brown + 0.15 * w                // slow pink-ish tilt
-                lp1 += 0.20 * (w + brown - lp1)                  // soften the top end
-                lp2 += 0.012 * (lp1 - lp2)                       // remove the low rumble
-                lfo2 += 0.07 * dt
-                let wobble = Float(1 + 0.05 * sin(2 * .pi * lfo2) + 0.03 * sin(2 * .pi * lfo2 * 2.7))
-                s = (lp1 - lp2) * 0.28 * wobble
-            case .wind:
-                lfo2 += (0.05 + 0.03 * Double(brown)) * dt
-                brown = (brown + 0.003 * w) / 1.003
-                let gust = Float(0.5 + 0.5 * sin(2 * .pi * lfo2)) * (0.6 + 4 * abs(brown))
-                let f = 0.015 + 0.05 * gust
-                bpLow += f * bp
-                let high = w - bpLow - 0.35 * bp
-                bp += f * high
-                s = bp * (0.6 + 1.6 * gust)
             case .stream:
                 lp1 += 0.12 * (w - lp1)
                 lp2 += 0.5 * (w - lp2)
@@ -173,7 +152,7 @@ final class SoundEngine: ObservableObject {
     @Published var isPlaying = false
     @Published var levels: [Soundscape: Double] = {
         var d: [Soundscape: Double] = [:]
-        for s in Soundscape.allCases { d[s] = UserDefaults.standard.object(forKey: "vol_\(s.rawValue)") as? Double ?? (s == .rain ? 0.6 : 0) }
+        for s in Soundscape.allCases { d[s] = UserDefaults.standard.object(forKey: "vol_\(s.rawValue)") as? Double ?? (s == .forest ? 0.6 : 0) }
         return d
     }()
 

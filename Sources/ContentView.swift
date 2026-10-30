@@ -500,7 +500,7 @@ struct QuickStart: Identifiable {
     let preset: String?
     var id: String { name }
     static let all = [
-        QuickStart(name: "Deep work", minutes: 90, preset: "Rainy cabin"),
+        QuickStart(name: "Deep work", minutes: 90, preset: "Quiet brook"),
         QuickStart(name: "Study", minutes: 45, preset: "Forest morning"),
         QuickStart(name: "Sprint", minutes: 15, preset: nil),
     ]
