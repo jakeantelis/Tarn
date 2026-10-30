@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension Color {
-    static let matcha = Color(red: 0.42, green: 0.66, blue: 0.40)
+    static let matcha = Color(red: 0.50, green: 0.76, blue: 0.46)
+    static let amber = Color(red: 0.98, green: 0.80, blue: 0.48)
     static let water = Color(red: 0.32, green: 0.64, blue: 0.78)
 }
 
@@ -16,7 +17,13 @@ struct ContentView: View {
     @AppStorage("welcomed") private var welcomed = false
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
-    private var breakTint: some View { (timer.mode == .breathe ? Color.water.opacity(0.08) : Color.purple.opacity(onBreak ? 0.14 : 0)) }
+    private var breakTint: some View {
+        let g: [Color]
+        if timer.mode == .breathe { g = [Color.water.opacity(0.14), Color.water.opacity(0.04)] }
+        else if onBreak { g = [Color.purple.opacity(0.20), Color.purple.opacity(0.06)] }
+        else { g = [Color(red: 0.22, green: 0.42, blue: 0.30).opacity(0.30), Color(red: 0.16, green: 0.26, blue: 0.24).opacity(0.10)] }
+        return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
+    }
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 ? 2 : 0) : (tab == 2 ? 2 : 1) }
 
     var body: some View {

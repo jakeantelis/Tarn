@@ -70,7 +70,8 @@ struct LensView: View {
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
                 let base = min(size.width, size.height) / 2
                 let f = max(0, min(1, 1 - progress))          // time left
-                let green = Color(red: 0.42, green: 0.66, blue: 0.40)
+                let green = Color(red: 0.50, green: 0.76, blue: 0.46)
+                let amber = Color(red: 0.98, green: 0.80, blue: 0.48)
                 func circle(_ r: Double) -> Path { Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)) }
 
                 // time left, as an arc on the outer rim
@@ -88,7 +89,7 @@ struct LensView: View {
                 // soft glow at the center
                 let core = aperture * (0.36 + 0.06 * pulse)
                 g.fill(circle(core), with: .radialGradient(
-                    Gradient(colors: [green.opacity(0.34 + 0.12 * pulse), green.opacity(0)]),
+                    Gradient(colors: [amber.opacity(0.30 + 0.14 * pulse), green.opacity(0.08), green.opacity(0)]),
                     center: c, startRadius: 0, endRadius: core))
                 // focus ticks
                 for k in 0..<4 {
