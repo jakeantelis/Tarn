@@ -58,24 +58,21 @@ struct BreathingView: View {
     private var content: some View {
         VStack(spacing: 12) {
             if !compact {
-                Picker("", selection: $pattern) {
-                    ForEach(BreathPattern.all) { Text($0.name).tag($0) }
+                HStack(spacing: 8) {
+                    Picker("", selection: $pattern) {
+                        ForEach(BreathPattern.all) { Text($0.name).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .onChange(of: pattern) { _, _ in start = Date() }
+                    Button {
+                        BreatheOverlay.shared.show()
+                    } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    }
+                    .help("Full screen")
+                    .buttonStyle(.bordered)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .onChange(of: pattern) { _, _ in start = Date() }
-                Picker("", selection: $styleRaw) {
-                    ForEach(BreathStyle.allCases) { Text($0.rawValue).tag($0.rawValue) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                Button {
-                    BreatheOverlay.shared.show()
-                } label: {
-                    Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right")
-                }
-                .buttonStyle(.borderless)
-                .font(.callout)
             }
 
             TimelineView(.animation) { ctx in
@@ -173,8 +170,6 @@ struct FillCanvas: View {
                 }
             }
             g.stroke(vessel, with: .color(Color.teal.opacity(0.55)), lineWidth: 2)
-            g.fill(Path(ellipseIn: CGRect(x: c.x - r * 0.62, y: c.y - r * 0.85, width: r * 0.5, height: r * 0.22)),
-                   with: .color(.white.opacity(0.10)))
         }
     }
 }

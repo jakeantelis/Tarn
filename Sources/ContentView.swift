@@ -1,14 +1,21 @@
 import SwiftUI
 
+extension Color {
+    static let matcha = Color(red: 0.42, green: 0.66, blue: 0.40)
+}
+
 struct ContentView: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
-    @State private var tab = 0          // 0 timer, 1 breathe, 2 sounds
+    @State private var tab: Int          // 0 timer, 1 breathe, 2 sounds
+    init(timer: PomodoroTimer, sound: SoundEngine, initialTab: Int = 0, startInSettings: Bool = false) {
+        self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab); _showSettings = State(initialValue: startInSettings)
+    }
     @State private var showSettings = false
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
     private var breakTint: some View { Color.purple.opacity(onBreak ? 0.14 : 0) }
-    private var effectiveTab: Int { timer.mode.hasTimer ? tab : max(tab, 1) }
+    private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 ? 2 : 0) : (tab == 2 ? 2 : 1) }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -26,8 +33,7 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
 
                 Picker("", selection: Binding(get: { effectiveTab }, set: { tab = $0 })) {
-                    if timer.mode.hasTimer { Text("Timer").tag(0) }
-                    Text("Breathe").tag(1)
+                    if timer.mode.hasTimer { Text("Timer").tag(0) } else { Text("Breathe").tag(1) }
                     Text("Sounds").tag(2)
                 }
                 .pickerStyle(.segmented)
@@ -67,6 +73,7 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 300)
         .background(breakTint)
+        .tint(.matcha)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
     }
 }
@@ -128,13 +135,13 @@ struct TimerTab: View {
                     TimelineView(.animation(paused: !timer.isRunning)) { ctx in
                         let p = 0.5 + 0.5 * sin(ctx.date.timeIntervalSinceReferenceDate * 2 * .pi / 4)
                         Circle()
-                            .stroke((timer.phase.isBreak ? Color.teal : Color.orange).opacity(timer.isRunning ? 0.10 + 0.14 * p : 0.08), lineWidth: 8 + 10 * (timer.isRunning ? p : 0))
+                            .stroke((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(timer.isRunning ? 0.10 + 0.14 * p : 0.08), lineWidth: 8 + 10 * (timer.isRunning ? p : 0))
                             .scaleEffect(1 + 0.05 * (timer.isRunning ? p : 0))
                     }
                     Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 8)
                     Circle()
                         .trim(from: 0, to: timer.progress)
-                        .stroke(timer.phase.isBreak ? Color.teal : Color.orange,
+                        .stroke(timer.phase.isBreak ? Color.purple.opacity(0.7) : Color.matcha,
                                 style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.linear(duration: 0.25), value: timer.progress)
@@ -154,9 +161,12 @@ struct TimerTab: View {
             HStack(spacing: 6) {
                 ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
                     Button("\(m)") { timer.setFocusMinutes(m) }
-                        .buttonStyle(.bordered)
-                        .tint(timer.focusMinutes == m ? .accentColor : .secondary)
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
+                        .font(.callout.monospacedDigit())
+                        .frame(width: 34, height: 24)
+                        .background(RoundedRectangle(cornerRadius: 6)
+                            .fill(timer.focusMinutes == m ? Color.matcha : Color.secondary.opacity(0.15)))
+                        .foregroundStyle(timer.focusMinutes == m ? Color.white : Color.primary)
                 }
                 Text("min").font(.caption).foregroundStyle(.secondary)
             }
@@ -187,15 +197,15 @@ struct MixerTab: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(SoundPreset.all) { p in
-                        Button { sound.applyPreset(p) } label: {
-                            Label(p.name, systemImage: p.symbol).font(.caption)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                ForEach(SoundPreset.all) { p in
+                    Button { sound.applyPreset(p) } label: {
+                        Label(p.name, systemImage: p.symbol)
+                            .font(.caption)
+                            .frame(maxWidth: .infinity)
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             }
             ForEach(Soundscape.allCases) { s in
