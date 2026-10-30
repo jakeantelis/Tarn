@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum BreathStyle: String, CaseIterable, Identifiable {
-    case fill = "Water", bloom = "Flower", rings = "Ripples"
+    case bloom = "Flower", fill = "Water"
     var id: String { rawValue }
 }
 
@@ -102,7 +102,6 @@ struct BreathingView: View {
                     switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                     case .fill: FillCanvas(scale: s.scale, time: t)
                     case .bloom: BloomCanvas(scale: s.scale, time: t)
-                    case .rings: RingsCanvas(scale: s.scale, time: t)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 120 : 190)
@@ -125,7 +124,7 @@ struct BreathingView: View {
                         .buttonStyle(.plain)
                         .menuIndicator(.hidden)
                         .fixedSize()
-                        .help("Choose the look: Flower, Water or Ripples")
+                        .help("Choose the look: Flower or Water")
                         .accessibilityLabel("Choose the look")
                         .padding(6)
                     }
@@ -139,10 +138,15 @@ struct BreathingView: View {
                 .help(compact ? "" : (pausedAt == nil ? "Click to pause" : "Click to resume"))
 
                 // The cue sits under the picture, not on top of it, so it is always easy to read.
-                Text(pausedAt != nil ? "Paused" : s.label)
-                    .font(.system(size: compact ? 17 : 22, weight: .light, design: .rounded))
-                    .foregroundStyle(.primary.opacity(0.9))
+                // A soft, lowercase cue that fades from one word to the next.
+                Text((pausedAt != nil ? "Paused. Tap to resume" : s.label).lowercased())
+                    .font(.system(size: compact ? 17 : 21, weight: .light, design: .serif))
+                    .tracking(1.6)
+                    .foregroundStyle(.primary.opacity(0.72))
                     .frame(height: 28)
+                    .id(pausedAt != nil ? "paused" : s.label)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.9), value: s.label)
                 if guideMe && !compact {
                     Text(Guidance.line(at: t))
                         .font(.system(.caption, design: .serif).italic())
@@ -254,29 +258,6 @@ struct FillCanvas: View {
                 }
             }
             g.stroke(vessel, with: .color(Color(red: 0.62, green: 0.84, blue: 0.84).opacity(0.45)), lineWidth: 1.5)
-        }
-    }
-}
-
-/// Glowing orb with ripples that travel outward as you breathe.
-struct RingsCanvas: View {
-    let scale: Double
-    let time: Double
-
-    var body: some View {
-        Canvas { g, size in
-            let c = CGPoint(x: size.width / 2, y: size.height / 2)
-            let base = min(size.width, size.height) / 2
-            for k in 0..<4 {
-                let f = (time * 0.15 + Double(k) / 4).truncatingRemainder(dividingBy: 1)
-                let rr = base * (0.35 + 0.65 * f) * (0.75 + 0.25 * scale)
-                g.stroke(Path(ellipseIn: CGRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2)),
-                         with: .color(Color(red: 0.62, green: 0.70, blue: 0.90).opacity(0.35 * (1 - f))), lineWidth: 1.5)
-            }
-            let orb = base * (0.22 + 0.22 * scale)
-            g.fill(Path(ellipseIn: CGRect(x: c.x - orb, y: c.y - orb, width: orb * 2, height: orb * 2)),
-                   with: .radialGradient(Gradient(colors: [Color.white.opacity(0.9), Color(red: 0.62, green: 0.70, blue: 0.90).opacity(0.5), Color(red: 0.62, green: 0.70, blue: 0.90).opacity(0.05)]),
-                                         center: c, startRadius: 0, endRadius: orb))
         }
     }
 }

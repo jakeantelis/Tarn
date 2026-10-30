@@ -78,13 +78,16 @@ struct OverlayView: View {
                         switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                         case .fill: FillCanvas(scale: s.scale, time: t)
                         case .bloom: BloomCanvas(scale: s.scale, time: t)
-                        case .rings: RingsCanvas(scale: s.scale, time: t)
                         }
                     }
                     .frame(width: 460, height: 460)
-                    Text(s.label)
-                        .font(.system(size: 34, weight: .ultraLight, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.85))
+                    Text(s.label.lowercased())
+                        .font(.system(size: 34, weight: .ultraLight, design: .serif))
+                        .tracking(2.4)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .id(s.label)
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.9), value: s.label)
                     if guideMe {
                         Text(Guidance.line(at: t))
                             .font(.system(size: 17, weight: .light, design: .serif).italic())

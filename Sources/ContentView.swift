@@ -167,6 +167,16 @@ struct QuoteLine: View {
 struct TimerTab: View {
     @ObservedObject var timer: PomodoroTimer
 
+    @AppStorage("tapToStart") private var tapToStart = true
+    @State private var hoveringLens = false
+
+    /// The line under the countdown. It always says what a click will do when that matters.
+    private var lensHint: String {
+        guard tapToStart else { return timer.isRunning ? "Next: \(timer.nextLabel)" : "Ready" }
+        if timer.isRunning { return hoveringLens ? "Click to pause" : "Next: \(timer.nextLabel)" }
+        return timer.remaining < timer.duration(for: timer.phase) ? "Paused. Click to resume" : "Click to start"
+    }
+
     private var showBloom: Bool { timer.phase.isBreak && timer.breakStyle == .breathe }
 
     var body: some View {
@@ -209,15 +219,21 @@ struct TimerTab: View {
                         Text(timer.clockText)
                             .font(.system(size: 46, weight: .light, design: .rounded))
                             .monospacedDigit()
-                        Text(timer.isRunning ? "Next: \(timer.nextLabel)" : (timer.remaining < timer.duration(for: timer.phase) ? "Paused" : "Ready"))
+                        Text(lensHint)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(timer.isRunning && !hoveringLens ? Color.secondary : Color.primary.opacity(0.8))
                     }
                 }
                 .frame(width: 200, height: 200)
                 .contentShape(Circle())
-                .onTapGesture { timer.toggle() }
-                .help(timer.isRunning ? "Click to pause" : "Click to start")
+                .scaleEffect(hoveringLens && tapToStart ? 1.02 : 1)
+                .animation(.easeOut(duration: 0.15), value: hoveringLens)
+                .onHover { inside in
+                    hoveringLens = inside
+                    if tapToStart { if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() } }
+                }
+                .onTapGesture { if tapToStart { timer.toggle() } }
+                .help(tapToStart ? (timer.isRunning ? "Click the circle to pause" : "Click the circle to start") : "")
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint(timer.isRunning ? "Pauses the timer" : "Starts the timer")
@@ -439,6 +455,7 @@ struct SettingsTab: View {
                     }
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
                     Toggle("Fill the screen with breathing on breaks", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
+                    Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
             }
