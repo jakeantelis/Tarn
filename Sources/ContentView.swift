@@ -30,7 +30,10 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 12) {
             if showSettings {
-                SettingsTab(timer: timer, sound: sound, mode: timer.mode)
+                ScrollView(showsIndicators: false) {
+                    SettingsTab(timer: timer, sound: sound, mode: timer.mode)
+                }
+                .frame(maxHeight: 460)
             } else {
                 PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) { $0.rawValue }
 
