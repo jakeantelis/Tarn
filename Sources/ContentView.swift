@@ -172,12 +172,18 @@ struct TimerTab: View {
                                 style: StrokeStyle(lineWidth: 8, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.linear(duration: 0.25), value: timer.progress)
-                    VStack(spacing: 2) {
+                    VStack(spacing: 6) {
+                        Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS")
+                            .font(.caption.weight(.semibold))
+                            .tracking(1.5)
+                            .padding(.horizontal, 10).padding(.vertical, 3)
+                            .background(Capsule().fill((timer.phase.isBreak ? Color.purple : Color.matcha).opacity(0.22)))
+                            .foregroundStyle(timer.phase.isBreak ? Color.purple : Color.matcha)
                         Text(timer.clockText)
-                            .font(.system(size: 40, weight: .light, design: .rounded))
+                            .font(.system(size: 46, weight: .light, design: .rounded))
                             .monospacedDigit()
-                        Text(timer.phase.rawValue)
-                            .font(.callout)
+                        Text(timer.isRunning ? "Next: \(timer.nextLabel)" : (timer.remaining < timer.duration(for: timer.phase) ? "Paused" : "Ready"))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -201,6 +207,7 @@ struct TimerTab: View {
             HStack(spacing: 10) {
                 Button(timer.isRunning ? "Pause" : "Start") { timer.toggle() }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .keyboardShortcut(.space, modifiers: [])
                 Button("Reset") { timer.reset() }
                 Button("Skip") { timer.skip() }
@@ -260,6 +267,7 @@ struct SettingsTab: View {
     let mode: Mode
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
     @AppStorage("voiceGuide") private var voiceGuide = false
+    @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
@@ -333,6 +341,7 @@ struct SettingsTab: View {
             GroupBox("Voice") {
                 VStack(alignment: .leading, spacing: 4) {
                     Toggle("Spoken cues (Breathe in, Hold, And out)", isOn: $voiceGuide)
+                    Toggle("Guide me with gentle prompts", isOn: $guideMe)
                     Text("Uses your Mac's built in voice, offline. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)

@@ -58,9 +58,10 @@ final class OverlayWindow: NSWindow {
 
 struct OverlayView: View {
     let onClose: () -> Void
+    @AppStorage("guideMe") private var guideMe = false
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
     @State private var start = Date()
-    private let pattern = BreathPattern.calm
+    private let pattern = BreathPattern.settle
 
     var body: some View {
         ZStack {
@@ -80,8 +81,18 @@ struct OverlayView: View {
                     Text(s.label)
                         .font(.system(size: 34, weight: .ultraLight, design: .rounded))
                         .foregroundStyle(.white.opacity(0.85))
-                        .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
+                    if guideMe {
+                        Text(Guidance.line(at: t))
+                            .font(.system(size: 17, weight: .light, design: .serif).italic())
+                            .foregroundStyle(.white.opacity(0.55))
+                            .frame(height: 24)
+                            .id(Guidance.index(at: t))
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
+                    }
                 }
+                .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
+                .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }
             VStack {
                 Spacer()

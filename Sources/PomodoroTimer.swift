@@ -101,6 +101,14 @@ final class PomodoroTimer: ObservableObject {
         }
     }
 
+    /// Describes the phase that follows the current one, for the "Next" line.
+    var nextLabel: String {
+        func mins(_ p: Phase) -> Int { Int(duration(for: p) / 60) }
+        if phase.isBreak { return "Focus \(mins(.work)) min" }
+        let next: Phase = (completedRounds + 1) % roundsPerSet == 0 ? .longBreak : .shortBreak
+        return "\(next == .longBreak ? "Long break" : "Break") \(mins(next)) min"
+    }
+
     var breakStyle: BreakStyle { BreakStyle(rawValue: breakStyleRaw) ?? .breathe }
 
     /// Rounds before a long break.

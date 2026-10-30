@@ -28,6 +28,17 @@ final class VoiceGuide {
         synth.speak(u)
     }
 
+    /// Speaks a longer guidance line, softly, if spoken cues are on.
+    func say(_ text: String) {
+        guard enabled else { return }
+        let u = AVSpeechUtterance(string: text)
+        u.voice = Self.softVoice
+        u.rate = AVSpeechUtteranceDefaultSpeechRate * 0.65
+        u.pitchMultiplier = 0.9
+        u.volume = 0.5
+        synth.speak(u)
+    }
+
     func reset() {
         last = ""
         synth.stopSpeaking(at: .immediate)
@@ -39,4 +50,20 @@ final class VoiceGuide {
         return en.max { $0.quality.rawValue < $1.quality.rawValue }
             ?? AVSpeechSynthesisVoice(language: "en-US")
     }()
+}
+
+/// Gentle spoken or written guidance, in our own words. Advances every 26 seconds.
+enum Guidance {
+    static let lines = [
+        "Settle in. Let your shoulders drop.",
+        "Unclench your jaw. Soften your face.",
+        "Let your breath find its own pace.",
+        "Nothing to fix right now. Just notice.",
+        "If thoughts come, let them pass like clouds.",
+        "Feel your feet, your seat, your weight.",
+        "With each breath out, let a little more go.",
+        "You are doing this exactly right.",
+    ]
+    static func index(at t: Double) -> Int { Int(max(0, t) / 26) }
+    static func line(at t: Double) -> String { lines[index(at: t) % lines.count] }
 }
