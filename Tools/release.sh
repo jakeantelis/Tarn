@@ -100,11 +100,16 @@ rm -rf "$DMG_STAGE"
 mkdir -p "$DMG_STAGE"
 cp -R "$APP" "$DMG_STAGE/Tarn.app"
 ln -s /Applications "$DMG_STAGE/Applications"
-hdiutil create -volname "Tarn" -srcfolder "$DMG_STAGE" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
+hdiutil create -volname "Tarn" -srcfolder "$DMG_STAGE" -fs APFS -format UDZO -ov "$DMG" >/dev/null
 rm -rf "$DMG_STAGE"
 
 if [[ "$SIGNED" == true ]]; then
     codesign --force --timestamp --sign "$DEV_ID" "$DMG"
+fi
+# A signed disk image must still be a valid disk image. Stop here if it is not, instead of notarizing a broken file.
+if ! hdiutil verify "$DMG" >/dev/null 2>&1; then
+    echo "ERROR: $DMG is not a valid disk image after signing" >&2
+    exit 1
 fi
 if [[ "$NOTARIZED" == true ]]; then
     echo "Notarizing DMG..."
