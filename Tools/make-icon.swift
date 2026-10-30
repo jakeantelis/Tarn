@@ -26,10 +26,13 @@ func render(_ px: Int) -> Data {
     NSGradient(colors: [NSColor(red: 0.55, green: 0.75, blue: 1.0, alpha: 0.38), NSColor.clear])!
         .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.46, options: [])
 
-    // faint outer ring, a nod to the focus lens
-    let ring = NSBezierPath(ovalIn: NSRect(x: c.x - s*0.385, y: c.y - s*0.385, width: s*0.77, height: s*0.77))
-    ring.lineWidth = s * 0.012
-    NSColor.white.withAlphaComponent(0.16).setStroke(); ring.stroke()
+    // breath: soft rings drifting outward from the flower, fading as they go
+    for (i, r) in [0.27, 0.33, 0.39].enumerated() {
+        let ring = NSBezierPath(ovalIn: NSRect(x: c.x - s*r, y: c.y - s*r, width: s*r*2, height: s*r*2))
+        ring.lineWidth = s * (0.014 - 0.003 * CGFloat(i))
+        NSColor(red: 0.70, green: 0.82, blue: 1.0, alpha: 1).withAlphaComponent(0.26 - 0.08 * CGFloat(i)).setStroke()
+        ring.stroke()
+    }
 
     // the breathing flower: three rings of translucent petals
     func petals(count: Int, orbit: CGFloat, length: CGFloat, width: CGFloat, turn: CGFloat, color: NSColor) {

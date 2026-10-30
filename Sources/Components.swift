@@ -65,6 +65,19 @@ struct LensView: View {
     let running: Bool
 
     var body: some View {
+        ZStack {
+            // deeper tinted disc while a round is running, only inside the lens
+            Circle()
+                .fill(RadialGradient(colors: [FocusPalette.current.tint.opacity(0.34), FocusPalette.current.tint.opacity(0.14)],
+                                     center: .center, startRadius: 0, endRadius: 100))
+                .padding(10)
+                .opacity(running ? 1 : 0)
+                .animation(.easeInOut(duration: 1.2), value: running)
+            lens
+        }
+    }
+
+    private var lens: some View {
         TimelineView(.animation(paused: !running)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let pulse = running ? 0.5 + 0.5 * sin(t * 2 * .pi / 3 - .pi / 2) : 0.3

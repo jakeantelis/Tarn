@@ -16,7 +16,14 @@ struct StillwaterApp: App {
                     Image(nsImage: ringIcon(progress: timer.progress))
                     if !timer.hideCountdown { Text(timer.clockText).monospacedDigit() }
                 } else {
-                    Image(nsImage: Self.idleIcon)
+                    if timer.mode == .breathe {
+                        TimelineView(.periodic(from: .now, by: 0.25)) { ctx in
+                            let b = BreathPattern.settle.state(at: ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 600))
+                            Image(nsImage: Self.flowerIcon(open: b.scale))
+                        }
+                    } else {
+                        Image(nsImage: Self.flowerIcon(open: 0.5))
+                    }
                 }
             }
             .onChange(of: timer.isRunning) { _, _ in syncSound() }
@@ -34,15 +41,16 @@ struct StillwaterApp: App {
         sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
     }
 
-    /// Idle menu bar icon: a tiny six petal flower. Drawn as a template so it follows the menu bar tint.
-    static let idleIcon: NSImage = {
+    /// Menu bar flower: six petals that open and close with `open` (0 to 1). A template, so it follows the menu bar tint.
+    static func flowerIcon(open: Double) -> NSImage {
         let img = NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
             let c = NSPoint(x: rect.midX, y: rect.midY)
+            let o = CGFloat(open)
             NSColor.black.setStroke()
             for k in 0..<6 {
                 let a = CGFloat(k) / 6 * 2 * .pi
-                let petal = NSBezierPath(ovalIn: NSRect(x: -1.9, y: -3.6, width: 3.8, height: 7.2))
-                var t = AffineTransform(translationByX: c.x + cos(a) * 3.3, byY: c.y + sin(a) * 3.3)
+                let petal = NSBezierPath(ovalIn: NSRect(x: -1.7, y: -(2.6 + 1.0 * o), width: 3.4, height: 2 * (2.6 + 1.0 * o)))
+                var t = AffineTransform(translationByX: c.x + cos(a) * (2.2 + 1.5 * o), byY: c.y + sin(a) * (2.2 + 1.5 * o))
                 t.rotate(byRadians: a - .pi / 2)
                 petal.transform(using: t)
                 petal.lineWidth = 1.0
@@ -54,7 +62,7 @@ struct StillwaterApp: App {
         }
         img.isTemplate = true
         return img
-    }()
+    }
 
     /// Small ring that fills as the round progresses; drawn as a template so it follows the menu bar tint.
     private func ringIcon(progress: Double) -> NSImage {
