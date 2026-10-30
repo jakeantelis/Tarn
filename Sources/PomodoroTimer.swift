@@ -49,6 +49,7 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("chime") var chime = true
     @AppStorage("fullScreenBreaks") var fullScreenBreaks = false
+    @AppStorage("roundReminder") var roundReminder = false
     @AppStorage("intention") var intention = ""
     @AppStorage("eyeRest") var eyeRest = false
     @Published var eyeRestUntil = Date.distantPast
@@ -111,17 +112,7 @@ final class PomodoroTimer: ObservableObject {
     }
 
     /// Runs a Shortcut the user named (for example to switch on Do Not Disturb). Nothing runs unless they set one.
-    private func runShortcut(_ name: String) {
-        let n = name.trimmingCharacters(in: .whitespaces)
-        guard !n.isEmpty else { return }
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-        task.arguments = ["run", n]
-        task.standardOutput = FileHandle.nullDevice
-        task.standardError = FileHandle.nullDevice
-        task.terminationHandler = { _ in }
-        try? task.run()
-    }
+    private func runShortcut(_ name: String) { runShortcutNamed(name) }
 
     private func setFocusActive(_ on: Bool) {
         guard on != focusActive else { return }
@@ -266,6 +257,7 @@ final class PomodoroTimer: ObservableObject {
             if phase == .work { StatsStore.shared.record(minutes: Int(duration(for: .work) / 60)) }
             stopTicker()
             if chime { NSSound(named: "Glass")?.play() }
+            if roundReminder, phase == .work { Notifier.post("Round complete", "Take a slow breath. Your break is starting.") }
             advance(autoStart: autoStartNext)
         }
     }

@@ -21,12 +21,13 @@ struct ContentView: View {
     @AppStorage("offerFullScreen") private var offerFullScreen = true
     @State private var popoverActive = true
     @AppStorage("welcomed") private var welcomed = false
+    @AppStorage("eveningWarmth") private var eveningWarmth = false   // re-renders the colors when changed
     @AppStorage("focusPalette") private var paletteKey = "red"
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
     private var breakTint: some View {
         let g: [Color]
-        if timer.mode == .breathe { g = [Color.water.opacity(0.14), Color.water.opacity(0.04)] }
+        if timer.mode == .breathe { g = [Color.breatheTint.opacity(0.14), Color.breatheTint.opacity(0.04)] }
         else if onBreak { g = [Color.purple.opacity(0.16), Color.purple.opacity(0.04)] }
         else { g = [Color.white.opacity(0.05), Color.white.opacity(0.0)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
@@ -105,7 +106,7 @@ struct ContentView: View {
         .environment(\.popoverActive, popoverActive)
         .onChange(of: sound.isPlaying) { _, playing in if !playing { fullScreenOfferDismissed = false } }
         .background(breakTint)
-        .tint(timer.mode == .breathe ? Color.water : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
+        .tint(timer.mode == .breathe ? Color.breatheTint : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
         .animation(.easeInOut(duration: 0.6), value: timer.mode)
         .overlay { if !welcomed { Welcome { welcomed = true } } }
@@ -320,10 +321,27 @@ struct StatsTab: View {
                 }
             }
             .frame(height: 140, alignment: .bottom)
+            if let note = streakNote {
+                Label(note, systemImage: "leaf.fill")
+                    .font(.caption)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(Color.focusTint.opacity(0.18)))
+            }
             Text("\(week.reduce(0) { $0 + $1.stats.rounds }) rounds this week. Saved only on this Mac.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .frame(minHeight: 230, alignment: .top)
+    }
+
+    /// A gentle note at a few milestones, never a nag.
+    private var streakNote: String? {
+        switch stats.streak {
+        case 3...6: return "\(stats.streak) days in a row. Nice and steady."
+        case 7...13: return "A week of showing up. Well done."
+        case 14...29: return "\(stats.streak) days. A calm habit is forming."
+        case 30...: return "\(stats.streak) days. Quietly impressive."
+        default: return nil
+        }
     }
 
     private func stat(_ big: String, _ small: String) -> some View {
@@ -382,6 +400,9 @@ struct SettingsTab: View {
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
+    @AppStorage("calmStartShortcut") private var calmStart = ""
+    @AppStorage("calmEndShortcut") private var calmEnd = ""
+    @AppStorage("eveningWarmth") private var eveningWarmth = false
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -489,6 +510,7 @@ struct SettingsTab: View {
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
                     Toggle("Fill the screen on breaks (off lets you watch or read)", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
+                    Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
                     Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
             }
@@ -554,6 +576,23 @@ struct SettingsTab: View {
             GroupBox("Visual") {
                 PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
                     .padding(.vertical, 4)
+            }
+            GroupBox("Calm mode") {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Shortcut to run when Calm starts, for example Tarn Calm On", text: $calmStart)
+                    TextField("Shortcut to run when Calm ends, for example Tarn Calm Off", text: $calmEnd)
+                    HStack(spacing: 6) {
+                        Button("Use suggested names") { calmStart = "Tarn Calm On"; calmEnd = "Tarn Calm Off" }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                        Button("Open Shortcuts") {
+                            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.shortcuts") { NSWorkspace.shared.open(url) }
+                        }
+                        .buttonStyle(CapsuleButtonStyle(small: true))
+                    }
+                    Text("To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
+                }.padding(.vertical, 4)
             }
             GroupBox("Full screen") {
                 VStack(alignment: .leading, spacing: 4) {
@@ -635,6 +674,8 @@ enum HelpContent {
             ("How do I use Breathe?", "Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it."),
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
+            ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back."),
+            ("What is a Session?", "Pick 1, 3 or 5 minutes under the pattern buttons for a short guided session with an end chime. Open keeps going until you stop."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return."),
         ]),
         ("Sounds", [

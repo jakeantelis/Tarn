@@ -26,6 +26,16 @@ final class AppModel {
         }
     }
 
+    /// One button: full screen, hide apps (if allowed), your last sound mix, and the optional Shortcut for Do Not Disturb.
+    func calmMode() {
+        timer.setMode(.breathe)
+        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
+        if !sound.isPlaying, let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p) }
+        runShortcutNamed(UserDefaults.standard.string(forKey: "calmStartShortcut") ?? "")
+        BreatheOverlay.shared.calmActive = true
+        BreatheOverlay.shared.show()
+    }
+
     /// Handles tarn:// links, which is also what the tarnctl command line tool sends.
     func handle(_ url: URL) {
         guard url.scheme == "tarn" else { return }
@@ -58,6 +68,7 @@ final class AppModel {
             default: break
             }
         case "window": WindowOpener.shared.show()
+        case "calm": calmMode()
         case "clear": ScreenClearer.shared.clear()
         case "restore": ScreenClearer.shared.restore()
         default: break

@@ -87,6 +87,7 @@ final class SoundEngine: ObservableObject {
     static let maxLayers = 3
 
     func applyPreset(_ preset: SoundPreset) {
+        UserDefaults.standard.set(preset.name, forKey: "lastPreset")
         for s in Soundscape.allCases { setLevel(preset.mix[s] ?? 0, for: s, enforceCap: false) }
         if !isPlaying { play() }
     }

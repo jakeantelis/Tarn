@@ -20,7 +20,7 @@ FLAGS=(
     -framework SwiftUI
     -framework AppKit
     -framework AVFoundation
-    -framework ServiceManagement
+    -framework ServiceManagement -framework UserNotifications
 )
 
 echo "Compiling arm64..."

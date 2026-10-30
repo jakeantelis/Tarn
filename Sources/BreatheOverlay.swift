@@ -10,6 +10,8 @@ final class BreatheOverlay {
     private var monitor: Any?
     /// One shared clock, so every screen shows the same breath.
     private(set) var startDate = Date()
+    /// Set by Calm mode so the "calm ends" Shortcut runs when the overlay closes.
+    var calmActive = false
 
     var isShowing: Bool { !windows.isEmpty }
 
@@ -61,6 +63,7 @@ final class BreatheOverlay {
         hidden.forEach { $0.unhide() }
         hidden = []
         VoiceGuide.shared.reset()
+        if calmActive { calmActive = false; runShortcutNamed(UserDefaults.standard.string(forKey: "calmEndShortcut") ?? "") }
     }
 }
 
@@ -106,17 +109,31 @@ struct OverlayView: View {
                            startPoint: .top, endPoint: .bottom)
                 .opacity(0.97)
                 .ignoresSafeArea()
-            TimelineView(.animation) { ctx in
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 VStack(spacing: 28) {
                     ZStack {
+                        // Soft ripples drift outward from the picture, timed to the breath.
+                        if !reduceMotion {
+                            Canvas { g, size in
+                                let c = CGPoint(x: size.width / 2, y: size.height / 2)
+                                for k in 0..<3 {
+                                    let ph = ((t / 7) + Double(k) / 3).truncatingRemainder(dividingBy: 1)
+                                    let r = size.width * (0.27 + 0.09 * s.scale + 0.12 * ph)
+                                    var ring = Path(); ring.addEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+                                    g.stroke(ring, with: .color(Color(red: 0.72, green: 0.80, blue: 1.0).opacity(0.18 * (1 - ph))), lineWidth: 1.4)
+                                }
+                            }
+                            .frame(width: 900, height: 900)
+                            .allowsHitTesting(false)
+                        }
                         switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                         case .fill: FillCanvas(scale: s.scale, time: t)
                         case .bloom: BloomCanvas(scale: s.scale, time: t)
                         }
                     }
-                    .frame(width: 460, height: 460)
+                    .frame(width: 540, height: 540)
                     Text(s.label.lowercased())
                         .font(.system(size: 34, weight: .ultraLight, design: .serif))
                         .tracking(2.4)
@@ -167,5 +184,6 @@ struct OverlayView: View {
             .padding(24)
         }
         .preferredColorScheme(.dark)
+        .tint(Color.breatheTint)
     }
 }

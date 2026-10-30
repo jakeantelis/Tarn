@@ -76,6 +76,9 @@ struct BreathingView: View {
     }
     @State private var start = Date()
     @State private var pausedAt: TimeInterval? = nil   // elapsed seconds while paused
+    @AppStorage("coachMinutes") private var coachMinutes = 0
+    @State private var coachStart: Date? = nil
+    @State private var coachDone = false
 
     var body: some View {
         content
@@ -84,8 +87,24 @@ struct BreathingView: View {
                                               Color(red: 0.25, green: 0.55, blue: 0.58).opacity(0.10)],
                                      startPoint: .top, endPoint: .bottom))
                 .padding(-8))
-            .onAppear { VoiceGuide.shared.reset() }
+            .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in checkCoach() }
+            .onAppear { VoiceGuide.shared.reset(); if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
             .onDisappear { VoiceGuide.shared.reset() }
+    }
+
+    private func setCoach(_ minutes: Int) {
+        coachMinutes = minutes
+        coachDone = false
+        start = Date(); pausedAt = nil
+        coachStart = minutes > 0 ? Date() : nil
+    }
+
+    private func checkCoach() {
+        guard let cs = coachStart, coachMinutes > 0, Date().timeIntervalSince(cs) >= Double(coachMinutes * 60) else { return }
+        coachStart = nil
+        coachDone = true
+        if UserDefaults.standard.object(forKey: "chime") as? Bool ?? true { NSSound(named: "Glass")?.play() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) { coachDone = false }
     }
 
     private var content: some View {
@@ -96,6 +115,10 @@ struct BreathingView: View {
                 Text(pattern.blurb)
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                HStack(spacing: 8) {
+                    Text("Session").font(.caption).foregroundStyle(.secondary)
+                    PillPicker(items: [0, 1, 3, 5], selection: Binding(get: { coachMinutes }, set: { setCoach($0) })) { $0 == 0 ? "Open" : "\($0) min" }
+                }
             }
 
             TimelineView(.animation(paused: !active || pausedAt != nil)) { ctx in
@@ -154,6 +177,13 @@ struct BreathingView: View {
                     .id(pausedAt != nil ? "paused" : s.label)
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.9), value: s.label)
+                if let cs = coachStart, coachMinutes > 0 {
+                    let left = max(0, Double(coachMinutes * 60) - ctx.date.timeIntervalSince(cs))
+                    Text(String(format: "%d:%02d left", Int(left) / 60, Int(left) % 60))
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                } else if coachDone {
+                    Text("Well done. Take a moment before you go.").font(.caption).foregroundStyle(.secondary)
+                }
                 if guideMe && !compact {
                     Text(Guidance.line(at: t))
                         .font(.system(.caption, design: .serif).italic())
@@ -170,6 +200,11 @@ struct BreathingView: View {
             }
 
             if !compact {
+                Button { AppModel.shared.calmMode() } label: {
+                    Label("Calm mode", systemImage: "moon.stars").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+                .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
                 HStack(spacing: 6) {
                     Button { BreatheOverlay.shared.show() } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
                         .buttonStyle(CapsuleButtonStyle(small: true))
@@ -212,7 +247,7 @@ struct BloomCanvas: View {
             // three petal rings, each rotating at a different slow speed
             for (ring, color) in greens.enumerated() {
                 let petals = 5 + ring
-                let spin = time * (0.04 + 0.025 * Double(ring)) * (ring % 2 == 0 ? 1 : -1)
+                let spin = (reduceMotion ? 0 : time) * (0.04 + 0.025 * Double(ring)) * (ring % 2 == 0 ? 1 : -1)
                 let petalR = base * (0.13 - 0.02 * Double(ring)) * (0.7 + 0.5 * scale)
                 let orbit = base * (0.06 + (0.20 + 0.08 * Double(ring)) * scale)
                 for k in 0..<petals {

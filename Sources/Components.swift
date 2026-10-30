@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UserNotifications
 
 /// Capsule shaped segmented control with a sliding highlight.
 struct PillPicker<T: Hashable>: View {
@@ -87,7 +88,7 @@ struct LensView: View {
     private var lens: some View {
         TimelineView(.animation(paused: !running || !active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
-            let pulse = running ? 0.5 + 0.5 * sin(t * 2 * .pi / 3 - .pi / 2) : 0.3
+            let pulse = running && !reduceMotion ? 0.5 + 0.5 * sin(t * 2 * .pi / 3 - .pi / 2) : 0.3
             Canvas { g, size in
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
                 let base = min(size.width, size.height) / 2
@@ -165,5 +166,42 @@ struct PopoverVisibilityReader: NSViewRepresentable {
         }
 
         deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
+    }
+}
+
+/// Respect the Mac's Reduce Motion setting: slower, quieter animation.
+var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+/// Optional warmer colors in the evening for Breathe.
+extension Color {
+    static var breatheTint: Color {
+        let evening = UserDefaults.standard.bool(forKey: "eveningWarmth")
+        let h = Calendar.current.component(.hour, from: Date())
+        if evening && (h >= 19 || h < 6) { return Color(red: 0.86, green: 0.60, blue: 0.56) }
+        return .water
+    }
+}
+
+/// Runs a Shortcut by name, quietly. Nothing runs when the name is empty.
+func runShortcutNamed(_ name: String) {
+    let n = name.trimmingCharacters(in: .whitespaces)
+    guard !n.isEmpty else { return }
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
+    task.arguments = ["run", n]
+    task.standardOutput = FileHandle.nullDevice
+    task.standardError = FileHandle.nullDevice
+    try? task.run()
+}
+
+/// A soft, silent banner. Only used if the user turned the reminder on.
+enum Notifier {
+    static func requestPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
+    }
+    static func post(_ title: String, _ body: String) {
+        let c = UNMutableNotificationContent()
+        c.title = title; c.body = body
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: c, trigger: nil))
     }
 }

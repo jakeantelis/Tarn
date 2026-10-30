@@ -29,6 +29,12 @@ Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold
 **What does Full screen do?**  
 It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix.
 
+**What is Calm mode?**  
+One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back.
+
+**What is a Session?**  
+Pick 1, 3 or 5 minutes under the pattern buttons for a short guided session with an end chime. Open keeps going until you stop.
+
 **What does Hide apps do?**  
 It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return.
 
@@ -63,5 +69,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 - Hide apps uses the same hide as the Cmd+H shortcut. It never quits an app and never closes a document.
 - Spoken cues use your Mac's built in voice, offline. Install a Premium voice in System Settings, Accessibility, Spoken Content for a more natural sound.
 - The Focus Shortcut hooks run the Shortcuts you name, so they can do anything a Shortcut can. Leave them blank if you do not use them.
+- The optional round reminder asks macOS for permission to show a quiet banner. Nothing is sent anywhere.
+- Tarn follows the Mac setting Reduce Motion by holding the flower still and skipping the ripples.
 - Any web page can open a tarn:// link. Those links can only start or stop timers, hide windows or open full screen breathing.
 - The recorded sounds are public domain (CC0) from BigSoundBank. See SOURCES.md.
