@@ -9,10 +9,10 @@ A tarn is a small, still mountain lake. Tarn is a calm place to focus, and to br
 A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking.
 
 **How do I start a round?**  
-Click the big circle, or press Start. Pick a length with the numbers under it: 15, 25, 45, 60 or 90 minutes.
+Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes.
 
-**What do the numbers mean?**  
-The row of numbers is the length of one focus round, in minutes. "1 of 4" is the round you are on. After the last round you get a longer break.
+**What does the length pill mean?**  
+The small pill under the circle is the length of one focus round. Tap it to change it. "1 of 4" is the round you are on. After the last round you get a longer break.
 
 **What happens on a break?**  
 The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings.
@@ -33,7 +33,7 @@ It covers every screen with a calm background, including desktop icons. Click an
 One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back.
 
 **What is a Session?**  
-Pick 1, 3, 5, 10 or 20 minutes under the pattern buttons for a guided session with a soft bell at the start and end, and an optional one at the halfway point. Open keeps going until you stop. It works as a simple meditation timer too.
+Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, unless you keep it on in Settings. It works as a simple meditation timer too.
 
 **What does Hide apps do?**  
 It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return.
@@ -61,7 +61,7 @@ Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full.
 
 
 ## Make it yours
-Everything in Settings is optional. Breaks do not take over your screen unless you turn that on, so you can watch a video or read during a break. You can keep Hide apps and Full screen as buttons you press only when you want them, switch the sound offer off, turn the chime off, pick your own colors, set your own focus length, and open Tarn in a window or the Dock if you prefer.
+Everything in Settings is optional. Breaks do not take over your screen unless you turn that on, so you can watch a video or read during a break. You can keep Hide apps and Full screen as buttons you press only when you want them, switch the sound offer off, pick your own colors, set your own focus length, and open Tarn in a window or the Dock if you prefer.
 
 ## Requirements and caveats
 - macOS 14 (Sonoma) or later, on Apple silicon and Intel. Built and tested on macOS 27; older versions are expected to work but have not been tested on hardware.

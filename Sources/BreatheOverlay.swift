@@ -31,7 +31,9 @@ final class BreatheOverlay {
             w.backgroundColor = .clear
             w.isOpaque = false
             w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            w.contentView = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close() }))
+            let host = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close() }))
+            host.sizingOptions = []          // the window decides the size, never the content
+            w.contentView = host
             w.setFrame(screen.frame, display: true)
             w.alphaValue = 0
             w.makeKeyAndOrderFront(nil)

@@ -79,7 +79,7 @@ struct BreathingView: View {
     @AppStorage("coachMinutes") private var coachMinutes = 0
     @State private var coachStart: Date? = nil
     @State private var coachDone = false
-    @State private var halfwayRung = false
+    @State private var burst = 0
 
     var body: some View {
         content
@@ -96,26 +96,19 @@ struct BreathingView: View {
     private func setCoach(_ minutes: Int) {
         coachMinutes = minutes
         coachDone = false
-        halfwayRung = false
         start = Date(); pausedAt = nil
         coachStart = minutes > 0 ? Date() : nil
-        if minutes > 0, bellsOn { Bell.ring(1, volume: 0.45) }
+        if minutes > 0 { burst += 1 }
     }
-
-    private var bellsOn: Bool { UserDefaults.standard.object(forKey: "sessionBells") as? Bool ?? true }
 
     private func checkCoach() {
         guard let cs = coachStart, coachMinutes > 0 else { return }
         let elapsed = Date().timeIntervalSince(cs), total = Double(coachMinutes * 60)
-        if !halfwayRung, coachMinutes >= 3, elapsed >= total / 2, elapsed < total,
-           bellsOn, UserDefaults.standard.bool(forKey: "halfwayBell") {
-            halfwayRung = true
-            Bell.ring(1, volume: 0.3)
-        }
         guard elapsed >= total else { return }
         coachStart = nil
         coachDone = true
-        if bellsOn { Bell.ring(2, volume: 0.55) }
+        // The ambient sound fading out is the signal that the session is over, unless the user keeps it on.
+        if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { AppModel.shared.sound.stop() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { coachDone = false }
     }
 
@@ -127,17 +120,33 @@ struct BreathingView: View {
                 Text(pattern.blurb)
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
-                HStack(spacing: 8) {
-                    Text("Minutes").font(.caption).foregroundStyle(.secondary)
-                    PillPicker(items: [0, 1, 3, 5, 10, 20], selection: Binding(get: { coachMinutes }, set: { setCoach($0) })) { $0 == 0 ? "Open" : "\($0)" }
+                Menu {
+                    ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
+                        Button { setCoach(m) } label: {
+                            if coachMinutes == m { Label(m == 0 ? "Open, no end" : "\(m) minutes", systemImage: "checkmark") }
+                            else { Text(m == 0 ? "Open, no end" : "\(m) minutes") }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "timer")
+                        Text(coachMinutes == 0 ? "Open" : "\(coachMinutes) min")
+                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.secondary.opacity(0.18)))
                 }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .help("Session length: Open keeps going until you stop")
             }
 
-            TimelineView(.animation(paused: !active || pausedAt != nil)) { ctx in
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !active || pausedAt != nil)) { ctx in
                 let t = pausedAt ?? ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 VStack(spacing: 8) {
                 ZStack {
+                    RippleBurst(color: Color.breatheTint, trigger: burst).padding(10)
                     switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                     case .fill: FillCanvas(scale: s.scale, time: t)
                     case .bloom: BloomCanvas(scale: s.scale, time: t)

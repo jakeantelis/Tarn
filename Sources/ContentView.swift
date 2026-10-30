@@ -266,20 +266,26 @@ struct TimerTab: View {
                 .frame(height: 200)
             }
 
-            if !timer.phase.isBreak { HStack(spacing: 6) {
-                ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
-                    Button("\(m)") { timer.setFocusMinutes(m) }
-                        .buttonStyle(.plain)
-                        .font(.callout.monospacedDigit())
-                        .frame(width: 36, height: 36)
-                        .background(Circle()
-                            .fill(timer.focusMinutes == m ? Color.focusTint : Color.secondary.opacity(0.15)))
-                        .foregroundStyle(timer.focusMinutes == m ? Color.onTint : Color.primary)
-                        .accessibilityLabel("\(m) minutes")
-                        .accessibilityAddTraits(timer.focusMinutes == m ? .isSelected : [])
+            if !timer.phase.isBreak {
+                Menu {
+                    ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
+                        Button { timer.setFocusMinutes(m) } label: {
+                            if timer.effectiveMinutes == m { Label("\(m) minutes", systemImage: "checkmark") } else { Text("\(m) minutes") }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "hourglass")
+                        Text("\(timer.effectiveMinutes) min")
+                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(Color.secondary.opacity(0.18)))
                 }
-                Text("minutes").font(.caption).foregroundStyle(.secondary)
-            } }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .help("Length of one focus round")
+            }
 
             HStack(spacing: 10) {
                 Button("Reset") { timer.reset() }.buttonStyle(CapsuleButtonStyle())
@@ -403,8 +409,7 @@ struct SettingsTab: View {
     @AppStorage("calmStartShortcut") private var calmStart = ""
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
-    @AppStorage("sessionBells") private var sessionBells = true
-    @AppStorage("halfwayBell") private var halfwayBell = false
+    @AppStorage("keepSoundAfterSession") private var keepSound = false
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -513,7 +518,6 @@ struct SettingsTab: View {
                     Toggle("Fill the screen on breaks (off lets you watch or read)", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
-                    Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
             }
             DisclosureGroup("Advanced") {
@@ -594,8 +598,8 @@ struct SettingsTab: View {
                     Text("To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
-                    Toggle("Soft bells for sessions", isOn: $sessionBells)
-                    Toggle("Bell at the halfway point", isOn: $halfwayBell).disabled(!sessionBells)
+                    Toggle("Keep sound playing after a session ends", isOn: $keepSound)
+
                 }.padding(.vertical, 4)
             }
             GroupBox("Full screen") {
@@ -670,8 +674,8 @@ enum HelpContent {
     static let sections: [(title: String, items: [(q: String, a: String)])] = [
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking."),
-            ("How do I start a round?", "Click the big circle, or press Start. Pick a length with the numbers under it: 15, 25, 45, 60 or 90 minutes."),
-            ("What do the numbers mean?", "The row of numbers is the length of one focus round, in minutes. \"1 of 4\" is the round you are on. After the last round you get a longer break."),
+            ("How do I start a round?", "Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes."),
+            ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. Tap it to change it. \"1 of 4\" is the round you are on. After the last round you get a longer break."),
             ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings."),
         ]),
         ("Breathe", [
@@ -679,7 +683,7 @@ enum HelpContent {
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
             ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back."),
-            ("What is a Session?", "Pick 1, 3, 5, 10 or 20 minutes under the pattern buttons for a guided session with a soft bell at the start and end, and an optional one at the halfway point. Open keeps going until you stop. It works as a simple meditation timer too."),
+            ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, unless you keep it on in Settings. It works as a simple meditation timer too."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return."),
         ]),
         ("Sounds", [

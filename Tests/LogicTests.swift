@@ -9,6 +9,7 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
 @main struct Tests {
     @MainActor static func main() {
         _ = NSApplication.shared
+        if PomodoroTimer.secondsPerMinute != 60 { runCycleTest(); return }
         print("BreathPattern")
         for p in BreathPattern.all {
             let s0 = p.state(at: 0)
@@ -87,14 +88,6 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check((e.levels[.ocean] ?? 0) == 0, "quietest sound steps aside")
         check(SoundPreset.all.allSatisfy { $0.mix.filter { $0.value > 0 }.count <= SoundEngine.maxLayers }, "all presets within the cap")
 
-        print("Bell")
-        let wav = Bell.wavData(seconds: 1)
-        check(wav.count == 44 + 44100 * 2, "bell WAV has a 44 byte header plus one second of 16 bit samples (\(wav.count) bytes)")
-        check(String(data: wav.prefix(4), encoding: .ascii) == "RIFF", "bell WAV starts with RIFF")
-        let amps = stride(from: 44, to: wav.count - 1, by: 2).map { abs(Int(Int16(littleEndian: wav.subdata(in: $0..<$0 + 2).withUnsafeBytes { $0.load(as: Int16.self) }))) }
-        check((amps.max() ?? 0) < 32000 && (amps.max() ?? 0) > 3000, "bell is audible and does not clip")
-        check(amps.prefix(20).max()! < amps.dropFirst(500).prefix(500).max()!, "bell fades in (no click at the start)")
-
         print("Stats")
         let st = StatsStore.shared
         let before = st.today.rounds
@@ -106,4 +99,42 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         exit(failures == 0 ? 0 : 1)
     }
+}
+
+/// Runs a whole round for real, with one second standing in for a minute (TARN_SECONDS_PER_MINUTE=1).
+@MainActor func runCycleTest() {
+    print("Full cycle (1 second per minute)")
+    for k in ["mode", "focusMinutes", "soundEnabled", "autoStartNext"] { UserDefaults.standard.removeObject(forKey: k) }
+    func wait(_ s: Double) { RunLoop.main.run(until: Date().addingTimeInterval(s)) }
+    func waitUntil(_ timeout: Double, _ cond: () -> Bool) {
+        let end = Date().addingTimeInterval(timeout)
+        while !cond() && Date() < end { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+    }
+    var fails = 0
+    func ok(_ c: Bool, _ m: String) { print(c ? "  ok   \(m)" : "  FAIL \(m)"); if !c { fails += 1 } }
+
+    let stats = StatsStore.shared
+    let before = stats.today.rounds
+    let t = PomodoroTimer()
+    t.startWork(minutes: 1)               // a 1 "minute" round is 1 second, its break is 5 seconds
+    ok(t.isRunning && t.phase == .work, "round starts")
+    waitUntil(3) { t.phase == .shortBreak }
+    ok(t.phase == .shortBreak, "round ends and a short break starts on its own (phase: \(t.phase.rawValue))")
+    ok(t.isRunning, "the break is running (auto start)")
+    ok(stats.today.rounds == before + 1, "the finished round is counted in stats")
+    ok(t.completedRounds == 1, "completed rounds is 1")
+    waitUntil(8) { t.phase == .work }
+    ok(t.phase == .work && t.isRunning, "break ends and the next focus round starts (phase: \(t.phase.rawValue))")
+    t.pause()
+    ok(!t.isRunning, "pause stops the timer")
+    t.reset()
+    ok(t.remaining == t.duration(for: .work), "reset restores a full round")
+    UserDefaults.standard.set(false, forKey: "autoStartNext")
+    let t2 = PomodoroTimer()
+    t2.startWork(minutes: 1)
+    waitUntil(3) { t2.phase == .shortBreak }
+    wait(0.3)
+    ok(t2.phase == .shortBreak && !t2.isRunning, "with auto start off the break waits for you")
+    print(fails == 0 ? "\nALL PASSED" : "\n\(fails) FAILED")
+    exit(fails == 0 ? 0 : 1)
 }

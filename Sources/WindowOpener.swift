@@ -11,8 +11,12 @@ final class WindowOpener {
     func show() {
         if window == nil {
             let model = AppModel.shared
-            let host = NSHostingView(rootView: ContentView(timer: model.timer, sound: model.sound))
-            let w = NSWindow(contentRect: NSRect(origin: .zero, size: host.fittingSize),
+            // The hosting view must not drive window sizing. Animated content that changes its own height
+            // otherwise triggers endless layout passes and an AppKit exception, so the window has a fixed size.
+            let host = NSHostingView(rootView: ContentView(timer: model.timer, sound: model.sound)
+                .frame(width: 300, height: 620, alignment: .top))
+            host.sizingOptions = []
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 620),
                              styleMask: [.titled, .closable, .miniaturizable],
                              backing: .buffered, defer: false)
             w.title = "Tarn"
@@ -21,7 +25,6 @@ final class WindowOpener {
             w.center()
             window = w
         }
-        window?.setContentSize(window?.contentView?.fittingSize ?? NSSize(width: 300, height: 560))
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
     }

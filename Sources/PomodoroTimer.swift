@@ -44,10 +44,11 @@ final class PomodoroTimer: ObservableObject {
     /// Focus length in minutes. Breaks scale with it (see breakMinutes).
     @AppStorage("focusMinutes") var focusMinutes = 25
     static let focusChoices = [15, 25, 45, 60, 90]
+    /// 60 in normal use. Tests set TARN_SECONDS_PER_MINUTE to a small number so a whole round can run in seconds.
+    static let secondsPerMinute: Double = Double(ProcessInfo.processInfo.environment["TARN_SECONDS_PER_MINUTE"] ?? "") ?? 60
 
     @AppStorage("autoStartNext") var autoStartNext = true
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
-    @AppStorage("chime") var chime = true
     @AppStorage("fullScreenBreaks") var fullScreenBreaks = false
     @AppStorage("roundReminder") var roundReminder = false
     @AppStorage("intention") var intention = ""
@@ -138,7 +139,7 @@ final class PomodoroTimer: ObservableObject {
 
     /// Describes the phase that follows the current one, for the "Next" line.
     var nextLabel: String {
-        func mins(_ p: Phase) -> Int { Int(duration(for: p) / 60) }
+        func mins(_ p: Phase) -> Int { Int(duration(for: p) / Self.secondsPerMinute) }
         if phase.isBreak { return "Focus \(mins(.work)) min" }
         let next: Phase = (completedRounds + 1) % roundsPerSet == 0 ? .longBreak : .shortBreak
         return "\(next == .longBreak ? "Long break" : "Break") \(mins(next)) min"
@@ -182,9 +183,9 @@ final class PomodoroTimer: ObservableObject {
 
     func duration(for phase: Phase) -> TimeInterval {
         switch phase {
-        case .work: return TimeInterval(effectiveMinutes * 60)
-        case .shortBreak: return TimeInterval(breakMinutes.short * 60)
-        case .longBreak: return TimeInterval(breakMinutes.long * 60)
+        case .work: return TimeInterval(effectiveMinutes) * Self.secondsPerMinute
+        case .shortBreak: return TimeInterval(breakMinutes.short) * Self.secondsPerMinute
+        case .longBreak: return TimeInterval(breakMinutes.long) * Self.secondsPerMinute
         }
     }
 
@@ -245,18 +246,16 @@ final class PomodoroTimer: ObservableObject {
         guard let endDate else { return }
         remaining = max(0, endDate.timeIntervalSinceNow)
         if eyeRest, phase == .work {
-            let block = Int((duration(for: .work) - remaining) / 1200)
+            let block = Int((duration(for: .work) - remaining) / (20 * Self.secondsPerMinute))
             if block > lastEyeBlock, remaining > 90 {
-                eyeRestUntil = Date().addingTimeInterval(20)
-                if chime { NSSound(named: "Tink")?.play() }
+                eyeRestUntil = Date().addingTimeInterval(20)   // a quiet banner only, no sound
             }
             lastEyeBlock = block
         }
         if Int(remaining) != lastWritten { writeStatus() }
         if remaining <= 0 {
-            if phase == .work { StatsStore.shared.record(minutes: Int(duration(for: .work) / 60)) }
+            if phase == .work { StatsStore.shared.record(minutes: Int(duration(for: .work) / Self.secondsPerMinute)) }
             stopTicker()
-            if chime { NSSound(named: "Glass")?.play() }
             if roundReminder, phase == .work { Notifier.post("Round complete", "Take a slow breath. Your break is starting.") }
             advance(autoStart: autoStartNext)
         }

@@ -73,9 +73,11 @@ struct LensView: View {
     let progress: Double
     let running: Bool
     @Environment(\.popoverActive) private var active
+    @State private var burst = 0
 
     var body: some View {
         ZStack {
+            RippleBurst(color: FocusPalette.current.tint, trigger: burst).padding(2)
             // deeper tinted disc while a round is running, only inside the lens
             Circle()
                 .fill(RadialGradient(colors: [FocusPalette.current.tint.opacity(0.34), FocusPalette.current.tint.opacity(0.14)],
@@ -85,10 +87,11 @@ struct LensView: View {
                 .animation(.easeInOut(duration: 1.2), value: running)
             lens
         }
+        .onChange(of: running) { _, now in if now { burst += 1 } }
     }
 
     private var lens: some View {
-        TimelineView(.animation(paused: !running || !active)) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !running || !active)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let pulse = running && !reduceMotion ? 0.5 + 0.5 * sin(t * 2 * .pi / 3 - .pi / 2) : 0.3
             Canvas { g, size in
@@ -205,5 +208,26 @@ enum Notifier {
         let c = UNMutableNotificationContent()
         c.title = title; c.body = body
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: c, trigger: nil))
+    }
+}
+
+/// One slow, soft ring that opens outward and fades, to mark a beginning without any sound or fuss.
+struct RippleBurst: View {
+    let color: Color
+    let trigger: Int
+    @State private var open = false
+
+    var body: some View {
+        Circle()
+            .stroke(color.opacity(0.55), lineWidth: 2)
+            .scaleEffect(open ? 1.22 : 0.82)
+            .opacity(open ? 0 : 1)
+            .allowsHitTesting(false)
+            .onChange(of: trigger) { _, _ in
+                guard !reduceMotion else { return }
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { open = false }
+                DispatchQueue.main.async { withAnimation(.easeOut(duration: 1.6)) { open = true } }
+            }
     }
 }
