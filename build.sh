@@ -1,5 +1,6 @@
 #!/bin/zsh
 set -euo pipefail
+setopt nullglob
 cd "$(dirname "$0")"
 
 APP=build/Stillwater.app
