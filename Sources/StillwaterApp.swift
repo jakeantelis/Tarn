@@ -19,7 +19,11 @@ struct StillwaterApp: App {
                 }
             }
             .onChange(of: timer.isRunning) { _, _ in syncSound() }
-            .onChange(of: timer.phase) { _, _ in syncSound() }
+            .onChange(of: timer.phase) { _, new in
+                syncSound()
+                guard timer.fullScreenBreaks, timer.isRunning, timer.mode.hasTimer else { return }
+                if new.isBreak { BreatheOverlay.shared.show() } else { BreatheOverlay.shared.close() }
+            }
             .onChange(of: timer.mode) { _, _ in syncSound() }
         }
         .menuBarExtraStyle(.window)

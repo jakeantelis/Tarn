@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 enum Mode: String, CaseIterable, Identifiable {
-    case pomodoro = "Focus", breathe = "Breathe"
+    case pomodoro = "Work", breathe = "Breathe"
     var id: String { rawValue }
     var hasTimer: Bool { self == .pomodoro }
     var blurb: String {
@@ -48,6 +48,7 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("autoStartNext") var autoStartNext = true
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("chime") var chime = true
+    @AppStorage("fullScreenBreaks") var fullScreenBreaks = false
     @AppStorage("focusStartShortcut") var focusStartShortcut = ""
     @AppStorage("focusEndShortcut") var focusEndShortcut = ""
     @AppStorage("pauseOnLock") var pauseOnLock = true

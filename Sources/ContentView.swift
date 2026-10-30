@@ -2,6 +2,7 @@ import SwiftUI
 
 extension Color {
     static let matcha = Color(red: 0.42, green: 0.66, blue: 0.40)
+    static let water = Color(red: 0.32, green: 0.64, blue: 0.78)
 }
 
 struct ContentView: View {
@@ -15,7 +16,7 @@ struct ContentView: View {
     @AppStorage("welcomed") private var welcomed = false
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
-    private var breakTint: some View { Color.purple.opacity(onBreak ? 0.14 : 0) }
+    private var breakTint: some View { (timer.mode == .breathe ? Color.water.opacity(0.08) : Color.purple.opacity(onBreak ? 0.14 : 0)) }
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 ? 2 : 0) : (tab == 2 ? 2 : 1) }
 
     var body: some View {
@@ -74,8 +75,9 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 300)
         .background(breakTint)
-        .tint(.matcha)
+        .tint(timer.mode == .breathe ? Color.water : Color.matcha)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
+        .animation(.easeInOut(duration: 0.6), value: timer.mode)
         .overlay { if !welcomed { Welcome { welcomed = true } } }
     }
 }
@@ -110,7 +112,7 @@ struct Welcome: View {
             Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.matcha)
             Text("Welcome to Stillwater").font(.title3.weight(.medium))
             VStack(alignment: .leading, spacing: 10) {
-                Label("**Focus** runs Pomodoro rounds. Breaks open into gentle breathing.", systemImage: "timer")
+                Label("**Work** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
                 Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
                 Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
             }
@@ -268,7 +270,7 @@ struct SettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
+            Text(mode == .pomodoro ? "Work settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
         }
         .font(.callout)
@@ -284,6 +286,7 @@ struct SettingsTab: View {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
+                    Toggle("Fill the screen with breathing on breaks", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
                     Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
             }
@@ -299,7 +302,7 @@ struct SettingsTab: View {
             }
             GroupBox("Background sound") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play sounds while focusing", isOn: $soundEnabled)
+                    Toggle("Play sounds while working", isOn: $soundEnabled)
                     if soundEnabled {
                         Picker("Play during", selection: $scopeRaw) {
                             ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
