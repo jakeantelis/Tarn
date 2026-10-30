@@ -15,8 +15,11 @@ final class BreatheOverlay {
 
     var isShowing: Bool { !windows.isEmpty }
 
+    /// The master switch in Settings. When it is off, Tarn never covers the screen or hides other apps.
+    static var allowed: Bool { UserDefaults.standard.object(forKey: "allowScreenTakeover") as? Bool ?? true }
+
     func show() {
-        guard !isShowing else { return }
+        guard Self.allowed, !isShowing else { return }
         startDate = Date()
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {

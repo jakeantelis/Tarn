@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var showHelp = false
     @State private var fullScreenOfferDismissed = false
     @AppStorage("offerFullScreen") private var offerFullScreen = true
+    @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @State private var popoverActive = true
     @AppStorage("welcomed") private var welcomed = false
     @AppStorage("eveningWarmth") private var eveningWarmth = false   // re-renders the colors when changed
@@ -45,10 +46,7 @@ struct ContentView: View {
                 .frame(maxHeight: 460)
             } else {
                 PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) { $0.rawValue }
-
-                Text(timer.mode.blurb)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
 
                 PillPicker(items: timer.mode.hasTimer ? [0, 3, 2] : [1, 2],
                            selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Breathe")) }
@@ -59,7 +57,7 @@ struct ContentView: View {
                 case 3: StatsTab(stats: StatsStore.shared)
                 case 1:
                     VStack(spacing: 10) {
-                        if sound.isPlaying && offerFullScreen && !fullScreenOfferDismissed {
+                        if sound.isPlaying && offerFullScreen && allowTakeover && !fullScreenOfferDismissed {
                             HStack(spacing: 8) {
                                 Text("Sounds are on. Go full screen?").font(.caption)
                                 Spacer(minLength: 0)
@@ -85,10 +83,11 @@ struct ContentView: View {
                     Button {
                         sound.toggle()
                     } label: {
-                        Label(sound.isPlaying ? "Sounds on" : "Sounds off",
-                              systemImage: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.slash")
+                        Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.slash")
                     }
                     .buttonStyle(.borderless)
+                    .help(sound.isPlaying ? "Sound is on. Click to turn it off." : "Sound is off. Click to turn it on.")
+                    .accessibilityLabel(sound.isPlaying ? "Turn sound off" : "Turn sound on")
                 }
                 Spacer()
                 Button(showSettings || showHelp ? "Done" : "Settings") { if showHelp { showHelp = false } else { showSettings.toggle() } }
@@ -403,6 +402,7 @@ struct SettingsTab: View {
     let mode: Mode
     var onHelp: () -> Void = {}
     @AppStorage("offerFullScreen") private var offerFullScreen = true
+    @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
@@ -515,7 +515,6 @@ struct SettingsTab: View {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
-                    Toggle("Fill the screen on breaks (off lets you watch or read)", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
                 }.padding(.vertical, 4)
@@ -602,11 +601,16 @@ struct SettingsTab: View {
 
                 }.padding(.vertical, 4)
             }
-            GroupBox("Full screen") {
-                VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Offer full screen when sounds start", isOn: $offerFullScreen)
-                    Toggle("Hide other apps in full screen", isOn: $hideOthers)
-                    Text("The Full screen button on the Breathe tab dims every screen so you can breathe. Click anywhere or press Esc to return, and your apps come back.")
+            GroupBox("Screen and apps") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Allow full screen and hiding apps", isOn: $allowTakeover)
+                    Group {
+                        Toggle("Offer full screen when sounds start", isOn: $offerFullScreen)
+                        Toggle("Hide other apps in full screen", isOn: $hideOthers)
+                        Toggle("Fill the screen on breaks", isOn: Binding(get: { timer.fullScreenBreaks }, set: { timer.objectWillChange.send(); timer.fullScreenBreaks = $0 }))
+                    }
+                    .disabled(!allowTakeover)
+                    Text("Off means Tarn never covers your screen or hides another app. Apps are only ever hidden, never quit, and they come back when you leave.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -684,7 +688,7 @@ enum HelpContent {
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
             ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back."),
             ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, unless you keep it on in Settings. It works as a simple meditation timer too."),
-            ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return."),
+            ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
         ]),
         ("Sounds", [
             ("How do I turn sounds on?", "Open the Sounds tab and pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them."),

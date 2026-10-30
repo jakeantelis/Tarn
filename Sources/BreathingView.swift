@@ -68,6 +68,7 @@ struct BreathingView: View {
     @Environment(\.popoverActive) private var active
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
+    @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
     private var pattern: BreathPattern {
@@ -120,6 +121,7 @@ struct BreathingView: View {
                 Text(pattern.blurb)
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                HStack(spacing: 8) {
                 Menu {
                     ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
                         Button { setCoach(m) } label: {
@@ -139,6 +141,27 @@ struct BreathingView: View {
                 }
                 .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
                 .help("Session length: Open keeps going until you stop")
+                Menu {
+                    ForEach(BreathStyle.allCases) { st in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue }
+                        } label: {
+                            if styleRaw == st.rawValue { Label(st.rawValue, systemImage: "checkmark") } else { Text(st.rawValue) }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                        Text(styleRaw)
+                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Color.secondary.opacity(0.18)))
+                }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .help("Choose the look: Flower or Water")
+                }
             }
 
             TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !active || pausedAt != nil)) { ctx in
@@ -153,33 +176,6 @@ struct BreathingView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 120 : 190)
-                .overlay(alignment: .topTrailing) {
-                    if !compact {
-                        Menu {
-                            ForEach(BreathStyle.allCases) { st in
-                                Button {
-                                    withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue }
-                                } label: {
-                                    if styleRaw == st.rawValue { Label(st.rawValue, systemImage: "checkmark") } else { Text(st.rawValue) }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "sparkles")
-                                Text(styleRaw).font(.caption)
-                            }
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(Capsule().fill(Color.secondary.opacity(0.18)))
-                        }
-                        .menuStyle(.button)
-                        .buttonStyle(.plain)
-                        .menuIndicator(.hidden)
-                        .fixedSize()
-                        .help("Choose the look: Flower or Water")
-                        .accessibilityLabel("Choose the look")
-                        .padding(6)
-                    }
-                }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }
@@ -221,20 +217,24 @@ struct BreathingView: View {
             }
 
             if !compact {
-                Button { AppModel.shared.calmMode() } label: {
-                    Label("Calm mode", systemImage: "moon.stars").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
-                .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
-                HStack(spacing: 6) {
-                    Button { BreatheOverlay.shared.show() } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
-                        .buttonStyle(CapsuleButtonStyle(small: true))
-                        .help("Dim every screen so you can breathe. Esc leaves.")
-                    Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
-                        Label(cleared.isCleared ? "Bring back" : "Hide apps", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
+                if allowTakeover {
+                    Button { AppModel.shared.calmMode() } label: {
+                        Label("Calm mode", systemImage: "moon.stars").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(CapsuleButtonStyle(prominent: cleared.isCleared, small: true))
-                    .help("Hides other windows. Nothing is quit.")
+                    .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+                    .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
+                }
+                HStack(spacing: 6) {
+                    if allowTakeover {
+                        Button { BreatheOverlay.shared.show() } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                            .help("Dim every screen so you can breathe. Esc leaves.")
+                        Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
+                            Label(cleared.isCleared ? "Bring back" : "Hide apps", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
+                        }
+                        .buttonStyle(CapsuleButtonStyle(prominent: cleared.isCleared, small: true))
+                        .help("Hides other windows. Nothing is quit.")
+                    }
                     Button { guideMe.toggle() } label: { Label("Guide", systemImage: "text.bubble") }
                         .buttonStyle(CapsuleButtonStyle(prominent: guideMe, small: true))
                         .help("Gentle prompts while you breathe")

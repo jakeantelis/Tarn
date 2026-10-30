@@ -78,6 +78,14 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(true, "unknown and foreign URLs are ignored")
         m.handle(URL(string: "tarn://stop")!)
 
+        print("Screen takeover switch")
+        UserDefaults.standard.set(false, forKey: "allowScreenTakeover")
+        ScreenClearer.shared.clear()
+        check(!ScreenClearer.shared.isCleared, "Hide apps does nothing when takeover is off")
+        BreatheOverlay.shared.show()
+        check(!BreatheOverlay.shared.isShowing, "full screen does nothing when takeover is off")
+        UserDefaults.standard.removeObject(forKey: "allowScreenTakeover")
+
         print("Sound mixer")
         let e = SoundEngine()
         for s in Soundscape.allCases { e.setLevel(0, for: s) }

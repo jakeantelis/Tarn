@@ -28,6 +28,7 @@ final class AppModel {
 
     /// One button: full screen, hide apps (if allowed), your last sound mix, and the optional Shortcut for Do Not Disturb.
     func calmMode() {
+        guard BreatheOverlay.allowed else { return }
         timer.setMode(.breathe)
         let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
         if !sound.isPlaying, let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p) }
@@ -104,7 +105,7 @@ final class ScreenClearer: ObservableObject {
     var isCleared: Bool { !hidden.isEmpty }
 
     func clear() {
-        guard hidden.isEmpty else { return }
+        guard BreatheOverlay.allowed, hidden.isEmpty else { return }
         hidden = NSWorkspace.shared.runningApplications.filter {
             $0.activationPolicy == .regular && !$0.isHidden && $0 != NSRunningApplication.current
         }
