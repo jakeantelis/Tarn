@@ -16,6 +16,9 @@ struct ContentView: View {
         self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab); _showSettings = State(initialValue: startInSettings)
     }
     @State private var showSettings = false
+    @State private var showHelp = false
+    @State private var fullScreenOfferDismissed = false
+    @AppStorage("offerFullScreen") private var offerFullScreen = true
     @State private var popoverActive = true
     @AppStorage("welcomed") private var welcomed = false
     @AppStorage("focusPalette") private var paletteKey = "red"
@@ -32,9 +35,11 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            if showSettings {
-                ScrollView(showsIndicators: false) {
-                    SettingsTab(timer: timer, sound: sound, mode: timer.mode)
+            if showHelp {
+                ScrollView { HelpTab() }.frame(maxHeight: 460)
+            } else if showSettings {
+                ScrollView {
+                    SettingsTab(timer: timer, sound: sound, mode: timer.mode, onHelp: { showHelp = true })
                 }
                 .frame(maxHeight: 460)
             } else {
@@ -53,6 +58,19 @@ struct ContentView: View {
                 case 3: StatsTab(stats: StatsStore.shared)
                 case 1:
                     VStack(spacing: 10) {
+                        if sound.isPlaying && offerFullScreen && !fullScreenOfferDismissed {
+                            HStack(spacing: 8) {
+                                Text("Sounds are on. Go full screen?").font(.caption)
+                                Spacer(minLength: 0)
+                                Button("Full screen") { BreatheOverlay.shared.show(); fullScreenOfferDismissed = true }
+                                    .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+                                Button("Not now") { fullScreenOfferDismissed = true }
+                                    .buttonStyle(CapsuleButtonStyle(small: true))
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(Capsule().fill(Color.secondary.opacity(0.14)))
+                            .transition(.opacity)
+                        }
                         BreathingView()
                         let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
                         QuoteLine(text: q.text, author: q.author)
@@ -62,7 +80,7 @@ struct ContentView: View {
             }
 
             HStack {
-                if !showSettings {
+                if !showSettings && !showHelp {
                     Button {
                         sound.toggle()
                     } label: {
@@ -72,11 +90,12 @@ struct ContentView: View {
                     .buttonStyle(.borderless)
                 }
                 Spacer()
-                Button(showSettings ? "Done" : "Settings") { showSettings.toggle() }
+                Button(showSettings || showHelp ? "Done" : "Settings") { if showHelp { showHelp = false } else { showSettings.toggle() } }
                     .buttonStyle(.borderless)
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 14)
             }
             .font(.callout)
         }
@@ -84,6 +103,7 @@ struct ContentView: View {
         .frame(width: 300)
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
+        .onChange(of: sound.isPlaying) { _, playing in if !playing { fullScreenOfferDismissed = false } }
         .background(breakTint)
         .tint(timer.mode == .breathe ? Color.water : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
@@ -100,7 +120,6 @@ enum Lines {
         ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus"),
         ("While we are postponing, life speeds by.", "Seneca"),
         ("Begin at once to live, and count each separate day as a separate life.", "Seneca"),
-        ("Difficulties strengthen the mind, as labor does the body.", "Seneca"),
     ]
     /// Calm lines for Breathe and breaks: one Stoic quote, the rest in our own words.
     static let calm: [Quote] = [
@@ -136,6 +155,7 @@ struct Welcome: View {
                 Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
                 Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
                 Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
+                Label("Everything is yours to set up in **Settings**.", systemImage: "slider.horizontal.3")
             }
             .font(.callout)
             .labelStyle(.titleAndIcon)
@@ -210,7 +230,7 @@ struct TimerTab: View {
                 ZStack {
                     LensView(progress: timer.progress, running: timer.isRunning)
                     VStack(spacing: 6) {
-                        Text((timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS") + "  \u{B7}  \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)")
+                        Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS  \u{B7}  \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)")
                             .font(.caption.weight(.semibold))
                             .tracking(1.5)
                             .padding(.horizontal, 10).padding(.vertical, 3)
@@ -219,9 +239,14 @@ struct TimerTab: View {
                         Text(timer.clockText)
                             .font(.system(size: 46, weight: .light, design: .rounded))
                             .monospacedDigit()
-                        Text(lensHint)
-                            .font(.caption)
-                            .foregroundStyle(timer.isRunning && !hoveringLens ? Color.secondary : Color.primary.opacity(0.8))
+                        HStack(spacing: 4) {
+                            if tapToStart {
+                                Image(systemName: timer.isRunning ? "pause.fill" : "play.fill").font(.system(size: 8))
+                            }
+                            Text(lensHint)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(timer.isRunning && !hoveringLens ? Color.secondary : Color.primary.opacity(0.85))
                     }
                 }
                 .frame(width: 200, height: 200)
@@ -352,6 +377,8 @@ struct SettingsTab: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
     let mode: Mode
+    var onHelp: () -> Void = {}
+    @AppStorage("offerFullScreen") private var offerFullScreen = true
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
@@ -368,14 +395,20 @@ struct SettingsTab: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
+            Text("Set Tarn up your way. Every option here is optional, and nothing hides your apps or fills your screen unless you ask it to.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if mode == .pomodoro { pomodoro } else { breathe }
             GroupBox("General") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
                     Toggle("Show Tarn in the Dock", isOn: $showInDock)
                         .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
-                    Button("Open in a window") { WindowOpener.shared.show() }
-                        .buttonStyle(CapsuleButtonStyle(small: true))
+                    HStack(spacing: 6) {
+                        Button("Open in a window") { WindowOpener.shared.show() }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                        Button("How it works") { onHelp() }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                    }
                     Text("If the menu bar icon is hard to find, a window works the same way.")
                         .font(.caption).foregroundStyle(.secondary)
                 }.padding(.vertical, 4)
@@ -454,7 +487,7 @@ struct SettingsTab: View {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
-                    Toggle("Fill the screen with breathing on breaks", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
+                    Toggle("Fill the screen on breaks (off lets you watch or read)", isOn: bind({ timer.fullScreenBreaks }, { timer.fullScreenBreaks = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Chime when a round ends", isOn: bind({ timer.chime }, { timer.chime = $0 }))
                 }.padding(.vertical, 4)
@@ -466,8 +499,8 @@ struct SettingsTab: View {
                     Toggle("Pause when the Mac sleeps or locks", isOn: bind({ timer.pauseOnLock }, { timer.pauseOnLock = $0 }))
                     Toggle("Remind me to rest my eyes every 20 minutes", isOn: bind({ timer.eyeRest }, { timer.eyeRest = $0 }))
                     Toggle("Hide the menu bar countdown", isOn: bind({ timer.hideCountdown }, { timer.hideCountdown = $0 }))
-                    TextField("Shortcut to run when focus starts", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
-                    TextField("Shortcut to run when focus ends", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
+                    TextField("Shortcut to run when focus starts, for example Focus On", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
+                    TextField("Shortcut to run when focus ends, for example Focus Off", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
                     Text("Name a Shortcut from the Shortcuts app, for example one that turns on a Focus mode to silence notifications. Leave blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
@@ -524,14 +557,15 @@ struct SettingsTab: View {
             }
             GroupBox("Full screen") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Hide other apps while breathing", isOn: $hideOthers)
+                    Toggle("Offer full screen when sounds start", isOn: $offerFullScreen)
+                    Toggle("Hide other apps in full screen", isOn: $hideOthers)
                     Text("The Full screen button on the Breathe tab dims every screen so you can breathe. Press Esc to leave, and your apps come back.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
             GroupBox("Voice") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Spoken cues (Breathe in, Hold, And out)", isOn: $voiceGuide)
+                    Toggle("Spoken cues (breathe in, hold, breathe out)", isOn: $voiceGuide)
                     Toggle("Guide me with gentle prompts", isOn: $guideMe)
                     Text("Uses your Mac's built in voice, offline. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -555,9 +589,10 @@ struct QuickStart: Identifiable {
     ]
 
     @MainActor func apply(timer: PomodoroTimer, sound: SoundEngine) {
-        timer.setFocusMinutes(minutes)
-        if let preset, let p = SoundPreset.all.first(where: { $0.name == preset }) {
-            UserDefaults.standard.set(true, forKey: "soundEnabled")
+        // Starts the round straight away. Sound only joins in if the user has already allowed it.
+        timer.startWork(minutes: minutes)
+        if UserDefaults.standard.bool(forKey: "soundEnabled"),
+           let preset, let p = SoundPreset.all.first(where: { $0.name == preset }) {
             sound.applyPreset(p)
         }
     }
@@ -585,4 +620,51 @@ struct FocusPalette {
         "graphite": FocusPalette(name: "Graphite", tint: Color(red: 0.82, green: 0.86, blue: 0.92), glow: Color(red: 1.0, green: 1.0, blue: 1.0), washTop: Color(red: 0.26, green: 0.28, blue: 0.34), washBottom: Color(red: 0.14, green: 0.15, blue: 0.19)),
     ]
     static var current: FocusPalette { all[UserDefaults.standard.string(forKey: "focusPalette") ?? "red"] ?? all["red"]! }
+}
+
+/// The same words as docs/MANUAL.md, so help is one click away inside the app.
+enum HelpContent {
+    static let sections: [(title: String, items: [(q: String, a: String)])] = [
+        ("Getting started", [
+            ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking."),
+            ("How do I start a round?", "Click the big circle, or press Start. Pick a length with the numbers under it: 15, 25, 45, 60 or 90 minutes."),
+            ("What do the numbers mean?", "The row of numbers is the length of one focus round, in minutes. \"1 of 4\" is the round you are on. After the last round you get a longer break."),
+            ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings."),
+        ]),
+        ("Breathe", [
+            ("How do I use Breathe?", "Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it."),
+            ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
+            ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
+            ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return."),
+        ]),
+        ("Sounds", [
+            ("How do I turn sounds on?", "Open the Sounds tab and pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them."),
+        ]),
+        ("Good to know", [
+            ("I cannot find the icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, then Open in a window, or turn on Show Tarn in the Dock."),
+            ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats."),
+            ("Which Macs does it support?", "macOS 14 or later, on Apple silicon and Intel."),
+            ("Can I control it from Terminal?", "Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full."),
+        ]),
+    ]
+}
+
+struct HelpTab: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("How it works").font(.headline)
+            ForEach(Array(HelpContent.sections.enumerated()), id: \.offset) { _, section in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(section.title.uppercased()).font(.caption2.weight(.semibold)).tracking(1.2).foregroundStyle(.secondary)
+                    ForEach(Array(section.items.enumerated()), id: \.offset) { _, item in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.q).font(.callout.weight(.medium))
+                            Text(item.a).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }

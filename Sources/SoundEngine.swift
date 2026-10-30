@@ -36,117 +36,6 @@ struct SoundPreset: Identifiable {
     ]
 }
 
-/// Procedural, endlessly looping ambient generator. No audio files, so no licensing risk.
-final class SoundGenerator: @unchecked Sendable {
-    let kind: Soundscape
-    var gain: Float = 0
-    private var smoothGain: Float = 0
-    private var trim: Float { kind == .ocean ? 0.5 : 1 }
-    private let sampleRate: Double
-
-    private var rng = SystemRandomNumberGenerator()
-    private var lp1: Float = 0, lp2: Float = 0, lp3: Float = 0
-    private var brown: Float = 0
-    private var bp: Float = 0, bpLow: Float = 0
-    private var phase: Double = 0
-    private var lfo2: Double = 0
-    private var swellRate: Double
-    // chirps
-    private var chirpT: Double = -1, chirpLen: Double = 0, chirpF0: Double = 0, chirpF1: Double = 0
-    private var chirpPhase: Double = 0, chirpAmp: Float = 0, chirpsLeft = 0
-    private var nextChirp: Double
-    private var clock: Double = 0
-    // droplets
-    private var dropEnv: Float = 0, dropF: Double = 0, dropPhase: Double = 0
-
-    init(kind: Soundscape, sampleRate: Double) {
-        self.kind = kind
-        self.sampleRate = sampleRate
-        swellRate = 1.0 / Double.random(in: 8...11)
-        nextChirp = Double.random(in: 1...4)
-        phase = Double.random(in: 0..<1)
-    }
-
-    @inline(__always) private func white() -> Float { Float.random(in: -1...1, using: &rng) }
-
-    func render(_ out: UnsafeMutablePointer<Float>, frames: Int) {
-        let dt = 1.0 / sampleRate
-        for i in 0..<frames {
-            smoothGain += (gain - smoothGain) * 0.00001
-            let w = white()
-            var s: Float = 0
-            switch kind {
-            case .ocean:
-                phase += swellRate * dt
-                if phase > 1 { phase -= 1 }
-                lfo2 += 0.037 * dt
-                let swell = Float(0.5 - 0.5 * cos(2 * .pi * phase))
-                let swell2 = Float(0.5 + 0.5 * sin(2 * .pi * lfo2))
-                brown = (brown + 0.02 * w) / 1.02
-                let cutoff = 0.02 + 0.22 * swell * (0.6 + 0.4 * swell2)
-                lp1 += cutoff * (w - lp1)
-                lp2 += cutoff * (lp1 - lp2)
-                let foam = (w - lp1) * 0.12 * swell * swell
-                s = (lp2 * 1.6 + brown * 3.0 * (0.3 + swell)) * (0.25 + 0.75 * swell) + foam
-            case .stream:
-                lp1 += 0.12 * (w - lp1)
-                lp2 += 0.5 * (w - lp2)
-                s = (lp2 - lp1) * 0.5
-                // bubbling: rising sine blips
-                if dropEnv < 0.001, Double.random(in: 0..<1, using: &rng) < 0.0012 {
-                    dropEnv = Float.random(in: 0.04...0.14)
-                    dropF = Double.random(in: 500...1100)
-                }
-                if dropEnv > 0.001 {
-                    dropF *= 1.00018
-                    dropPhase += dropF * dt
-                    s += Float(sin(2 * .pi * dropPhase)) * dropEnv
-                    dropEnv *= 0.9975
-                }
-            case .forest, .birds:
-                // soft breeze bed
-                brown = (brown + 0.01 * w) / 1.01
-                lp1 += 0.03 * (w - lp1)
-                lp2 += 0.008 * (lp1 - lp2)
-                s = lp2 * 3.0 * (0.6 + 2 * abs(brown))
-                // leaf rustle crackles
-                if Double.random(in: 0..<1, using: &rng) < 0.00003 {
-                    dropEnv = Float.random(in: 0.1...0.35)
-                }
-                if dropEnv > 0.001 {
-                    lp3 += 0.6 * (w - lp3)
-                    s += (w - lp3) * dropEnv * 0.5
-                    dropEnv *= 0.9992
-                }
-                // bird chirps
-                clock += dt
-                if chirpT < 0, clock >= nextChirp {
-                    chirpsLeft = chirpsLeft > 0 ? chirpsLeft : Int.random(in: 1...4)
-                    chirpLen = Double.random(in: 0.06...0.16)
-                    chirpF0 = Double.random(in: 2400...4200)
-                    chirpF1 = chirpF0 * Double.random(in: 0.7...1.4)
-                    chirpAmp = Float.random(in: 0.04...0.11)
-                    chirpT = 0
-                }
-                if chirpT >= 0 {
-                    let f = chirpF0 + (chirpF1 - chirpF0) * (chirpT / chirpLen)
-                    chirpPhase += f * dt
-                    let env = Float(sin(.pi * chirpT / chirpLen))
-                    s += Float(sin(2 * .pi * chirpPhase)) * env * env * chirpAmp
-                    chirpT += dt
-                    if chirpT >= chirpLen {
-                        chirpT = -1
-                        chirpsLeft -= 1
-                        nextChirp = clock + (chirpsLeft > 0 ? Double.random(in: 0.08...0.2)
-                                                            : Double.random(in: 2.5...9))
-                    }
-                }
-            }
-            out[i] = s * trim * smoothGain
-        }
-    }
-}
-
 @MainActor
 final class SoundEngine: ObservableObject {
     @Published var isPlaying = false
@@ -157,7 +46,6 @@ final class SoundEngine: ObservableObject {
     }()
 
     private let engine = AVAudioEngine()
-    private var generators: [Soundscape: SoundGenerator] = [:]
     private var players: [Soundscape: AVAudioPlayerNode] = [:]
     private var fileURLs: [Soundscape: URL] = [:]
 
@@ -218,7 +106,6 @@ final class SoundEngine: ObservableObject {
     }
 
     private func applyGains() {
-        for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
         if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
         for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
         startFade()
@@ -247,25 +134,19 @@ final class SoundEngine: ObservableObject {
     private func build() {
         guard !built else { return }
         built = true
-        let format = engine.outputNode.inputFormat(forBus: 0)
-        let sr = format.sampleRate > 0 ? format.sampleRate : 44100
-        let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
+        // Headphones unplugged or the output device changed: restart the engine so sound keeps working.
+        NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isPlaying else { return }
+                try? self.engine.start()
+                for p in self.players.values { p.play() }
+            }
+        }
         for s in Soundscape.allCases {
             if let url = ["wav", "caf", "m4a"].lazy.compactMap({ Bundle.main.url(forResource: s.rawValue, withExtension: $0, subdirectory: "Sounds") }).first {
                 fileURLs[s] = url   // loaded on demand, so unused sounds cost no memory
                 continue
             }
-            let gen = SoundGenerator(kind: s, sampleRate: sr)
-            generators[s] = gen
-            let node = AVAudioSourceNode(format: mono) { _, _, frames, abl in
-                let bufs = UnsafeMutableAudioBufferListPointer(abl)
-                if let p = bufs[0].mData?.assumingMemoryBound(to: Float.self) {
-                    gen.render(p, frames: Int(frames))
-                }
-                return noErr
-            }
-            engine.attach(node)
-            engine.connect(node, to: engine.mainMixerNode, format: mono)
         }
         engine.mainMixerNode.outputVolume = 0.8
     }
@@ -305,6 +186,9 @@ final class SoundEngine: ObservableObject {
     }
 
     func stop() {
+        sleepWork?.cancel()
+        sleepWork = nil
+        sleepMinutes = 0
         applyGainsAfter(playing: false)
         // let the gain ramp finish, then pause the engine to save power
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in

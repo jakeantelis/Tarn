@@ -8,24 +8,28 @@ final class BreatheOverlay {
     private var windows: [NSWindow] = []
     private var hidden: [NSRunningApplication] = []
     private var monitor: Any?
+    /// One shared clock, so every screen shows the same breath.
+    private(set) var startDate = Date()
 
     var isShowing: Bool { !windows.isEmpty }
 
     func show() {
         guard !isShowing else { return }
+        startDate = Date()
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {
                 $0.activationPolicy == .regular && !$0.isHidden && $0 != NSRunningApplication.current
             }
             hidden.forEach { $0.hide() }
         }
-        for screen in NSScreen.screens {
+        for (index, screen) in NSScreen.screens.enumerated() {
             let w = OverlayWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
+            w.onEscape = { [weak self] in self?.close() }
             w.level = .screenSaver
             w.backgroundColor = .clear
             w.isOpaque = false
             w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            w.contentView = NSHostingView(rootView: OverlayView(onClose: { [weak self] in self?.close() }))
+            w.contentView = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close() }))
             w.setFrame(screen.frame, display: true)
             w.alphaValue = 0
             w.makeKeyAndOrderFront(nil)
@@ -33,6 +37,14 @@ final class BreatheOverlay {
             windows.append(w)
         }
         NSApp.activate(ignoringOtherApps: true)
+        // Hiding other apps can hand focus to Finder. Take it back so Esc reaches this window.
+        for delay in [0.15, 0.5] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, self.isShowing else { return }
+                NSApp.activate(ignoringOtherApps: true)
+                self.windows.first?.makeKeyAndOrderFront(nil)
+            }
+        }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
             if e.keyCode == 53 { self?.close(); return nil }   // Esc
             return e
@@ -52,16 +64,40 @@ final class BreatheOverlay {
     }
 }
 
+/// Accepts the very first click even when Tarn is not the active app, so a click always reaches the overlay.
+final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 final class OverlayWindow: NSWindow {
+    var onEscape: (() -> Void)?
+    /// Clicks anywhere close the overlay except in this top right strip, where the sound controls live.
+    static let controlsSize = NSSize(width: 420, height: 110)
     override var canBecomeKey: Bool { true }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .leftMouseDown {
+            let p = event.locationInWindow
+            let inControls = p.x > frame.width - Self.controlsSize.width && p.y > frame.height - Self.controlsSize.height
+            if !inControls { onEscape?(); return }
+        }
+        super.sendEvent(event)
+    }
+    override func cancelOperation(_ sender: Any?) { onEscape?() }
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { onEscape?() } else { super.keyDown(with: event) }
+    }
 }
 
 struct OverlayView: View {
+    @ObservedObject private var sound = AppModel.shared.sound
+    let speaks: Bool
     let onClose: () -> Void
+    @AppStorage("breathPattern") private var patternID = "settle"
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
-    @State private var start = Date()
-    private let pattern = BreathPattern.settle
+    @MainActor private var start: Date { BreatheOverlay.shared.startDate }
+    private var pattern: BreathPattern { BreathPattern.all.first { $0.id == patternID } ?? .settle }
 
     var body: some View {
         ZStack {
@@ -98,17 +134,38 @@ struct OverlayView: View {
                             .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
                     }
                 }
-                .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
-                .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
+                .onChange(of: s.label) { _, new in if speaks { VoiceGuide.shared.cue(new) } }
+                .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe && speaks { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }
             VStack {
                 Spacer()
                 Text("Press Esc or click anywhere to leave")
-                    .font(.footnote).foregroundStyle(.white.opacity(0.35)).padding(.bottom, 28)
+                    .font(.footnote).foregroundStyle(.white.opacity(0.55)).padding(.bottom, 28)
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onClose() }
+        .overlay(alignment: .topTrailing) {
+            // Sound controls and a way out, always in the same corner.
+            HStack(spacing: 8) {
+                Menu {
+                    ForEach(SoundPreset.all) { p in
+                        Button(p.name) { sound.applyPreset(p) }
+                    }
+                    Divider()
+                    Button("Sound off") { sound.stop() }
+                } label: {
+                    Label("Sounds", systemImage: "music.note")
+                }
+                .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden).fixedSize()
+                Button { sound.toggle() } label: {
+                    Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.slash")
+                }
+                .buttonStyle(CircleButtonStyle(on: sound.isPlaying))
+                .help(sound.isPlaying ? "Turn sound off" : "Turn sound on")
+                Button("Close", action: onClose)
+                    .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+            }
+            .padding(24)
+        }
         .preferredColorScheme(.dark)
     }
 }

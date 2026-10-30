@@ -28,19 +28,22 @@ cmd="${1:-status}"
 case "$cmd" in
     start|work)
         if [[ -n "${2:-}" ]]; then
-            [[ "$2" =~ ^[0-9]+$ ]] || { echo "minutes must be a number" >&2; exit 2; }
+            [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 240 )) || { echo "minutes must be a number from 1 to 240" >&2; exit 2; }
             send "start?minutes=$2"
         else send "start"; fi ;;
     pause|resume|toggle|stop|skip|break|clear|restore|window) send "$cmd" ;;
     breathe)
         if [[ "${2:-}" == "full" ]]; then send "breathe?fullscreen=1"; else send "breathe"; fi ;;
     sound)
-        case "${2:-toggle}" in
-            on|off|toggle) send "sound?state=$2" ;;
-            *) send "sound?preset=$2" ;;
+        arg="${2:-toggle}"
+        case "$arg" in
+            on|off|toggle) send "sound?state=$arg" ;;
+            ocean|forest|dawn|quiet) send "sound?preset=$arg&state=on" ;;
+            *) echo "unknown sound '$arg' (use on, off, toggle, ocean, forest, dawn or quiet)" >&2; exit 2 ;;
         esac ;;
     status)
         if [[ ! -f "$STATUS_FILE" ]]; then echo "Tarn has not run yet."; exit 1; fi
+        if ! pgrep -x Tarn >/dev/null; then echo "Tarn is not running."; exit 1; fi
         if [[ "${2:-}" == "--json" ]]; then cat "$STATUS_FILE"; echo; exit 0; fi
         mode=$(plutil -extract mode raw "$STATUS_FILE")
         phase=$(plutil -extract phase raw "$STATUS_FILE")

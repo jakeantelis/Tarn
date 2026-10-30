@@ -6,7 +6,6 @@ struct TarnApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var timer = AppModel.shared.timer
     @StateObject private var sound = AppModel.shared.sound
-    @ObservedObject private var model = AppModel.shared
 
     var body: some Scene {
         MenuBarExtra {
@@ -17,7 +16,7 @@ struct TarnApp: App {
                     Image(nsImage: Self.ringIcon(progress: timer.progress))
                     if !timer.hideCountdown { Text(timer.clockText).monospacedDigit() }
                 } else {
-                    Image(nsImage: Self.flowerIcon(open: timer.mode == .breathe ? Double(model.flowerStep) / 12 : 0.5))
+                    Image(nsImage: Self.flowerIcon(open: 0.5))
                 }
             }
         }

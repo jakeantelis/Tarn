@@ -59,6 +59,9 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("pauseOnLock") var pauseOnLock = true
     @AppStorage("hideCountdown") var hideCountdown = false
     private var focusActive = false
+    /// A length asked for by a link or tarnctl. It applies to this session only and never overwrites the saved choice.
+    private(set) var overrideMinutes: Int?
+    var effectiveMinutes: Int { overrideMinutes ?? focusMinutes }
 
     // Daily schedule: auto start the first round at a set time and stop at the end time.
     @AppStorage("scheduleEnabled") var scheduleEnabled = false
@@ -97,7 +100,7 @@ final class PomodoroTimer: ObservableObject {
         guard scheduleDays & (1 << weekday) != 0 else { return }
         let minute = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
         let day = ISO8601DateFormatter().string(from: cal.startOfDay(for: now))
-        if minute >= scheduleStart, minute < min(scheduleEnd, scheduleStart + 10), lastStartDay != day {
+        if minute >= scheduleStart, minute < min(scheduleEnd, scheduleStart + 30), lastStartDay != day {
             lastStartDay = day
             if !isRunning { phase = .work; completedRounds = 0; remaining = duration(for: .work); start() }
         }
@@ -128,12 +131,13 @@ final class PomodoroTimer: ObservableObject {
 
     func setFocusMinutes(_ m: Int) {
         objectWillChange.send()
+        overrideMinutes = nil
         focusMinutes = m
         if !isRunning && phase == .work { remaining = duration(for: .work) }
     }
 
     private var breakMinutes: (short: Int, long: Int) {
-        switch focusMinutes {
+        switch effectiveMinutes {
         case ..<31: return (5, 15)
         case ..<46: return (10, 20)
         case ..<61: return (10, 25)
@@ -152,12 +156,13 @@ final class PomodoroTimer: ObservableObject {
     var breakStyle: BreakStyle { BreakStyle(rawValue: breakStyleRaw) ?? .breathe }
 
     /// Rounds before a long break.
-    var roundsPerSet: Int { focusMinutes > 30 ? 3 : 4 }
+    var roundsPerSet: Int { effectiveMinutes > 30 ? 3 : 4 }
 
     func setMode(_ new: Mode) {
         guard new != mode else { return }
         stopTicker()
         mode = new
+        overrideMinutes = nil
         UserDefaults.standard.set(new.rawValue, forKey: "mode")
         phase = .work
         completedRounds = 0
@@ -168,7 +173,9 @@ final class PomodoroTimer: ObservableObject {
     /// Starts a fresh focus round, from any phase.
     func startWork(minutes: Int? = nil) {
         stopTicker()
-        if let minutes { focusMinutes = minutes; objectWillChange.send() }
+        overrideMinutes = minutes
+        objectWillChange.send()
+        lastEyeBlock = 0
         phase = .work
         remaining = duration(for: .work)
         start()
@@ -184,7 +191,7 @@ final class PomodoroTimer: ObservableObject {
 
     func duration(for phase: Phase) -> TimeInterval {
         switch phase {
-        case .work: return TimeInterval(focusMinutes * 60)
+        case .work: return TimeInterval(effectiveMinutes * 60)
         case .shortBreak: return TimeInterval(breakMinutes.short * 60)
         case .longBreak: return TimeInterval(breakMinutes.long * 60)
         }
@@ -250,7 +257,7 @@ final class PomodoroTimer: ObservableObject {
             let block = Int((duration(for: .work) - remaining) / 1200)
             if block > lastEyeBlock, remaining > 90 {
                 eyeRestUntil = Date().addingTimeInterval(20)
-                NSSound(named: "Tink")?.play()
+                if chime { NSSound(named: "Tink")?.play() }
             }
             lastEyeBlock = block
         }

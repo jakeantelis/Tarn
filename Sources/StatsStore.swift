@@ -34,7 +34,7 @@ final class StatsStore: ObservableObject {
         let cal = Calendar.current
         return (0..<7).reversed().map { back in
             let d = cal.date(byAdding: .day, value: -back, to: Date())!
-            let letter = String(cal.shortWeekdaySymbols[cal.component(.weekday, from: d) - 1].prefix(1))
+            let letter = String(cal.shortWeekdaySymbols[cal.component(.weekday, from: d) - 1].prefix(2))
             return (letter, days[Self.id(d)] ?? DayStats(), back == 0)
         }
     }

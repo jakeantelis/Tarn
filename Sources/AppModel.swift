@@ -3,33 +3,14 @@ import AppKit
 
 /// One shared instance of the timer and sound engine, so the menu bar UI and URL commands drive the same state.
 @MainActor
-final class AppModel: ObservableObject {
+final class AppModel {
     static let shared = AppModel()
-    /// Menu bar flower openness in twelfths (0...12), only updated while Breathe mode is active.
-    @Published var flowerStep = 6
-    private var flowerTimer: Timer?
     let timer = PomodoroTimer()
     let sound = SoundEngine()
     private var fullScreenForBreak = false
 
     private init() {
         timer.onStateChange = { [weak self] in self?.timerChanged() }
-        // A TimelineView inside the menu bar label leaks memory, so the breathing flower is driven from here instead.
-        let t = Timer(timeInterval: 0.35, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateFlower() }
-        }
-        RunLoop.main.add(t, forMode: .common)
-        flowerTimer = t
-    }
-
-    private func updateFlower() {
-        guard timer.mode == .breathe else {
-            if flowerStep != 6 { flowerStep = 6 }
-            return
-        }
-        let b = BreathPattern.settle.state(at: Date().timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 600))
-        let step = Int((b.scale * 12).rounded())
-        if step != flowerStep { flowerStep = step }
     }
 
     /// Keeps sound and full screen breathing in step with the timer, whatever started the change (window, shortcut or tarnctl).
@@ -66,13 +47,16 @@ final class AppModel: ObservableObject {
             timer.setMode(.breathe)
             if value("fullscreen") == "1" { BreatheOverlay.shared.show() }
         case "sound":
-            switch value("state") ?? "toggle" {
-            case "on": sound.play()
-            case "off": sound.stop()
-            default: sound.toggle()
+            let preset: SoundPreset? = value("preset").flatMap { n in
+                SoundPreset.all.first { $0.name.lowercased().hasPrefix(n.lowercased()) }
             }
-            if let name = value("preset")?.lowercased(),
-               let p = SoundPreset.all.first(where: { $0.name.lowercased().hasPrefix(name) }) { sound.applyPreset(p) }
+            if let preset { sound.applyPreset(preset) }
+            switch value("state") ?? (preset == nil ? "toggle" : "none") {
+            case "on": if preset == nil { sound.play() }
+            case "off": sound.stop()
+            case "toggle": sound.toggle()
+            default: break
+            }
         case "window": WindowOpener.shared.show()
         case "clear": ScreenClearer.shared.clear()
         case "restore": ScreenClearer.shared.restore()

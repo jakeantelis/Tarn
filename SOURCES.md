@@ -2,7 +2,7 @@
 
 Every sound shipped in Tarn must be CC0 or self recorded. Record each file here before it is committed.
 
-Files go in `Resources/Sounds/`, named after the soundscape. A bundled file replaces the built in synthesized version of that sound (wind is still synthesized). `Tools/make-loop.sh` cuts each source into a seamless loop: it crossfades the end into the start, sets a steady level and encodes AAC. The original downloads are not kept in the repo.
+Files go in `Resources/Sounds/`, named after the soundscape. `Tools/make-loop.sh` cuts each source into a seamless loop: it crossfades the end into the start, sets a steady level and encodes AAC. The original downloads are not kept in the repo.
 
 All files below come from BigSoundBank (https://bigsoundbank.com), released under CC0 (public domain). The license wording was read on each sound's own page on 2026-10-30. Attribution is not required but is appreciated, so credit is given here.
 
@@ -14,3 +14,6 @@ All files below come from BigSoundBank (https://bigsoundbank.com), released unde
 | stream.m4a | Forest and Stream #1 | s2713 | Pierre SIBANARCO | CC0 | https://bigsoundbank.com/foret-et-ruisseau-1-s2713.html | 40s to 105s, 60s loop |
 
 No synthesized sounds are shipped. Real CC0 recordings can be added later by dropping a file named after a new soundscape into `Resources/Sounds/`.
+
+## Quotes
+Quotes shown in the app are from public domain translations. Epictetus (the first Focus line) is shown as widely attributed and is the owner's choice; check the exact wording against a translation (Long, Higginson or Carter) before a public release. The Seneca lines follow Gummere's translation of the Moral Letters (letters 1, 13 and 101).

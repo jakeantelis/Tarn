@@ -69,7 +69,11 @@ struct BreathingView: View {
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
-    @State private var pattern = BreathPattern.settle
+    @AppStorage("breathPattern") private var patternID = "settle"
+    private var pattern: BreathPattern {
+        get { BreathPattern.all.first { $0.id == patternID } ?? .settle }
+        nonmutating set { patternID = newValue.id }
+    }
     @State private var start = Date()
     @State private var pausedAt: TimeInterval? = nil   // elapsed seconds while paused
 
@@ -87,7 +91,7 @@ struct BreathingView: View {
     private var content: some View {
         VStack(spacing: 12) {
             if !compact {
-                PillPicker(items: BreathPattern.all, selection: $pattern) { $0.name }
+                PillPicker(items: BreathPattern.all, selection: Binding(get: { pattern }, set: { pattern = $0 })) { $0.name }
                 .onChange(of: pattern) { _, _ in start = Date() }
                 Text(pattern.blurb)
                     .font(.caption).foregroundStyle(.secondary)
@@ -116,9 +120,12 @@ struct BreathingView: View {
                                 }
                             }
                         } label: {
-                            Image(systemName: "sparkles")
-                                .frame(width: 28, height: 28)
-                                .background(Circle().fill(Color.secondary.opacity(0.18)))
+                            HStack(spacing: 4) {
+                                Image(systemName: "sparkles")
+                                Text(styleRaw).font(.caption)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(Capsule().fill(Color.secondary.opacity(0.18)))
                         }
                         .menuStyle(.button)
                         .buttonStyle(.plain)

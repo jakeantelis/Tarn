@@ -7,8 +7,8 @@ TMP=build/universal
 DIST=dist
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
 
-DEV_ID="D430FCAFBA0DBC0F48D765E55C07BF3BA1FCEF85"
-NOTARY_PROFILE="jake-antelis"
+DEV_ID="${TARN_DEV_ID:-D430FCAFBA0DBC0F48D765E55C07BF3BA1FCEF85}"
+NOTARY_PROFILE="${TARN_NOTARY_PROFILE:-jake-antelis}"
 
 rm -rf "$APP" "$TMP"
 mkdir -p "$TMP/arm64" "$TMP/x86_64" "$APP/Contents/MacOS" "$APP/Contents/Resources"
