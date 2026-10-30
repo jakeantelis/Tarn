@@ -13,4 +13,4 @@ All files below come from BigSoundBank (https://bigsoundbank.com), released unde
 | birds.m4a | Birds Waking #4 | s1906 | Joseph SARDIN | CC0 | https://bigsoundbank.com/reveil-des-oiseaux-4-s1906.html | 60s to 125s, 60s loop |
 | stream.m4a | Forest and Stream #1 | s2713 | Pierre SIBANARCO | CC0 | https://bigsoundbank.com/foret-et-ruisseau-1-s2713.html | 40s to 105s, 60s loop |
 
-Synthesized in code, so no source files and nothing to license: rain, lake and wind. Real CC0 recordings can replace any of them later by dropping a file with the same name into `Resources/Sounds/`.
+Synthesized in code, so no source files and nothing to license: rain and wind. Real CC0 recordings can replace any of them later by dropping a file with the same name into `Resources/Sounds/`.

@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 
 enum Soundscape: String, CaseIterable, Identifiable {
-    case ocean, rain, forest, birds, stream, lake, wind
+    case ocean, rain, forest, birds, stream, wind
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -10,7 +10,6 @@ enum Soundscape: String, CaseIterable, Identifiable {
         case .rain: return "Rain"
         case .forest: return "Forest"
         case .birds: return "Birds"
-        case .lake: return "Lake"
         case .stream: return "Stream"
         case .wind: return "Wind"
         }
@@ -21,7 +20,6 @@ enum Soundscape: String, CaseIterable, Identifiable {
         case .rain: return "cloud.rain"
         case .forest: return "tree"
         case .birds: return "bird"
-        case .lake: return "sailboat"
         case .stream: return "drop"
         case .wind: return "wind"
         }
@@ -38,7 +36,6 @@ struct SoundPreset: Identifiable {
         SoundPreset(name: "Rainy cabin", symbol: "cloud.rain", mix: [.rain: 0.7, .wind: 0.2]),
         SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
         SoundPreset(name: "Forest morning", symbol: "tree", mix: [.forest: 0.55, .birds: 0.5, .stream: 0.3]),
-        SoundPreset(name: "Still lake", symbol: "sailboat", mix: [.lake: 0.7, .birds: 0.25]),
         SoundPreset(name: "Quiet wind", symbol: "wind", mix: [.wind: 0.6]),
     ]
 }
@@ -83,16 +80,6 @@ final class SoundGenerator: @unchecked Sendable {
             let w = white()
             var s: Float = 0
             switch kind {
-            case .lake:
-                // Calm shore: a very slow swell under small, soft lapping.
-                phase += 0.16 * dt
-                if phase > 1 { phase -= 1 }
-                let swell = Float(0.5 + 0.5 * sin(2 * .pi * phase))
-                lp1 += 0.01 * (w - lp1)
-                lp2 += 0.04 * (w - lp2)
-                if dropEnv < 0.02, Double.random(in: 0..<1, using: &rng) < 0.000026 { dropEnv = Float.random(in: 0.1...0.3) }
-                dropEnv *= 0.9996
-                s = lp1 * (0.7 + 0.6 * swell) * 1.2 + lp2 * dropEnv * 4
             case .ocean:
                 phase += swellRate * dt
                 if phase > 1 { phase -= 1 }
