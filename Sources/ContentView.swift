@@ -23,8 +23,8 @@ struct ContentView: View {
     private var breakTint: some View {
         let g: [Color]
         if timer.mode == .breathe { g = [Color.water.opacity(0.14), Color.water.opacity(0.04)] }
-        else if onBreak { g = [Color.purple.opacity(0.20), Color.purple.opacity(0.06)] }
-        else { g = [FocusPalette.current.tint.opacity(0.13), FocusPalette.current.tint.opacity(0.02)] }
+        else if onBreak { g = [Color.purple.opacity(0.16), Color.purple.opacity(0.04)] }
+        else { g = [Color.white.opacity(0.05), Color.white.opacity(0.0)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
     }
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 || tab == 3 ? tab : 0) : (tab == 2 ? 2 : 1) }

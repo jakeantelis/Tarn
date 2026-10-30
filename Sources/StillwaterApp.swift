@@ -34,16 +34,22 @@ struct StillwaterApp: App {
         sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
     }
 
-    /// Idle menu bar icon: a lens, meaning two rings and a dot. Drawn as a template so it follows the menu bar tint.
+    /// Idle menu bar icon: a tiny six petal flower. Drawn as a template so it follows the menu bar tint.
     static let idleIcon: NSImage = {
         let img = NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
             let c = NSPoint(x: rect.midX, y: rect.midY)
             NSColor.black.setStroke()
-            let outer = NSBezierPath(ovalIn: rect.insetBy(dx: 1.6, dy: 1.6)); outer.lineWidth = 1.5; outer.stroke()
-            NSColor.black.withAlphaComponent(0.6).setStroke()
-            let inner = NSBezierPath(ovalIn: rect.insetBy(dx: 4.6, dy: 4.6)); inner.lineWidth = 1.2; inner.stroke()
+            for k in 0..<6 {
+                let a = CGFloat(k) / 6 * 2 * .pi
+                let petal = NSBezierPath(ovalIn: NSRect(x: -1.9, y: -3.6, width: 3.8, height: 7.2))
+                var t = AffineTransform(translationByX: c.x + cos(a) * 3.3, byY: c.y + sin(a) * 3.3)
+                t.rotate(byRadians: a - .pi / 2)
+                petal.transform(using: t)
+                petal.lineWidth = 1.0
+                petal.stroke()
+            }
             NSColor.black.setFill()
-            NSBezierPath(ovalIn: NSRect(x: c.x - 1.4, y: c.y - 1.4, width: 2.8, height: 2.8)).fill()
+            NSBezierPath(ovalIn: NSRect(x: c.x - 1.3, y: c.y - 1.3, width: 2.6, height: 2.6)).fill()
             return true
         }
         img.isTemplate = true

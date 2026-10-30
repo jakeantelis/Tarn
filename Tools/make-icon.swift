@@ -26,33 +26,35 @@ func render(_ px: Int) -> Data {
     NSGradient(colors: [NSColor(red: 0.55, green: 0.75, blue: 1.0, alpha: 0.38), NSColor.clear])!
         .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.46, options: [])
 
-    // rings, fading outward, with a bright arc on the outer one
-    for (i, r) in [0.34, 0.255, 0.175].enumerated() {
-        let ring = NSBezierPath(ovalIn: NSRect(x: c.x - s*r, y: c.y - s*r, width: s*r*2, height: s*r*2))
-        ring.lineWidth = s * (i == 0 ? 0.022 : 0.014)
-        NSColor.white.withAlphaComponent(i == 0 ? 0.30 : 0.22 - 0.05 * CGFloat(i)).setStroke()
-        ring.stroke()
+    // faint outer ring, a nod to the focus lens
+    let ring = NSBezierPath(ovalIn: NSRect(x: c.x - s*0.385, y: c.y - s*0.385, width: s*0.77, height: s*0.77))
+    ring.lineWidth = s * 0.012
+    NSColor.white.withAlphaComponent(0.16).setStroke(); ring.stroke()
+
+    // the breathing flower: three rings of translucent petals
+    func petals(count: Int, orbit: CGFloat, length: CGFloat, width: CGFloat, turn: CGFloat, color: NSColor) {
+        for k in 0..<count {
+            let a = turn + CGFloat(k) / CGFloat(count) * 2 * .pi
+            let p = NSBezierPath(ovalIn: NSRect(x: -width, y: -length, width: width * 2, height: length * 2))
+            var t = AffineTransform(translationByX: c.x + cos(a) * orbit, byY: c.y + sin(a) * orbit)
+            t.rotate(byRadians: a - .pi / 2)
+            p.transform(using: t)
+            color.withAlphaComponent(0.26).setFill(); p.fill()
+            color.withAlphaComponent(0.55).setStroke(); p.lineWidth = s * 0.004; p.stroke()
+        }
     }
-    // progress arc on the outer ring: blue into warm coral
-    let arcR = s * 0.34
-    let steps = 90
-    for k in 0..<steps {
-        let t = CGFloat(k) / CGFloat(steps)
-        let a0 = 90 - t * 250, a1 = 90 - (t + 1.0 / CGFloat(steps)) * 250
-        let seg = NSBezierPath()
-        seg.appendArc(withCenter: c, radius: arcR, startAngle: a0, endAngle: a1 - 0.6, clockwise: true)
-        seg.lineWidth = s * 0.03
-        seg.lineCapStyle = .round
-        let col = NSColor(red: 0.45 + 0.55 * t, green: 0.75 - 0.30 * t, blue: 1.0 - 0.60 * t, alpha: 1)
-        col.setStroke(); seg.stroke()
-    }
+    petals(count: 8, orbit: s*0.155, length: s*0.15, width: s*0.068, turn: 0.0,
+           color: NSColor(red: 0.62, green: 0.78, blue: 1.0, alpha: 1))
+    petals(count: 8, orbit: s*0.11, length: s*0.115, width: s*0.06, turn: .pi / 8,
+           color: NSColor(red: 0.98, green: 0.72, blue: 0.82, alpha: 1))
+    petals(count: 6, orbit: s*0.065, length: s*0.08, width: s*0.045, turn: .pi / 6,
+           color: NSColor(red: 1.0, green: 0.86, blue: 0.62, alpha: 1))
+
     // glowing core
-    NSGradient(colors: [NSColor(red: 1.0, green: 0.93, blue: 0.80, alpha: 1),
-                        NSColor(red: 1.0, green: 0.68, blue: 0.50, alpha: 0.85),
-                        NSColor(red: 1.0, green: 0.55, blue: 0.45, alpha: 0)])!
-        .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.15, options: [])
-    NSColor.white.withAlphaComponent(0.95).setFill()
-    NSBezierPath(ovalIn: NSRect(x: c.x - s*0.03, y: c.y - s*0.03, width: s*0.06, height: s*0.06)).fill()
+    NSGradient(colors: [NSColor(red: 1.0, green: 0.95, blue: 0.84, alpha: 1),
+                        NSColor(red: 1.0, green: 0.75, blue: 0.55, alpha: 0.7),
+                        NSColor(red: 1.0, green: 0.6, blue: 0.5, alpha: 0)])!
+        .draw(fromCenter: c, radius: 0, toCenter: c, radius: s*0.11, options: [])
 
     // glass highlight on the top of the tile
     NSGradient(colors: [NSColor.white.withAlphaComponent(0.13), NSColor.white.withAlphaComponent(0)])!.draw(in: tileRect, angle: -90)
