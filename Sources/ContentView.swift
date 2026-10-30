@@ -366,7 +366,7 @@ struct SettingsTab: View {
         VStack(alignment: .leading, spacing: 12) {
             GroupBox("Theme") {
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 10) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5), spacing: 10) {
                         ForEach(FocusPalette.order, id: \.self) { key in
                             let pal = FocusPalette.all[key]!
                             Button {
@@ -522,12 +522,17 @@ struct FocusPalette {
     let washTop: Color
     let washBottom: Color
 
-    static let order = ["red", "coral", "teal", "amber", "graphite"]
+    static let order = ["red", "coral", "teal", "amber", "graphite", "indigo", "pink", "orange", "mint", "purple"]
     static let all: [String: FocusPalette] = [
         "red": FocusPalette(name: "Tomato", tint: Color(red: 1.0, green: 0.38, blue: 0.30), glow: Color(red: 1.0, green: 0.76, blue: 0.68), washTop: Color(red: 0.46, green: 0.12, blue: 0.14), washBottom: Color(red: 0.22, green: 0.12, blue: 0.15)),
         "coral": FocusPalette(name: "Coral", tint: Color(red: 1.0, green: 0.55, blue: 0.45), glow: Color(red: 1.0, green: 0.82, blue: 0.72), washTop: Color(red: 0.46, green: 0.20, blue: 0.20), washBottom: Color(red: 0.24, green: 0.14, blue: 0.18)),
         "teal": FocusPalette(name: "Teal", tint: Color(red: 0.20, green: 0.80, blue: 0.72), glow: Color(red: 0.70, green: 0.95, blue: 0.90), washTop: Color(red: 0.10, green: 0.36, blue: 0.38), washBottom: Color(red: 0.10, green: 0.20, blue: 0.24)),
         "amber": FocusPalette(name: "Amber", tint: Color(red: 1.0, green: 0.76, blue: 0.28), glow: Color(red: 1.0, green: 0.88, blue: 0.62), washTop: Color(red: 0.50, green: 0.32, blue: 0.14), washBottom: Color(red: 0.28, green: 0.20, blue: 0.14)),
+        "indigo": FocusPalette(name: "Indigo", tint: Color(red: 0.42, green: 0.40, blue: 0.96), glow: Color(red: 0.76, green: 0.74, blue: 1.0), washTop: .clear, washBottom: .clear),
+        "pink": FocusPalette(name: "Pink", tint: Color(red: 1.0, green: 0.25, blue: 0.42), glow: Color(red: 1.0, green: 0.74, blue: 0.82), washTop: .clear, washBottom: .clear),
+        "orange": FocusPalette(name: "Orange", tint: Color(red: 1.0, green: 0.62, blue: 0.10), glow: Color(red: 1.0, green: 0.84, blue: 0.56), washTop: .clear, washBottom: .clear),
+        "mint": FocusPalette(name: "Mint", tint: Color(red: 0.40, green: 0.90, blue: 0.80), glow: Color(red: 0.80, green: 1.0, blue: 0.95), washTop: .clear, washBottom: .clear),
+        "purple": FocusPalette(name: "Purple", tint: Color(red: 0.78, green: 0.38, blue: 0.96), glow: Color(red: 0.90, green: 0.74, blue: 1.0), washTop: .clear, washBottom: .clear),
         "graphite": FocusPalette(name: "Graphite", tint: Color(red: 0.82, green: 0.86, blue: 0.92), glow: Color(red: 1.0, green: 1.0, blue: 1.0), washTop: Color(red: 0.26, green: 0.28, blue: 0.34), washBottom: Color(red: 0.14, green: 0.15, blue: 0.19)),
     ]
     static var current: FocusPalette { all[UserDefaults.standard.string(forKey: "focusPalette") ?? "red"] ?? all["red"]! }
