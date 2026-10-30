@@ -62,6 +62,7 @@ struct BreathingView: View {
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
     @State private var pattern = BreathPattern.settle
     @State private var start = Date()
+    @State private var pausedAt: TimeInterval? = nil   // elapsed seconds while paused
 
     var body: some View {
         content
@@ -81,8 +82,8 @@ struct BreathingView: View {
                 .onChange(of: pattern) { _, _ in start = Date() }
             }
 
-            TimelineView(.animation(paused: !active)) { ctx in
-                let t = ctx.date.timeIntervalSince(start)
+            TimelineView(.animation(paused: !active || pausedAt != nil)) { ctx in
+                let t = pausedAt ?? ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 ZStack {
                     switch BreathStyle(rawValue: styleRaw) ?? .fill {
@@ -92,7 +93,7 @@ struct BreathingView: View {
                     }
                     VStack(spacing: 6) {
                         Spacer()
-                        Text(s.label)
+                        Text(pausedAt != nil ? "Paused" : s.label)
                             .font(.system(.title3, design: .rounded).weight(.light))
                             .foregroundStyle(.primary.opacity(0.85))
                         Spacer()
@@ -110,6 +111,13 @@ struct BreathingView: View {
                     .padding(.vertical, 6)
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 160 : 230)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    guard !compact else { return }
+                    if let p = pausedAt { start = Date().addingTimeInterval(-p); pausedAt = nil }
+                    else { pausedAt = Date().timeIntervalSince(start) }
+                }
+                .help(compact ? "" : (pausedAt == nil ? "Click to pause" : "Click to resume"))
                 .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
                 .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }

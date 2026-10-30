@@ -215,6 +215,12 @@ struct TimerTab: View {
                     }
                 }
                 .frame(width: 200, height: 200)
+                .contentShape(Circle())
+                .onTapGesture { timer.toggle() }
+                .help(timer.isRunning ? "Click to pause" : "Click to start")
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(timer.isRunning ? "Pauses the timer" : "Starts the timer")
                 .frame(height: 200)
             }
 
