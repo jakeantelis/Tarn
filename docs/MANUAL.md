@@ -33,7 +33,7 @@ It covers every screen with a calm background, including desktop icons. Click an
 One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back.
 
 **What is a Session?**  
-Pick 1, 3 or 5 minutes under the pattern buttons for a short guided session with an end chime. Open keeps going until you stop.
+Pick 1, 3, 5, 10 or 20 minutes under the pattern buttons for a guided session with a soft bell at the start and end, and an optional one at the halfway point. Open keeps going until you stop. It works as a simple meditation timer too.
 
 **What does Hide apps do?**  
 It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return.

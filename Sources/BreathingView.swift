@@ -79,6 +79,7 @@ struct BreathingView: View {
     @AppStorage("coachMinutes") private var coachMinutes = 0
     @State private var coachStart: Date? = nil
     @State private var coachDone = false
+    @State private var halfwayRung = false
 
     var body: some View {
         content
@@ -95,15 +96,26 @@ struct BreathingView: View {
     private func setCoach(_ minutes: Int) {
         coachMinutes = minutes
         coachDone = false
+        halfwayRung = false
         start = Date(); pausedAt = nil
         coachStart = minutes > 0 ? Date() : nil
+        if minutes > 0, bellsOn { Bell.ring(1, volume: 0.45) }
     }
 
+    private var bellsOn: Bool { UserDefaults.standard.object(forKey: "sessionBells") as? Bool ?? true }
+
     private func checkCoach() {
-        guard let cs = coachStart, coachMinutes > 0, Date().timeIntervalSince(cs) >= Double(coachMinutes * 60) else { return }
+        guard let cs = coachStart, coachMinutes > 0 else { return }
+        let elapsed = Date().timeIntervalSince(cs), total = Double(coachMinutes * 60)
+        if !halfwayRung, coachMinutes >= 3, elapsed >= total / 2, elapsed < total,
+           bellsOn, UserDefaults.standard.bool(forKey: "halfwayBell") {
+            halfwayRung = true
+            Bell.ring(1, volume: 0.3)
+        }
+        guard elapsed >= total else { return }
         coachStart = nil
         coachDone = true
-        if UserDefaults.standard.object(forKey: "chime") as? Bool ?? true { NSSound(named: "Glass")?.play() }
+        if bellsOn { Bell.ring(2, volume: 0.55) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { coachDone = false }
     }
 
@@ -116,8 +128,8 @@ struct BreathingView: View {
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                 HStack(spacing: 8) {
-                    Text("Session").font(.caption).foregroundStyle(.secondary)
-                    PillPicker(items: [0, 1, 3, 5], selection: Binding(get: { coachMinutes }, set: { setCoach($0) })) { $0 == 0 ? "Open" : "\($0) min" }
+                    Text("Minutes").font(.caption).foregroundStyle(.secondary)
+                    PillPicker(items: [0, 1, 3, 5, 10, 20], selection: Binding(get: { coachMinutes }, set: { setCoach($0) })) { $0 == 0 ? "Open" : "\($0)" }
                 }
             }
 

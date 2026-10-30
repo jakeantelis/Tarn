@@ -87,6 +87,14 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check((e.levels[.ocean] ?? 0) == 0, "quietest sound steps aside")
         check(SoundPreset.all.allSatisfy { $0.mix.filter { $0.value > 0 }.count <= SoundEngine.maxLayers }, "all presets within the cap")
 
+        print("Bell")
+        let wav = Bell.wavData(seconds: 1)
+        check(wav.count == 44 + 44100 * 2, "bell WAV has a 44 byte header plus one second of 16 bit samples (\(wav.count) bytes)")
+        check(String(data: wav.prefix(4), encoding: .ascii) == "RIFF", "bell WAV starts with RIFF")
+        let amps = stride(from: 44, to: wav.count - 1, by: 2).map { abs(Int(Int16(littleEndian: wav.subdata(in: $0..<$0 + 2).withUnsafeBytes { $0.load(as: Int16.self) }))) }
+        check((amps.max() ?? 0) < 32000 && (amps.max() ?? 0) > 3000, "bell is audible and does not clip")
+        check(amps.prefix(20).max()! < amps.dropFirst(500).prefix(500).max()!, "bell fades in (no click at the start)")
+
         print("Stats")
         let st = StatsStore.shared
         let before = st.today.rounds

@@ -215,7 +215,7 @@ struct TimerTab: View {
             }
             TimelineView(.periodic(from: .now, by: 1)) { ctx in
                 if timer.eyeRest, ctx.date < timer.eyeRestUntil {
-                    Label("Look 20 feet away for 20 seconds", systemImage: "eye")
+                    Label("Rest your eyes. Look far away for 20 seconds.", systemImage: "eye")
                         .font(.caption).padding(.horizontal, 12).padding(.vertical, 5)
                         .background(Capsule().fill(Color.amber.opacity(0.25)))
                 }
@@ -403,6 +403,8 @@ struct SettingsTab: View {
     @AppStorage("calmStartShortcut") private var calmStart = ""
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
+    @AppStorage("sessionBells") private var sessionBells = true
+    @AppStorage("halfwayBell") private var halfwayBell = false
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -521,8 +523,8 @@ struct SettingsTab: View {
                     Toggle("Pause when the Mac sleeps or locks", isOn: bind({ timer.pauseOnLock }, { timer.pauseOnLock = $0 }))
                     Toggle("Remind me to rest my eyes every 20 minutes", isOn: bind({ timer.eyeRest }, { timer.eyeRest = $0 }))
                     Toggle("Hide the menu bar countdown", isOn: bind({ timer.hideCountdown }, { timer.hideCountdown = $0 }))
-                    TextField("Shortcut to run when focus starts, for example Focus On", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
-                    TextField("Shortcut to run when focus ends, for example Focus Off", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
+                    TextField("Shortcut when focus starts", text: bind({ timer.focusStartShortcut }, { timer.focusStartShortcut = $0 }))
+                    TextField("Shortcut when focus ends", text: bind({ timer.focusEndShortcut }, { timer.focusEndShortcut = $0 }))
                     Text("Name a Shortcut from the Shortcuts app, for example one that turns on a Focus mode to silence notifications. Leave blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
@@ -579,8 +581,8 @@ struct SettingsTab: View {
             }
             GroupBox("Calm mode") {
                 VStack(alignment: .leading, spacing: 8) {
-                    TextField("Shortcut to run when Calm starts, for example Tarn Calm On", text: $calmStart)
-                    TextField("Shortcut to run when Calm ends, for example Tarn Calm Off", text: $calmEnd)
+                    TextField("Shortcut when Calm starts", text: $calmStart)
+                    TextField("Shortcut when Calm ends", text: $calmEnd)
                     HStack(spacing: 6) {
                         Button("Use suggested names") { calmStart = "Tarn Calm On"; calmEnd = "Tarn Calm Off" }
                             .buttonStyle(CapsuleButtonStyle(small: true))
@@ -592,13 +594,15 @@ struct SettingsTab: View {
                     Text("To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
+                    Toggle("Soft bells for sessions", isOn: $sessionBells)
+                    Toggle("Bell at the halfway point", isOn: $halfwayBell).disabled(!sessionBells)
                 }.padding(.vertical, 4)
             }
             GroupBox("Full screen") {
                 VStack(alignment: .leading, spacing: 4) {
                     Toggle("Offer full screen when sounds start", isOn: $offerFullScreen)
                     Toggle("Hide other apps in full screen", isOn: $hideOthers)
-                    Text("The Full screen button on the Breathe tab dims every screen so you can breathe. Press Esc to leave, and your apps come back.")
+                    Text("The Full screen button on the Breathe tab dims every screen so you can breathe. Click anywhere or press Esc to return, and your apps come back.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -675,7 +679,7 @@ enum HelpContent {
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
             ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back."),
-            ("What is a Session?", "Pick 1, 3 or 5 minutes under the pattern buttons for a short guided session with an end chime. Open keeps going until you stop."),
+            ("What is a Session?", "Pick 1, 3, 5, 10 or 20 minutes under the pattern buttons for a guided session with a soft bell at the start and end, and an optional one at the halfway point. Open keeps going until you stop. It works as a simple meditation timer too."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return."),
         ]),
         ("Sounds", [

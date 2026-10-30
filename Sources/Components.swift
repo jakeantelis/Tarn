@@ -17,6 +17,8 @@ struct PillPicker<T: Hashable>: View {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { selection = item }
                 } label: {
                     Text(title(item))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .font(.callout.weight(on ? .semibold : .regular))
                         .foregroundStyle(on ? Color.onTint : Color.primary.opacity(0.75))
                         .padding(.vertical, 6)
