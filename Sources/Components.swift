@@ -72,8 +72,8 @@ struct LensView: View {
                 let c = CGPoint(x: size.width / 2, y: size.height / 2)
                 let base = min(size.width, size.height) / 2
                 let f = max(0, min(1, 1 - progress))          // time left
-                let green = Color(red: 0.95, green: 0.72, blue: 0.40)
-                let amber = Color(red: 1.0, green: 0.88, blue: 0.62)
+                let green = FocusPalette.current.tint
+                let amber = FocusPalette.current.glow
                 func circle(_ r: Double) -> Path { Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)) }
 
                 // time left, as an arc on the outer rim

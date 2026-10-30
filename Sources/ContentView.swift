@@ -3,7 +3,7 @@ import ServiceManagement
 
 extension Color {
     static let onTint = Color(red: 0.13, green: 0.11, blue: 0.09)
-    static let focusTint = Color(red: 0.95, green: 0.72, blue: 0.40)
+    static var focusTint: Color { FocusPalette.current.tint }
     static let amber = Color(red: 0.98, green: 0.80, blue: 0.48)
     static let water = Color(red: 0.32, green: 0.64, blue: 0.78)
 }
@@ -17,13 +17,14 @@ struct ContentView: View {
     }
     @State private var showSettings = false
     @AppStorage("welcomed") private var welcomed = false
+    @AppStorage("focusPalette") private var paletteKey = "red"
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
     private var breakTint: some View {
         let g: [Color]
         if timer.mode == .breathe { g = [Color.water.opacity(0.14), Color.water.opacity(0.04)] }
         else if onBreak { g = [Color.purple.opacity(0.20), Color.purple.opacity(0.06)] }
-        else { g = [Color(red: 0.50, green: 0.32, blue: 0.14).opacity(0.30), Color(red: 0.28, green: 0.20, blue: 0.14).opacity(0.10)] }
+        else { g = [FocusPalette.current.washTop.opacity(0.30), FocusPalette.current.washBottom.opacity(0.10)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
     }
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 || tab == 3 ? tab : 0) : (tab == 2 ? 2 : 1) }
@@ -81,7 +82,7 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 300)
         .background(breakTint)
-        .tint(timer.mode == .breathe ? Color.water : Color.focusTint)
+        .tint(timer.mode == .breathe ? Color.water : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
         .animation(.easeInOut(duration: 0.6), value: timer.mode)
         .overlay { if !welcomed { Welcome { welcomed = true } } }
@@ -322,6 +323,7 @@ struct SettingsTab: View {
     @ObservedObject var sound: SoundEngine
     let mode: Mode
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
+    @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -362,6 +364,32 @@ struct SettingsTab: View {
 
     private var pomodoro: some View {
         VStack(alignment: .leading, spacing: 12) {
+            GroupBox("Theme") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        ForEach(FocusPalette.order, id: \.self) { key in
+                            let pal = FocusPalette.all[key]!
+                            Button {
+                                paletteKey = key
+                                timer.objectWillChange.send()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    ZStack {
+                                        Circle().fill(LinearGradient(colors: [pal.washTop, pal.washBottom], startPoint: .top, endPoint: .bottom))
+                                        Circle().stroke(pal.tint, lineWidth: 3).padding(5)
+                                        Circle().fill(pal.glow.opacity(0.85)).frame(width: 10, height: 10)
+                                    }
+                                    .frame(width: 38, height: 38)
+                                    .overlay(Circle().stroke(Color.primary.opacity(paletteKey == key ? 0.9 : 0), lineWidth: 2).padding(-3))
+                                    Text(pal.name).font(.caption2).foregroundStyle(paletteKey == key ? Color.primary : Color.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Text("Colors for Focus. Breathe stays soft blue in every theme.").font(.caption).foregroundStyle(.secondary)
+                }.padding(.vertical, 4)
+            }
             GroupBox("Quick starts") {
                 HStack(spacing: 6) {
                     ForEach(QuickStart.all) { q in
@@ -484,4 +512,23 @@ struct QuickStart: Identifiable {
             sound.applyPreset(p)
         }
     }
+}
+
+/// Focus colors. Each has a tint, a soft window wash and a glow for the lens.
+struct FocusPalette {
+    let name: String
+    let tint: Color
+    let glow: Color
+    let washTop: Color
+    let washBottom: Color
+
+    static let order = ["red", "coral", "teal", "amber", "graphite"]
+    static let all: [String: FocusPalette] = [
+        "red": FocusPalette(name: "Red", tint: Color(red: 0.93, green: 0.40, blue: 0.38), glow: Color(red: 1.0, green: 0.74, blue: 0.66), washTop: Color(red: 0.46, green: 0.12, blue: 0.14), washBottom: Color(red: 0.22, green: 0.12, blue: 0.15)),
+        "coral": FocusPalette(name: "Coral", tint: Color(red: 0.96, green: 0.56, blue: 0.48), glow: Color(red: 1.0, green: 0.82, blue: 0.72), washTop: Color(red: 0.46, green: 0.20, blue: 0.20), washBottom: Color(red: 0.24, green: 0.14, blue: 0.18)),
+        "teal": FocusPalette(name: "Teal", tint: Color(red: 0.30, green: 0.74, blue: 0.70), glow: Color(red: 0.70, green: 0.95, blue: 0.90), washTop: Color(red: 0.10, green: 0.36, blue: 0.38), washBottom: Color(red: 0.10, green: 0.20, blue: 0.24)),
+        "amber": FocusPalette(name: "Amber", tint: Color(red: 0.95, green: 0.72, blue: 0.40), glow: Color(red: 1.0, green: 0.88, blue: 0.62), washTop: Color(red: 0.50, green: 0.32, blue: 0.14), washBottom: Color(red: 0.28, green: 0.20, blue: 0.14)),
+        "graphite": FocusPalette(name: "Graphite", tint: Color(red: 0.82, green: 0.86, blue: 0.92), glow: Color(red: 1.0, green: 1.0, blue: 1.0), washTop: Color(red: 0.26, green: 0.28, blue: 0.34), washBottom: Color(red: 0.14, green: 0.15, blue: 0.19)),
+    ]
+    static var current: FocusPalette { all[UserDefaults.standard.string(forKey: "focusPalette") ?? "red"] ?? all["red"]! }
 }
