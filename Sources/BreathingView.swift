@@ -27,6 +27,15 @@ struct BreathPattern: Identifiable, Hashable {
         return log(1 + k * cap) / k + (t - cap) / 1.7
     }
 
+    var blurb: String {
+        switch id {
+        case "settle": return "Starts easy and slowly deepens over three minutes."
+        case "deep": return "In for 6, hold 2, out for 8. A slow, full breath."
+        case "box": return "In 4, hold 4, out 4, hold 4. Steady and even."
+        default: return "In for 4, hold 7, out for 8. Good for winding down."
+        }
+    }
+
     var cycle: Double { steps.reduce(0, +) }
 
     /// Returns label and circle scale (0...1) at time t into the cycle.
@@ -80,47 +89,44 @@ struct BreathingView: View {
             if !compact {
                 PillPicker(items: BreathPattern.all, selection: $pattern) { $0.name }
                 .onChange(of: pattern) { _, _ in start = Date() }
+                Text(pattern.blurb)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity).multilineTextAlignment(.center)
             }
 
             TimelineView(.animation(paused: !active || pausedAt != nil)) { ctx in
                 let t = pausedAt ?? ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
+                VStack(spacing: 8) {
                 ZStack {
                     switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                     case .fill: FillCanvas(scale: s.scale, time: t)
                     case .bloom: BloomCanvas(scale: s.scale, time: t)
                     case .rings: RingsCanvas(scale: s.scale, time: t)
                     }
-                    VStack(spacing: 6) {
-                        Spacer()
-                        Text(pausedAt != nil ? "Paused" : s.label)
-                            .font(.system(.title3, design: .rounded).weight(.light))
-                            .foregroundStyle(.primary.opacity(0.85))
-                        Spacer()
-                        if guideMe && !compact {
-                            Text(Guidance.line(at: t))
-                                .font(.system(.caption, design: .serif).italic())
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .frame(height: 30)
-                                .id(Guidance.index(at: t))
-                                .transition(.opacity)
-                                .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
-                        }
-                    }
-                    .padding(.vertical, 6)
                 }
-                .frame(maxWidth: .infinity, minHeight: compact ? 160 : 230)
+                .frame(maxWidth: .infinity, minHeight: compact ? 120 : 190)
                 .overlay(alignment: .topTrailing) {
                     if !compact {
-                        Button {
-                            let all = BreathStyle.allCases
-                            let cur = all.firstIndex { $0.rawValue == styleRaw } ?? 0
-                            withAnimation(.easeInOut(duration: 0.4)) { styleRaw = all[(cur + 1) % all.count].rawValue }
-                        } label: { Image(systemName: "sparkles") }
-                        .buttonStyle(CircleButtonStyle())
-                        .help("Change the look: flower, water, ripples")
-                        .accessibilityLabel("Change the look")
+                        Menu {
+                            ForEach(BreathStyle.allCases) { st in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue }
+                                } label: {
+                                    if styleRaw == st.rawValue { Label(st.rawValue, systemImage: "checkmark") } else { Text(st.rawValue) }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "sparkles")
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(Color.secondary.opacity(0.18)))
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.plain)
+                        .menuIndicator(.hidden)
+                        .fixedSize()
+                        .help("Choose the look: Flower, Water or Ripples")
+                        .accessibilityLabel("Choose the look")
                         .padding(6)
                     }
                 }
@@ -131,6 +137,23 @@ struct BreathingView: View {
                     else { pausedAt = Date().timeIntervalSince(start) }
                 }
                 .help(compact ? "" : (pausedAt == nil ? "Click to pause" : "Click to resume"))
+
+                // The cue sits under the picture, not on top of it, so it is always easy to read.
+                Text(pausedAt != nil ? "Paused" : s.label)
+                    .font(.system(size: compact ? 17 : 22, weight: .light, design: .rounded))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .frame(height: 28)
+                if guideMe && !compact {
+                    Text(Guidance.line(at: t))
+                        .font(.system(.caption, design: .serif).italic())
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(height: 30)
+                        .id(Guidance.index(at: t))
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
+                }
+                }
                 .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
                 .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }

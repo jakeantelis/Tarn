@@ -103,24 +103,12 @@ struct LensView: View {
                 g.stroke(circle(base - 4), with: .color(green.opacity(0.12)), lineWidth: 3)
                 g.stroke(arc, with: .color(green.opacity(0.85)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
 
-                // aperture rings tighten with the time left
-                let aperture = base * (0.40 + 0.52 * f) * (1 + 0.025 * pulse)
-                for (i, k) in [1.0, 0.78, 0.58, 0.40].enumerated() {
-                    g.stroke(circle(aperture * k), with: .color(green.opacity(0.42 - 0.08 * Double(i))), lineWidth: 1.2)
-                }
-                // soft glow at the center
-                let core = aperture * (0.36 + 0.06 * pulse)
-                g.fill(circle(core), with: .radialGradient(
-                    Gradient(colors: [amber.opacity(0.30 + 0.14 * pulse), green.opacity(0.08), green.opacity(0)]),
-                    center: c, startRadius: 0, endRadius: core))
-                // focus ticks
-                for k in 0..<4 {
-                    let a = Double(k) * .pi / 2
-                    var tick = Path()
-                    tick.move(to: CGPoint(x: c.x + cos(a) * (aperture + 3), y: c.y + sin(a) * (aperture + 3)))
-                    tick.addLine(to: CGPoint(x: c.x + cos(a) * (aperture + 9), y: c.y + sin(a) * (aperture + 9)))
-                    g.stroke(tick, with: .color(green.opacity(0.6)), style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
-                }
+                // A soft glowing disc that gently narrows as the round runs out. No target rings or crosshair.
+                let disc = base * (0.34 + 0.50 * f) * (1 + 0.03 * pulse)
+                g.fill(circle(disc), with: .radialGradient(
+                    Gradient(colors: [amber.opacity(0.34 + 0.10 * pulse), green.opacity(0.18), green.opacity(0.0)]),
+                    center: c, startRadius: 0, endRadius: disc))
+                g.stroke(circle(disc * 0.97), with: .color(green.opacity(0.22)), lineWidth: 1)
             }
         }
     }
