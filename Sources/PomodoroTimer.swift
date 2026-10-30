@@ -236,7 +236,7 @@ final class PomodoroTimer: ObservableObject {
         }
     }
 
-    /// Writes a small status file so stillwaterctl status can read it.
+    /// Writes a small status file so tarnctl status can read it.
     func writeStatus() {
         lastWritten = Int(remaining)
         let dict: [String: Any] = [
@@ -246,7 +246,7 @@ final class PomodoroTimer: ObservableObject {
             "remainingSeconds": Int(remaining),
             "completedToday": StatsStore.shared.today.rounds,
         ]
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Stillwater")
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Tarn")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if let data = try? JSONSerialization.data(withJSONObject: dict) { try? data.write(to: dir.appendingPathComponent("status.json")) }
     }

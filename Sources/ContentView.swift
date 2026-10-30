@@ -125,7 +125,10 @@ struct Welcome: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.focusTint)
-            Text("Welcome to Stillwater").font(.title3.weight(.medium))
+            Text("Welcome to Tarn").font(.title3.weight(.medium))
+            Text("A tarn is a small, still mountain lake.")
+                .font(.system(.callout, design: .serif).italic())
+                .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 10) {
                 Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
                 Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
@@ -339,8 +342,18 @@ struct SettingsTab: View {
             Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
             if mode == .pomodoro { pomodoro } else { breathe }
             GroupBox("General") {
-                Toggle("Open Stillwater at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
+                Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
                     .padding(.vertical, 4)
+            }
+            GroupBox("About") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Tarn \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                        .font(.callout.weight(.medium))
+                    Text("A tarn is a small, still mountain lake. Tarn is a calm place to focus, and to breathe.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text("Free and open source, made by Antelis Labs. No account and no tracking. The recorded sounds are public domain (CC0) from BigSoundBank.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
             }
         }
         .font(.callout)

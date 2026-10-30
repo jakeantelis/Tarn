@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct StillwaterApp: App {
+struct TarnApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var timer = AppModel.shared.timer
     @StateObject private var sound = AppModel.shared.sound

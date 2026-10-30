@@ -1,6 +1,6 @@
 # Audio sources
 
-Every sound shipped in Stillwater must be CC0 or self recorded. Record each file here before it is committed.
+Every sound shipped in Tarn must be CC0 or self recorded. Record each file here before it is committed.
 
 Files go in `Resources/Sounds/`, named after the soundscape. A bundled file replaces the built in synthesized version of that sound (wind is still synthesized). `Tools/make-loop.sh` cuts each source into a seamless loop: it crossfades the end into the start, sets a steady level and encodes AAC. The original downloads are not kept in the repo.
 

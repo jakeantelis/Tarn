@@ -1,6 +1,6 @@
 import AppKit
 
-// Renders the Stillwater app icon: a midnight tile with a glowing lens of still rings
+// Renders the Tarn app icon: a midnight tile with a glowing lens of still rings
 // and a warm core, a nod to focus (the lens) and breathing (the ripples).
 func render(_ px: Int) -> Data {
     let s = CGFloat(px)

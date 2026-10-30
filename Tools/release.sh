@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP=build/Stillwater.app
+APP=build/Tarn.app
 TMP=build/universal
 DIST=dist
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
@@ -24,12 +24,12 @@ FLAGS=(
 )
 
 echo "Compiling arm64..."
-swiftc Sources/*.swift -target arm64-apple-macos14.0 "${FLAGS[@]}" -o "$TMP/arm64/Stillwater"
+swiftc Sources/*.swift -target arm64-apple-macos14.0 "${FLAGS[@]}" -o "$TMP/arm64/Tarn"
 
 echo "Compiling x86_64..."
-swiftc Sources/*.swift -target x86_64-apple-macos14.0 "${FLAGS[@]}" -o "$TMP/x86_64/Stillwater"
+swiftc Sources/*.swift -target x86_64-apple-macos14.0 "${FLAGS[@]}" -o "$TMP/x86_64/Tarn"
 
-lipo -create "$TMP/arm64/Stillwater" "$TMP/x86_64/Stillwater" -output "$APP/Contents/MacOS/Stillwater"
+lipo -create "$TMP/arm64/Tarn" "$TMP/x86_64/Tarn" -output "$APP/Contents/MacOS/Tarn"
 
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 if [[ -f Resources/AppIcon.icns ]]; then
@@ -37,8 +37,8 @@ if [[ -f Resources/AppIcon.icns ]]; then
 fi
 mkdir -p "$APP/Contents/Resources/Sounds"
 for f in Resources/Sounds/*.(wav|caf|m4a)(N); do cp "$f" "$APP/Contents/Resources/Sounds/"; done
-cp Tools/stillwaterctl "$APP/Contents/Resources/stillwaterctl"
-chmod +x "$APP/Contents/Resources/stillwaterctl"
+cp Tools/tarnctl "$APP/Contents/Resources/tarnctl"
+chmod +x "$APP/Contents/Resources/tarnctl"
 date "+%Y-%m-%d %H:%M:%S" > "$APP/Contents/Resources/BUILD_STAMP"
 
 # ---- Signing ----
@@ -61,7 +61,7 @@ if [[ "$SIGNED" != true ]]; then
     fi
 fi
 
-ARCHS=$(lipo -archs "$APP/Contents/MacOS/Stillwater")
+ARCHS=$(lipo -archs "$APP/Contents/MacOS/Tarn")
 echo "Universal binary: $ARCHS"
 if [[ "$ARCHS" != *arm64* || "$ARCHS" != *x86_64* ]]; then
     echo "ERROR: expected both arm64 and x86_64 in $ARCHS" >&2
@@ -72,11 +72,11 @@ fi
 NOTARIZED=false
 if [[ "$SIGNED" == true ]] && xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
     mkdir -p "$DIST"
-    rm -f "$DIST/Stillwater-notary.zip"
-    ditto -c -k --norsrc --noextattr --keepParent "$APP" "$DIST/Stillwater-notary.zip"
+    rm -f "$DIST/Tarn-notary.zip"
+    ditto -c -k --norsrc --noextattr --keepParent "$APP" "$DIST/Tarn-notary.zip"
     echo "Submitting to Apple notary service..."
-    xcrun notarytool submit "$DIST/Stillwater-notary.zip" --keychain-profile "$NOTARY_PROFILE" --wait
-    rm -f "$DIST/Stillwater-notary.zip"
+    xcrun notarytool submit "$DIST/Tarn-notary.zip" --keychain-profile "$NOTARY_PROFILE" --wait
+    rm -f "$DIST/Tarn-notary.zip"
     xcrun stapler staple "$APP"
     NOTARIZED=true
     echo "Notarized and stapled."
@@ -85,22 +85,22 @@ else
 fi
 
 mkdir -p "$DIST"
-rm -f "$DIST/Stillwater.zip" "$DIST/Stillwater.zip.sha256"
-ditto -c -k --norsrc --noextattr --keepParent "$APP" "$DIST/Stillwater.zip"
-(cd "$DIST" && shasum -a 256 Stillwater.zip > Stillwater.zip.sha256)
-echo "Packaged $DIST/Stillwater.zip ($VERSION) signed=$SIGNED notarized=$NOTARIZED"
-cat "$DIST/Stillwater.zip.sha256"
+rm -f "$DIST/Tarn.zip" "$DIST/Tarn.zip.sha256"
+ditto -c -k --norsrc --noextattr --keepParent "$APP" "$DIST/Tarn.zip"
+(cd "$DIST" && shasum -a 256 Tarn.zip > Tarn.zip.sha256)
+echo "Packaged $DIST/Tarn.zip ($VERSION) signed=$SIGNED notarized=$NOTARIZED"
+cat "$DIST/Tarn.zip.sha256"
 
 # ---- DMG (friendly drag-to-Applications installer) ----
-DMG="$DIST/Stillwater.dmg"
+DMG="$DIST/Tarn.dmg"
 DMG_NOTARIZED=false
 DMG_STAGE=build/dmg
 rm -f "$DMG" "$DMG.sha256"
 rm -rf "$DMG_STAGE"
 mkdir -p "$DMG_STAGE"
-cp -R "$APP" "$DMG_STAGE/Stillwater.app"
+cp -R "$APP" "$DMG_STAGE/Tarn.app"
 ln -s /Applications "$DMG_STAGE/Applications"
-hdiutil create -volname "Stillwater" -srcfolder "$DMG_STAGE" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
+hdiutil create -volname "Tarn" -srcfolder "$DMG_STAGE" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
 rm -rf "$DMG_STAGE"
 
 if [[ "$SIGNED" == true ]]; then
@@ -115,9 +115,9 @@ if [[ "$NOTARIZED" == true ]]; then
 else
     echo "note: DMG notarization skipped (app not notarized)"
 fi
-(cd "$DIST" && shasum -a 256 Stillwater.dmg > Stillwater.dmg.sha256)
+(cd "$DIST" && shasum -a 256 Tarn.dmg > Tarn.dmg.sha256)
 echo "Packaged $DMG ($VERSION) signed=$SIGNED notarized=$DMG_NOTARIZED"
-cat "$DIST/Stillwater.dmg.sha256"
+cat "$DIST/Tarn.dmg.sha256"
 
 if [[ "${1:-}" == "--publish" ]]; then
     if [[ "$SIGNED" != true || "$NOTARIZED" != true || "$DMG_NOTARIZED" != true ]]; then
@@ -126,10 +126,10 @@ if [[ "${1:-}" == "--publish" ]]; then
     fi
     spctl -a -vv "$APP"
     gh release create "v$VERSION" \
-        "$DIST/Stillwater.zip" \
-        "$DIST/Stillwater.zip.sha256" \
-        "$DIST/Stillwater.dmg" \
-        "$DIST/Stillwater.dmg.sha256" \
-        --title "Stillwater $VERSION" \
+        "$DIST/Tarn.zip" \
+        "$DIST/Tarn.zip.sha256" \
+        "$DIST/Tarn.dmg" \
+        "$DIST/Tarn.dmg.sha256" \
+        --title "Tarn $VERSION" \
         --notes-file RELEASE_NOTES.md
 fi

@@ -1,11 +1,11 @@
 #!/bin/zsh
 set -u
 
-STATUS_FILE="$HOME/Library/Application Support/Stillwater/status.json"
+STATUS_FILE="$HOME/Library/Application Support/Tarn/status.json"
 
 usage() {
     cat <<'USAGE'
-usage: stillwaterctl <command>
+usage: tarnctl <command>
 
   start [minutes]     start a work round (default length, or 15, 25, 45, 60, 90 and more)
   pause | resume      pause or resume the timer
@@ -17,11 +17,11 @@ usage: stillwaterctl <command>
   sound on|off|toggle       ambient sound
   sound <preset>            ocean, forest, dawn, quiet
   clear | restore     hide other windows (never quits apps) and bring them back
-  status [--json]     show what Stillwater is doing
+  status [--json]     show what Tarn is doing
 USAGE
 }
 
-send() { open -g "stillwater://$1"; }
+send() { open -g "tarn://$1"; }
 
 cmd="${1:-status}"
 case "$cmd" in
@@ -39,7 +39,7 @@ case "$cmd" in
             *) send "sound?preset=$2" ;;
         esac ;;
     status)
-        if [[ ! -f "$STATUS_FILE" ]]; then echo "Stillwater has not run yet."; exit 1; fi
+        if [[ ! -f "$STATUS_FILE" ]]; then echo "Tarn has not run yet."; exit 1; fi
         if [[ "${2:-}" == "--json" ]]; then cat "$STATUS_FILE"; echo; exit 0; fi
         mode=$(plutil -extract mode raw "$STATUS_FILE")
         phase=$(plutil -extract phase raw "$STATUS_FILE")

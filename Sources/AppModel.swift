@@ -8,9 +8,9 @@ final class AppModel {
     let timer = PomodoroTimer()
     let sound = SoundEngine()
 
-    /// Handles stillwater:// links, which is also what the stillwaterctl command line tool sends.
+    /// Handles tarn:// links, which is also what the tarnctl command line tool sends.
     func handle(_ url: URL) {
-        guard url.scheme == "stillwater" else { return }
+        guard url.scheme == "tarn" else { return }
         let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func value(_ k: String) -> String? { q.first { $0.name == k }?.value }
         switch url.host ?? "" {
