@@ -59,7 +59,7 @@ struct BreathingView: View {
     @Environment(\.popoverActive) private var active
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
-    @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
+    @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @State private var pattern = BreathPattern.settle
     @State private var start = Date()
     @State private var pausedAt: TimeInterval? = nil   // elapsed seconds while paused
@@ -86,7 +86,7 @@ struct BreathingView: View {
                 let t = pausedAt ?? ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 ZStack {
-                    switch BreathStyle(rawValue: styleRaw) ?? .fill {
+                    switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                     case .fill: FillCanvas(scale: s.scale, time: t)
                     case .bloom: BloomCanvas(scale: s.scale, time: t)
                     case .rings: RingsCanvas(scale: s.scale, time: t)
@@ -111,6 +111,19 @@ struct BreathingView: View {
                     .padding(.vertical, 6)
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 160 : 230)
+                .overlay(alignment: .topTrailing) {
+                    if !compact {
+                        Button {
+                            let all = BreathStyle.allCases
+                            let cur = all.firstIndex { $0.rawValue == styleRaw } ?? 0
+                            withAnimation(.easeInOut(duration: 0.4)) { styleRaw = all[(cur + 1) % all.count].rawValue }
+                        } label: { Image(systemName: "sparkles") }
+                        .buttonStyle(CircleButtonStyle())
+                        .help("Change the look: flower, water, ripples")
+                        .accessibilityLabel("Change the look")
+                        .padding(6)
+                    }
+                }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }

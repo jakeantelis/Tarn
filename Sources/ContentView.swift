@@ -200,7 +200,7 @@ struct TimerTab: View {
                 ZStack {
                     LensView(progress: timer.progress, running: timer.isRunning)
                     VStack(spacing: 6) {
-                        Text((timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS") + "  \(timer.completedRounds % timer.roundsPerSet + 1)/\(timer.roundsPerSet)")
+                        Text((timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS") + "  \u{B7}  \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)")
                             .font(.caption.weight(.semibold))
                             .tracking(1.5)
                             .padding(.horizontal, 10).padding(.vertical, 3)
@@ -236,7 +236,7 @@ struct TimerTab: View {
                         .accessibilityLabel("\(m) minutes")
                         .accessibilityAddTraits(timer.focusMinutes == m ? .isSelected : [])
                 }
-                Text("min").font(.caption).foregroundStyle(.secondary)
+                Text("minutes").font(.caption).foregroundStyle(.secondary)
             } }
 
             HStack(spacing: 10) {
@@ -336,7 +336,7 @@ struct SettingsTab: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
     let mode: Mode
-    @AppStorage("breathStyle") private var breathStyle = BreathStyle.fill.rawValue
+    @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
     @AppStorage("voiceGuide") private var voiceGuide = false

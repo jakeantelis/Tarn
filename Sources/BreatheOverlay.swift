@@ -59,19 +59,23 @@ final class OverlayWindow: NSWindow {
 struct OverlayView: View {
     let onClose: () -> Void
     @AppStorage("guideMe") private var guideMe = false
-    @AppStorage("breathStyle") private var styleRaw = BreathStyle.fill.rawValue
+    @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @State private var start = Date()
     private let pattern = BreathPattern.settle
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.9).ignoresSafeArea()
+            // Fully covers the desktop (icons, windows and wallpaper) with a calm dusk gradient.
+            LinearGradient(colors: [Color(red: 0.09, green: 0.12, blue: 0.24), Color(red: 0.04, green: 0.06, blue: 0.13)],
+                           startPoint: .top, endPoint: .bottom)
+                .opacity(0.97)
+                .ignoresSafeArea()
             TimelineView(.animation) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 VStack(spacing: 28) {
                     ZStack {
-                        switch BreathStyle(rawValue: styleRaw) ?? .fill {
+                        switch BreathStyle(rawValue: styleRaw) ?? .bloom {
                         case .fill: FillCanvas(scale: s.scale, time: t)
                         case .bloom: BloomCanvas(scale: s.scale, time: t)
                         case .rings: RingsCanvas(scale: s.scale, time: t)
