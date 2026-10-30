@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 
 enum Soundscape: String, CaseIterable, Identifiable {
-    case ocean, rain, forest, birds, stream, lake, cottage, wind
+    case ocean, rain, forest, birds, stream, lake, wind
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -11,7 +11,6 @@ enum Soundscape: String, CaseIterable, Identifiable {
         case .forest: return "Forest"
         case .birds: return "Birds"
         case .lake: return "Lake"
-        case .cottage: return "Cottage"
         case .stream: return "Stream"
         case .wind: return "Wind"
         }
@@ -23,7 +22,6 @@ enum Soundscape: String, CaseIterable, Identifiable {
         case .forest: return "tree"
         case .birds: return "bird"
         case .lake: return "sailboat"
-        case .cottage: return "flame"
         case .stream: return "drop"
         case .wind: return "wind"
         }
@@ -41,7 +39,6 @@ struct SoundPreset: Identifiable {
         SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
         SoundPreset(name: "Forest morning", symbol: "tree", mix: [.forest: 0.55, .birds: 0.5, .stream: 0.3]),
         SoundPreset(name: "Still lake", symbol: "sailboat", mix: [.lake: 0.7, .birds: 0.25]),
-        SoundPreset(name: "Cozy cottage", symbol: "flame", mix: [.cottage: 0.6, .rain: 0.3]),
         SoundPreset(name: "Quiet wind", symbol: "wind", mix: [.wind: 0.6]),
     ]
 }
@@ -96,19 +93,6 @@ final class SoundGenerator: @unchecked Sendable {
                 if dropEnv < 0.02, Double.random(in: 0..<1, using: &rng) < 0.000026 { dropEnv = Float.random(in: 0.1...0.3) }
                 dropEnv *= 0.9996
                 s = lp1 * (0.7 + 0.6 * swell) * 1.2 + lp2 * dropEnv * 4
-            case .cottage:
-                // Fireplace: a low warm roar with soft crackles and the odd bigger pop.
-                lfo2 += 0.11 * dt
-                brown = (brown + 0.03 * w) / 1.03
-                lp1 += 0.02 * (w - lp1)
-                let roar = (brown * 2.2 + lp1 * 0.9) * Float(0.75 + 0.25 * sin(2 * .pi * lfo2))
-                if Double.random(in: 0..<1, using: &rng) < 0.00012 { dropEnv = Float.random(in: 0.05...0.3) }
-                if Double.random(in: 0..<1, using: &rng) < 0.000008 { chirpAmp = Float.random(in: 0.5...0.9) }
-                dropEnv *= 0.9955
-                chirpAmp *= 0.9985
-                lp3 += 0.5 * (w - lp3)
-                let hp = w - lp3
-                s = roar * 0.55 + hp * dropEnv * 1.0 + (lp3 * 0.6 + hp * 0.4) * chirpAmp * 0.7
             case .ocean:
                 phase += swellRate * dt
                 if phase > 1 { phase -= 1 }
