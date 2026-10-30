@@ -11,11 +11,12 @@ check() { if eval "$2" >/dev/null 2>&1; then ok "$1"; else bad "$1"; fi; }
 [ -d "$APP" ] || { echo "No app at $APP"; exit 2; }
 pkill -x Tarn 2>/dev/null; sleep 1
 BEFORE=$(ls ~/Library/Logs/DiagnosticReports/Tarn*.ips 2>/dev/null | wc -l)
+defaults write com.antelislabs.tarn welcomed -bool true   # no first launch window, so idle CPU is measured with nothing on screen
 open "$APP"; sleep 4
 check "app is running" "pgrep -x Tarn"
 check "universal binary" "lipo -archs '$APP/Contents/MacOS/Tarn' | grep -q arm64"
 check "signature verifies" "codesign --verify --deep --strict '$APP'"
-if codesign -dv "$APP" 2>&1 | grep -q "Developer ID Application"; then check "Gatekeeper accepts it" "spctl -a '$APP'"; else echo "  skip Gatekeeper check (ad hoc development build)"; fi
+if codesign -dvv "$APP" 2>&1 | grep -q "Authority=Developer ID Application"; then check "Gatekeeper accepts it" "spctl -a '$APP'"; else echo "  skip Gatekeeper check (ad hoc development build)"; fi
 check "tarnctl present" "[ -x '$CTL' ]"
 
 "$CTL" start 25; sleep 1.5
@@ -46,5 +47,6 @@ check "still running" "pgrep -x Tarn"
 AFTER=$(ls ~/Library/Logs/DiagnosticReports/Tarn*.ips 2>/dev/null | wc -l)
 check "no new crash reports" "[ $AFTER -eq $BEFORE ]"
 pkill -x Tarn
+defaults delete com.antelislabs.tarn 2>/dev/null
 [ "$fail" = 0 ] && echo "SMOKE TEST PASSED" || echo "$fail FAILED"
 exit "$fail"
