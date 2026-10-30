@@ -29,6 +29,7 @@ final class SoundGenerator: @unchecked Sendable {
     let kind: Soundscape
     var gain: Float = 0
     private var smoothGain: Float = 0
+    private var trim: Float { kind == .ocean ? 0.5 : kind == .wind ? 0.7 : 1 }
     private let sampleRate: Double
 
     private var rng = SystemRandomNumberGenerator()
@@ -151,7 +152,7 @@ final class SoundGenerator: @unchecked Sendable {
                     }
                 }
             }
-            out[i] = s * smoothGain
+            out[i] = s * trim * smoothGain
         }
     }
 }
