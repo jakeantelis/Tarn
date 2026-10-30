@@ -168,6 +168,7 @@ final class SoundEngine: ObservableObject {
 
     private let engine = AVAudioEngine()
     private var generators: [Soundscape: SoundGenerator] = [:]
+    private var players: [Soundscape: AVAudioPlayerNode] = [:]
     private var built = false
 
     func setLevel(_ level: Double, for s: Soundscape) {
@@ -178,6 +179,7 @@ final class SoundEngine: ObservableObject {
 
     private func applyGains() {
         for (s, g) in generators { g.gain = isPlaying ? Float(levels[s] ?? 0) : 0 }
+        for (s, p) in players { p.volume = isPlaying ? Float(levels[s] ?? 0) : 0 }
     }
 
     private func build() {
@@ -187,6 +189,17 @@ final class SoundEngine: ObservableObject {
         let sr = format.sampleRate > 0 ? format.sampleRate : 44100
         let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
         for s in Soundscape.allCases {
+            if let url = ["wav", "caf", "m4a"].lazy.compactMap({ Bundle.main.url(forResource: s.rawValue, withExtension: $0, subdirectory: "Sounds") }).first,
+               let file = try? AVAudioFile(forReading: url),
+               let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+               (try? file.read(into: buf)) != nil {
+                let player = AVAudioPlayerNode()
+                engine.attach(player)
+                engine.connect(player, to: engine.mainMixerNode, format: file.processingFormat)
+                player.scheduleBuffer(buf, at: nil, options: .loops)
+                players[s] = player
+                continue
+            }
             let gen = SoundGenerator(kind: s, sampleRate: sr)
             generators[s] = gen
             let node = AVAudioSourceNode(format: mono) { _, _, frames, abl in
@@ -208,6 +221,7 @@ final class SoundEngine: ObservableObject {
         build()
         applyGainsAfter(playing: true)
         if !engine.isRunning { try? engine.start() }
+        for p in players.values where !p.isPlaying { p.play() }
     }
 
     func stop() {
