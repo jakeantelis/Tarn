@@ -38,7 +38,7 @@ struct ContentView: View {
                 case 1:
                     VStack(spacing: 10) {
                         BreathingView()
-                        QuoteLine(text: Lines.calm[Calendar.current.component(.minute, from: Date()) % Lines.calm.count])
+                        QuoteLine(text: Lines.breathe.0, author: Lines.breathe.1)
                     }
                 default: MixerTab(sound: sound)
                 }
@@ -72,6 +72,8 @@ struct ContentView: View {
 
 enum Lines {
     static let focus = ("You cannot hope to make progress in areas where you have taken no action.", "Epictetus")
+    /// Meditations 4.3, George Long translation (1862, public domain).
+    static let breathe = ("Nowhere can a man retire with more quiet or more freedom from trouble than into his own soul.", "Marcus Aurelius")
     /// Our own words, so there is nothing to attribute or license.
     static let calm = [
         "Nothing to do right now. Just breathe.",
