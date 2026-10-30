@@ -105,6 +105,6 @@ struct MixerTab: View {
                 .font(.callout)
             }
         }
-        .frame(minHeight: 190, alignment: .top)
+        .frame(minHeight: 230, alignment: .top)
     }
 }

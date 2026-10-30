@@ -55,19 +55,57 @@ struct BreathingView: View {
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 ZStack {
-                    Circle()
-                        .fill(RadialGradient(colors: [Color.teal.opacity(0.55), Color.teal.opacity(0.08)],
-                                             center: .center, startRadius: 4, endRadius: 90))
-                        .frame(width: 70 + 110 * s.scale, height: 70 + 110 * s.scale)
-                    Circle()
-                        .strokeBorder(Color.teal.opacity(0.5), lineWidth: 1.5)
-                        .frame(width: 70 + 110 * s.scale, height: 70 + 110 * s.scale)
+                    BloomCanvas(scale: s.scale, time: t)
                     Text(s.label)
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .font(.system(.title3, design: .rounded).weight(.light))
+                        .foregroundStyle(.primary.opacity(0.85))
                 }
-                .frame(maxWidth: .infinity, minHeight: 190)
+                .frame(maxWidth: .infinity, minHeight: 230)
             }
+        }
+    }
+}
+
+/// Matcha green bloom: soft petals open on the inhale and close on the exhale.
+struct BloomCanvas: View {
+    let scale: Double
+    let time: Double
+
+    private let greens: [Color] = [
+        Color(red: 0.62, green: 0.78, blue: 0.45),
+        Color(red: 0.45, green: 0.65, blue: 0.38),
+        Color(red: 0.30, green: 0.50, blue: 0.30),
+    ]
+
+    var body: some View {
+        Canvas { g, size in
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+            let base = min(size.width, size.height) / 2
+            // outer glow
+            let glowR = base * (0.55 + 0.4 * scale)
+            g.fill(Path(ellipseIn: CGRect(x: c.x - glowR, y: c.y - glowR, width: glowR * 2, height: glowR * 2)),
+                   with: .radialGradient(Gradient(colors: [greens[0].opacity(0.35), greens[0].opacity(0)]),
+                                         center: c, startRadius: 0, endRadius: glowR))
+            // three petal rings, each rotating at a different slow speed
+            for (ring, color) in greens.enumerated() {
+                let petals = 6 + ring * 2
+                let spin = time * (0.04 + 0.025 * Double(ring)) * (ring % 2 == 0 ? 1 : -1)
+                let petalR = base * (0.16 + 0.10 * Double(2 - ring) * 0.5) * (0.7 + 0.5 * scale)
+                let orbit = base * (0.10 + (0.22 + 0.10 * Double(ring)) * scale)
+                for k in 0..<petals {
+                    let a = spin + Double(k) / Double(petals) * 2 * .pi
+                    let p = CGPoint(x: c.x + cos(a) * orbit, y: c.y + sin(a) * orbit)
+                    let r = petalR * (1.0 + 0.6 * scale)
+                    let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
+                    g.fill(Path(ellipseIn: rect), with: .color(color.opacity(0.16 + 0.06 * Double(ring))))
+                    g.stroke(Path(ellipseIn: rect), with: .color(color.opacity(0.35)), lineWidth: 0.8)
+                }
+            }
+            // heart of the bloom
+            let hr = base * (0.14 + 0.10 * scale)
+            g.fill(Path(ellipseIn: CGRect(x: c.x - hr, y: c.y - hr, width: hr * 2, height: hr * 2)),
+                   with: .radialGradient(Gradient(colors: [greens[0].opacity(0.9), greens[1].opacity(0.25)]),
+                                         center: c, startRadius: 0, endRadius: hr))
         }
     }
 }
