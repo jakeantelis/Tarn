@@ -93,14 +93,13 @@ final class SoundGenerator: @unchecked Sendable {
                 let foam = (w - lp1) * 0.12 * swell * swell
                 s = (lp2 * 1.6 + brown * 3.0 * (0.3 + swell)) * (0.25 + 0.75 * swell) + foam
             case .rain:
-                // Soft hiss plus many tiny overlapping drops. No tones, so nothing sounds like birds.
-                lp1 += 0.30 * (w - lp1)
-                lp2 += 0.02 * (w - lp2)
-                let hiss = (lp1 - lp2) * 0.33
-                if Double.random(in: 0..<1, using: &rng) < 0.004 { dropEnv += Float.random(in: 0.04...0.16) }
-                dropEnv *= 0.997
-                lp3 += 0.55 * (white() - lp3)
-                s = (hiss + lp3 * dropEnv * 1.6) * 0.85
+                // Steady soft rainfall: pink noise shaped to a gentle shhh, with no separate drops or clicks.
+                brown = 0.985 * brown + 0.15 * w                // slow pink-ish tilt
+                lp1 += 0.20 * (w + brown - lp1)                  // soften the top end
+                lp2 += 0.012 * (lp1 - lp2)                       // remove the low rumble
+                lfo2 += 0.07 * dt
+                let wobble = Float(1 + 0.05 * sin(2 * .pi * lfo2) + 0.03 * sin(2 * .pi * lfo2 * 2.7))
+                s = (lp1 - lp2) * 0.28 * wobble
             case .wind:
                 lfo2 += (0.05 + 0.03 * Double(brown)) * dt
                 brown = (brown + 0.003 * w) / 1.003
