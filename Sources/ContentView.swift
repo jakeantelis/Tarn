@@ -4,18 +4,25 @@ struct ContentView: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
     @State private var tab = 0
+    private var effectiveTab: Int { timer.mode.hasTimer ? tab : max(tab, 1) }
 
     var body: some View {
         VStack(spacing: 14) {
-            Picker("", selection: $tab) {
-                Text("Timer").tag(0)
+            Picker("", selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) {
+                ForEach(Mode.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Picker("", selection: Binding(get: { effectiveTab }, set: { tab = $0 })) {
+                if timer.mode.hasTimer { Text("Timer").tag(0) }
                 Text("Breathe").tag(1)
                 Text("Sounds").tag(2)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            switch tab {
+            switch effectiveTab {
             case 0: TimerTab(timer: timer)
             case 1: BreathingView()
             default: MixerTab(sound: sound)
@@ -73,7 +80,7 @@ struct TimerTab: View {
                 Button("Skip") { timer.skip() }
             }
 
-            Text("Round \(timer.completedRounds % 4 + 1) of 4  ·  \(timer.completedRounds) done today")
+            Text("Round \(timer.completedRounds % timer.mode.roundsPerSet + 1) of \(timer.mode.roundsPerSet)  ·  \(timer.completedRounds) done today")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

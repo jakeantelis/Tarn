@@ -1,6 +1,14 @@
 import SwiftUI
 import AppKit
 
+enum Mode: String, CaseIterable, Identifiable {
+    case work = "Work", study = "Study", relax = "Relax"
+    var id: String { rawValue }
+    var hasTimer: Bool { self != .relax }
+    /// Rounds before a long break.
+    var roundsPerSet: Int { self == .study ? 3 : 4 }
+}
+
 enum Phase: String {
     case work = "Focus"
     case shortBreak = "Short break"
@@ -11,6 +19,7 @@ enum Phase: String {
 
 @MainActor
 final class PomodoroTimer: ObservableObject {
+    @Published var mode: Mode = Mode(rawValue: UserDefaults.standard.string(forKey: "mode") ?? "") ?? .work
     @Published var phase: Phase = .work
     @Published var remaining: TimeInterval = 25 * 60
     @Published var isRunning = false
@@ -19,6 +28,9 @@ final class PomodoroTimer: ObservableObject {
     @AppStorage("workMinutes") var workMinutes = 25
     @AppStorage("shortBreakMinutes") var shortBreakMinutes = 5
     @AppStorage("longBreakMinutes") var longBreakMinutes = 15
+    @AppStorage("studyMinutes") var studyMinutes = 50
+    @AppStorage("studyBreakMinutes") var studyBreakMinutes = 10
+    @AppStorage("studyLongBreakMinutes") var studyLongBreakMinutes = 20
     @AppStorage("autoStartNext") var autoStartNext = true
 
     private var endDate: Date?
@@ -26,11 +38,22 @@ final class PomodoroTimer: ObservableObject {
 
     init() { remaining = duration(for: .work) }
 
+    func setMode(_ new: Mode) {
+        guard new != mode else { return }
+        stopTicker()
+        mode = new
+        UserDefaults.standard.set(new.rawValue, forKey: "mode")
+        phase = .work
+        completedRounds = 0
+        remaining = duration(for: .work)
+    }
+
     func duration(for phase: Phase) -> TimeInterval {
+        let study = mode == .study
         switch phase {
-        case .work: return TimeInterval(workMinutes * 60)
-        case .shortBreak: return TimeInterval(shortBreakMinutes * 60)
-        case .longBreak: return TimeInterval(longBreakMinutes * 60)
+        case .work: return TimeInterval((study ? studyMinutes : workMinutes) * 60)
+        case .shortBreak: return TimeInterval((study ? studyBreakMinutes : shortBreakMinutes) * 60)
+        case .longBreak: return TimeInterval((study ? studyLongBreakMinutes : longBreakMinutes) * 60)
         }
     }
 
@@ -93,7 +116,7 @@ final class PomodoroTimer: ObservableObject {
     private func advance(autoStart: Bool) {
         if phase == .work {
             completedRounds += 1
-            phase = completedRounds % 4 == 0 ? .longBreak : .shortBreak
+            phase = completedRounds % mode.roundsPerSet == 0 ? .longBreak : .shortBreak
         } else {
             phase = .work
         }
