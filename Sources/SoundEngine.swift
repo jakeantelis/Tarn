@@ -127,7 +127,7 @@ final class SoundEngine: ObservableObject {
         for (s, p) in players {
             let target = targets[s] ?? 0
             let diff = target - p.volume
-            if abs(diff) < 0.004 { p.volume = target } else { p.volume += diff * 0.06; moving = true }
+            if abs(diff) < 0.004 { p.volume = target } else { p.volume += diff * 0.035; moving = true }
         }
         if !moving { fadeTimer?.invalidate(); fadeTimer = nil }
     }

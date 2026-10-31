@@ -602,7 +602,7 @@ struct SettingsTab: View {
                     Text("To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
-                    Toggle("Keep sound playing after a session ends", isOn: $keepSound)
+                    Toggle("Keep sound playing after Calm or a session ends", isOn: $keepSound)
 
                 }.padding(.vertical, 4)
             }
@@ -691,8 +691,8 @@ enum HelpContent {
             ("How do I use Breathe?", "Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it."),
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
-            ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back."),
-            ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, unless you keep it on in Settings. It works as a simple meditation timer too."),
+            ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb."),
+            ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
         ]),
         ("Sounds", [

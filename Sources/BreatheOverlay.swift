@@ -68,7 +68,13 @@ final class BreatheOverlay {
         hidden.forEach { $0.unhide() }
         hidden = []
         VoiceGuide.shared.reset()
-        if calmActive { calmActive = false; runShortcutNamed(UserDefaults.standard.string(forKey: "calmEndShortcut") ?? "") }
+        if calmActive {
+            calmActive = false
+            runShortcutNamed(UserDefaults.standard.string(forKey: "calmEndShortcut") ?? "")
+            // The sound fading out is the quiet signal that Calm is over and it is time to get back,
+            // unless the user chose to keep it playing.
+            if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { AppModel.shared.sound.stop() }
+        }
     }
 }
 

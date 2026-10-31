@@ -183,7 +183,7 @@ struct BreathingView: View {
                 }
             }
 
-            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !active || pausedAt != nil)) { ctx in
+            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil)) { ctx in
                 let t = pausedAt ?? ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
                 VStack(spacing: 8) {

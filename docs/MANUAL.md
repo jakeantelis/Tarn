@@ -30,10 +30,10 @@ Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold
 It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix.
 
 **What is Calm mode?**  
-One button for full screen, your last sound mix and Hide apps. Add two Shortcuts in Settings if you also want Do Not Disturb. Click anywhere or press Esc to come back.
+One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb.
 
 **What is a Session?**  
-Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, unless you keep it on in Settings. It works as a simple meditation timer too.
+Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 
 **What does Hide apps do?**  
 It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return.
