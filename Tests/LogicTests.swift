@@ -141,6 +141,30 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(FloatingCircle.enabled, "the floating circle is on by default")
         check(FloatingCircle.diameter(forSize: UserDefaults.standard.object(forKey: "floatingSize") as? Int ?? 0) == FloatingCircle.sizes.first, "and it starts at the small size")
 
+        print("Floating circle dragging")
+        do {
+            let panel = FloatingPanel(contentRect: NSRect(x: 200, y: 300, width: 136, height: 136), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+            var at = NSPoint(x: 500, y: 500)
+            panel.pointer = { at }
+            func mouse(_ type: NSEvent.EventType) -> NSEvent {
+                NSEvent.mouseEvent(with: type, location: NSPoint(x: 60, y: 60), modifierFlags: [], timestamp: 0, windowNumber: panel.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+            }
+            panel.sendEvent(mouse(.leftMouseDown))
+            at = NSPoint(x: 540, y: 470); panel.sendEvent(mouse(.leftMouseDragged))
+            check(panel.frame.origin == NSPoint(x: 240, y: 270), "dragging moves the circle with the pointer")
+            at = NSPoint(x: 560, y: 450); panel.sendEvent(mouse(.leftMouseDragged))
+            check(panel.frame.origin == NSPoint(x: 260, y: 250), "and keeps following it")
+            panel.sendEvent(mouse(.leftMouseUp))
+            check(!panel.isDragging, "letting go ends the drag")
+            let rest = panel.frame.origin
+            at = NSPoint(x: 700, y: 700)
+            panel.sendEvent(mouse(.leftMouseDown)); at = NSPoint(x: 701, y: 700); panel.sendEvent(mouse(.leftMouseDragged)); panel.sendEvent(mouse(.leftMouseUp))
+            check(panel.frame.origin == rest, "a click with a tiny wobble does not move it")
+            panel.sendEvent(mouse(.leftMouseDown)); at = NSPoint(x: 5000, y: 5000); panel.sendEvent(mouse(.leftMouseDragged)); panel.sendEvent(mouse(.leftMouseUp))
+            let onScreen = NSScreen.screens.contains { $0.visibleFrame.intersects(panel.frame) }
+            check(NSScreen.screens.isEmpty || onScreen, "dropping it far off screen brings it back")
+        }
+
         print("Stats")
         let st = StatsStore.shared
         let before = st.today.rounds

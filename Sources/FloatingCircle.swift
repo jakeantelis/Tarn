@@ -57,15 +57,14 @@ final class FloatingCircle {
     }
 
     private func build(side: CGFloat) {
-        let p = NSPanel(contentRect: NSRect(origin: startOrigin(side: side), size: NSSize(width: side, height: side)),
-                        styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let p = FloatingPanel(contentRect: NSRect(origin: startOrigin(side: side), size: NSSize(width: side, height: side)),
+                              styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         p.level = .floating
         p.isOpaque = false
         p.backgroundColor = .clear
         p.hasShadow = false
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
-        p.isMovableByWindowBackground = true
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         let host = FirstMouseHostingView(rootView: FloatingCircleView(timer: AppModel.shared.timer))
         host.sizingOptions = []
@@ -143,12 +142,13 @@ struct FloatingCircleView: View {
             Image(systemName: "xmark")
                 .font(.system(size: max(8, d * 0.075), weight: .bold))
                 .foregroundStyle(.white.opacity(0.9))
-                .frame(width: max(18, d * 0.17), height: max(18, d * 0.17))
+                .frame(width: max(22, d * 0.19), height: max(22, d * 0.19))
                 .background(Circle().fill(Color.black.opacity(0.55)))
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
-        .padding(d * 0.04)
+        .contentShape(Circle().inset(by: -6))
+        .padding(d * 0.03)
         .opacity(hovering ? 1 : 0)
         .animation(.easeOut(duration: 0.2), value: hovering)
         .help("Hide the floating circle. Turn it back on in Settings, Focus.")
@@ -223,5 +223,63 @@ struct FloatingCircleView: View {
                     .offset(y: -d * 0.41)
             }
         }
+    }
+}
+
+/// The floating window. SwiftUI swallows mouse presses, so the window cannot rely on "drag by background".
+/// This panel does its own dragging: a press that moves more than a few points drags the circle, and a press
+/// that does not move is a normal click, passed on to the circle or its buttons.
+final class FloatingPanel: NSPanel {
+    /// Where the pointer is, in screen points. Replaced in tests.
+    var pointer: () -> NSPoint = { NSEvent.mouseLocation }
+    private var pressEvent: NSEvent?
+    private var pressPointer = NSPoint.zero
+    private var pressOrigin = NSPoint.zero
+    private(set) var isDragging = false
+    static let dragThreshold: CGFloat = 3
+
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown:
+            pressEvent = event
+            pressPointer = pointer()
+            pressOrigin = frame.origin
+            isDragging = false
+        case .leftMouseDragged:
+            guard pressEvent != nil else { super.sendEvent(event); return }
+            let m = pointer()
+            let dx = m.x - pressPointer.x, dy = m.y - pressPointer.y
+            if !isDragging, hypot(dx, dy) > Self.dragThreshold { isDragging = true }
+            if isDragging { setFrameOrigin(NSPoint(x: pressOrigin.x + dx, y: pressOrigin.y + dy)) }
+        case .leftMouseUp:
+            guard let down = pressEvent else { super.sendEvent(event); return }
+            pressEvent = nil
+            if isDragging {
+                isDragging = false
+                keepOnScreen()
+            } else {
+                super.sendEvent(down)      // a plain click: deliver the press and the release together
+                super.sendEvent(event)
+            }
+        default:
+            super.sendEvent(event)
+        }
+    }
+
+    /// If the circle was dropped mostly off every screen, bring it back to the nearest edge.
+    private func keepOnScreen() {
+        let screens = NSScreen.screens.map { $0.visibleFrame }
+        guard !screens.isEmpty else { return }
+        let visible = screens.map { frame.intersection($0) }.map { $0.isNull ? 0 : $0.width * $0.height }.max() ?? 0
+        guard visible < frame.width * frame.height * 0.35 else { return }
+        let target = screens.min { distance(from: frame.origin, to: $0) < distance(from: frame.origin, to: $1) }!
+        let x = min(max(frame.origin.x, target.minX), target.maxX - frame.width)
+        let y = min(max(frame.origin.y, target.minY), target.maxY - frame.height)
+        setFrameOrigin(NSPoint(x: x, y: y))
+    }
+
+    private func distance(from p: NSPoint, to r: NSRect) -> CGFloat {
+        let dx = max(r.minX - p.x, 0, p.x - r.maxX), dy = max(r.minY - p.y, 0, p.y - r.maxY)
+        return hypot(dx, dy)
     }
 }
