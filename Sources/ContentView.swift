@@ -127,7 +127,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
-        .frame(minHeight: welcomed ? 0 : 590)   // the welcome card needs room to show all of its text
+        .frame(minHeight: welcomed ? 0 : 470)   // the welcome card needs room to show all of its text
         .background(GeometryReader { g in Color.clear.preference(key: ContentHeightKey.self, value: g.size.height) })
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
@@ -189,59 +189,66 @@ enum Lines {
 struct Welcome: View {
     /// Called with the mode the person wants to start in.
     let done: (Mode) -> Void
+
     var body: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                // A soft halo that runs from the Focus red to the Breathe blue: both worlds in one mark.
-                Circle()
-                    .fill(AngularGradient(colors: [Color.focusTint, Color.breatheTint, Color.focusTint], center: .center))
-                    .frame(width: 84, height: 84).blur(radius: 16).opacity(0.55)
+        VStack(spacing: 16) {
+            VStack(spacing: 6) {
                 Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                    .resizable().frame(width: 64, height: 64)
-                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+                    .resizable().frame(width: 56, height: 56)
+                    .shadow(color: .black.opacity(0.25), radius: 5, y: 2)
+                Text("Welcome to Tarn").font(.title3.weight(.medium))
+                Text("A tarn is a small, still mountain lake.")
+                    .font(.system(.callout, design: .serif).italic())
+                    .foregroundStyle(.secondary)
             }
-            Text("Welcome to Tarn").font(.title3.weight(.medium))
-            Text("A tarn is a small, still mountain lake.")
-                .font(.system(.callout, design: .serif).italic())
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 10) {
-                Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
-                Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
-                Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
-                Label("Everything is yours to set up in [**Settings**](tarn://settings).", systemImage: "slider.horizontal.3")
+
+            // Two worlds, two clear choices. Focus is first and a little larger, because it is the main idea.
+            VStack(spacing: 10) {
+                choice(title: "Focus", line: "Timed rounds with calm breaks", symbol: "timer",
+                       color: Color.focusTint, tall: true) { done(.pomodoro) }
+                choice(title: "Breathe", line: "Slow down any time. No timer.", symbol: "wind",
+                       color: Color.breatheTint, tall: false) { done(.breathe) }
             }
-            .font(.callout)
-            .labelStyle(.titleAndIcon)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, 4)
-            .environment(\.openURL, OpenURLAction { url in
-                // The word Settings above is a link that opens the Settings window.
-                if url.scheme == "tarn" { SettingsWindowOpener.shared.show(.focus); return .handled }
-                return .systemAction
-            })
+
+            VStack(spacing: 4) {
+                Text("Sound is off until you turn it on. Everything is yours to set up in [**Settings**](tarn://settings).")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .environment(\.openURL, OpenURLAction { url in
+                        if url.scheme == "tarn" { SettingsWindowOpener.shared.show(.focus); return .handled }
+                        return .systemAction
+                    })
+            }
+
             QuoteLine(text: Lines.focus[0].text, author: Lines.focus[0].author)
-                .padding(.top, 6)
-            VStack(spacing: 8) {
-                Button { done(.pomodoro) } label: { Text("Start with Focus").frame(maxWidth: .infinity) }
-                    .buttonStyle(CapsuleButtonStyle(prominent: true))
-                    .tint(Color.focusTint)
-                    .keyboardShortcut(.defaultAction)
-                Button { done(.breathe) } label: { Text("Just breathe").frame(maxWidth: .infinity) }
-                    .buttonStyle(CapsuleButtonStyle(prominent: true))
-                    .tint(Color.breatheTint)
-            }
-            .padding(.top, 6)
         }
         .padding(22)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            ZStack {
-                Rectangle().fill(.regularMaterial)
-                // Warm Focus red in one corner, calm Breathe blue in the other, blending in the middle.
-                LinearGradient(colors: [Color.focusTint.opacity(0.30), Color.breatheTint.opacity(0.30)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
+        .background(.regularMaterial)
+    }
+
+    private func choice(title: String, line: String, symbol: String, color: Color, tall: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: symbol)
+                    .font(.system(size: tall ? 24 : 20, weight: .light))
+                    .foregroundStyle(color)
+                    .frame(width: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.system(size: tall ? 18 : 16, weight: .semibold))
+                    Text(line).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(color.opacity(0.8))
             }
+            .padding(.horizontal, 16).padding(.vertical, tall ? 18 : 14)
+            .background(RoundedRectangle(cornerRadius: 20).fill(color.opacity(0.16)))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(color.opacity(0.45), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 20))
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title). \(line)")
     }
 }
 
