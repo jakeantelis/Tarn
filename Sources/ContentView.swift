@@ -153,7 +153,7 @@ struct ContentView: View {
         .tint(timer.mode == .breathe ? Color.breatheTint : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
         .animation(.easeInOut(duration: 0.6), value: timer.mode)
-        .overlay { if !welcomed { Welcome { welcomed = true } } }
+        .overlay { if !welcomed { Welcome { mode in welcomed = true; timer.setMode(mode) } } }
     }
 }
 
@@ -188,10 +188,13 @@ enum Lines {
 }
 
 struct Welcome: View {
-    let done: () -> Void
+    /// Called with the mode the person wants to start in.
+    let done: (Mode) -> Void
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "leaf.fill").font(.system(size: 30)).foregroundStyle(Color.focusTint)
+            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                .resizable().frame(width: 64, height: 64)
+                .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
             Text("Welcome to Tarn").font(.title3.weight(.medium))
             Text("A tarn is a small, still mountain lake.")
                 .font(.system(.callout, design: .serif).italic())
@@ -204,9 +207,18 @@ struct Welcome: View {
             }
             .font(.callout)
             .labelStyle(.titleAndIcon)
-            Button("Get started", action: done)
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
+            .padding(.top, 4)
+            QuoteLine(text: Lines.focus[0].text, author: Lines.focus[0].author)
+                .padding(.top, 6)
+            VStack(spacing: 8) {
+                Button { done(.pomodoro) } label: { Text("Start with Focus").frame(maxWidth: .infinity) }
+                    .buttonStyle(CapsuleButtonStyle(prominent: true))
+                    .tint(Color.focusTint)
+                    .keyboardShortcut(.defaultAction)
+                Button { done(.breathe) } label: { Text("Just breathe").frame(maxWidth: .infinity) }
+                    .buttonStyle(CapsuleButtonStyle())
+            }
+            .padding(.top, 6)
         }
         .padding(22)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -265,12 +277,19 @@ struct TimerTab: View {
                 }
             }
             if showBloom {
-                VStack(spacing: 4) {
-                    BreathingView(compact: true)
-                    Text("\(timer.phase.rawValue)  \(timer.clockText)")
-                        .font(.callout).monospacedDigit().foregroundStyle(.secondary)
+                VStack(spacing: 6) {
+                    Text(timer.phase.rawValue.uppercased())
+                        .font(.caption.weight(.semibold)).tracking(1.5)
+                        .padding(.horizontal, 10).padding(.vertical, 3)
+                        .background(Capsule().fill(Color.purple.opacity(0.22)))
+                        .foregroundStyle(Color.purple)
+                    BreathingView(compact: true, still: !timer.isRunning)
+                    Text(timer.clockText)
+                        .font(.system(size: 34, weight: .light, design: .rounded)).monospacedDigit()
+                    Text(timer.isRunning ? "Next: Focus \(timer.effectiveMinutes) min" : "Press Start when you are ready")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                .frame(height: 190)
+                .frame(height: 250)
             } else {
                 ZStack {
                     LensView(progress: timer.progress, running: timer.isRunning)
@@ -334,7 +353,7 @@ struct TimerTab: View {
 
             HStack(spacing: 10) {
                 Button("Reset") { timer.reset() }.buttonStyle(CapsuleButtonStyle())
-                Button(timer.isRunning ? "Pause" : "Start") { timer.toggle() }
+                Button(timer.isRunning ? "Pause" : (timer.phase.isBreak ? "Start break" : "Start")) { timer.toggle() }
                     .buttonStyle(CapsuleButtonStyle(prominent: true, large: true))
                     .keyboardShortcut(.space, modifiers: [])
                 Button("Skip") { timer.skip() }.buttonStyle(CapsuleButtonStyle())

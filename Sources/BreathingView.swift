@@ -65,6 +65,8 @@ struct BreathPattern: Identifiable, Hashable {
 
 struct BreathingView: View {
     var compact = false
+    /// Holds the picture still, half open, with a quiet label. Used before a break has started.
+    var still = false
     /// Opens the full sound mixer. Provided by the Breathe screen.
     var onMix: (() -> Void)? = nil
     @Environment(\.popoverActive) private var active
@@ -179,8 +181,8 @@ struct BreathingView: View {
                 optionsMenu.fadesWithChrome(chrome)
             }
 
-            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil)) { ctx in
-                let t = pausedAt ?? ctx.date.timeIntervalSince(start)
+            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil || still)) { ctx in
+                let t = still ? 2.0 : (pausedAt ?? ctx.date.timeIntervalSince(start))
                 let s = pattern.state(at: t)
                 VStack(spacing: 8) {
                 ZStack {
@@ -201,12 +203,12 @@ struct BreathingView: View {
 
                 // The cue sits under the picture, not on top of it, so it is always easy to read.
                 // A soft, lowercase cue that fades from one word to the next.
-                Text((pausedAt != nil ? "Paused. Tap to resume" : s.label).lowercased())
+                Text((still ? "when you are ready" : (pausedAt != nil ? "Paused. Tap to resume" : s.label)).lowercased())
                     .font(.system(size: compact ? 17 : 21, weight: .light, design: .serif))
                     .tracking(1.6)
                     .foregroundStyle(.primary.opacity(0.72))
                     .frame(height: 28)
-                    .id(pausedAt != nil ? "paused" : s.label)
+                    .id(still ? "still" : (pausedAt != nil ? "paused" : s.label))
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.9), value: s.label)
                 if let cs = coachStart, coachMinutes > 0 {
