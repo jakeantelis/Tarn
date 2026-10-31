@@ -51,12 +51,18 @@ def make(scale):
     r = 5 * scale
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 240, 214, 235))
 
-    def font(size, light=False):
-        return ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size * scale, index=4 if light else 0)
-    def centered(text, y, f, fill):
-        d.text(((w - d.textlength(text, font=f)) / 2, y * scale), text, font=f, fill=fill)
-    centered("Drag Tarn into Applications", 134, font(24, True), (255, 255, 255, 245))
-    centered("Then open Tarn. Look for the small flower in your menu bar.", 170, font(13, True), (236, 242, 252, 215))
+    # A soft, readable serif like the one the app uses for its breathing cues, spaced out a little, so the words feel soft.
+    def font(size, italic=False):
+        return ImageFont.truetype("/System/Library/Fonts/Supplemental/Georgia Italic.ttf" if italic else "/System/Library/Fonts/Supplemental/Georgia.ttf", size * scale)
+    def centered(text, y, f, fill, tracking=0.0):
+        widths = [d.textlength(ch, font=f) for ch in text]
+        total = sum(widths) + tracking * scale * (len(text) - 1)
+        x = (w - total) / 2
+        for ch, cw in zip(text, widths):
+            d.text((x, y * scale), ch, font=f, fill=fill)
+            x += cw + tracking * scale
+    centered("Drag Tarn into Applications", 132, font(25), (255, 255, 255, 240), tracking=0.8)
+    centered("Then open Tarn. Look for the small flower in your menu bar.", 172, font(14, italic=True), (236, 242, 252, 215), tracking=0.2)
 
     # a quiet arrow between the two icons
     y = 270 * scale
