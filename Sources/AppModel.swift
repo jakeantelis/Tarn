@@ -39,6 +39,8 @@ final class AppModel {
     /// Handles tarn:// links, which is also what the tarnctl command line tool sends.
     func handle(_ url: URL) {
         guard url.scheme == "tarn" else { return }
+        // Links and tarnctl can be switched off entirely in Settings. They are on by default.
+        guard UserDefaults.standard.object(forKey: "allowLinks") as? Bool ?? true else { return }
         let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func value(_ k: String) -> String? { q.first { $0.name == k }?.value }
         switch url.host ?? "" {

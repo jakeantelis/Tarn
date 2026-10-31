@@ -10,7 +10,7 @@ extension Color {
 
 /// Reports how tall the content wants to be, so a window can be exactly that tall and leave no empty space.
 struct ContentHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
@@ -452,6 +452,7 @@ struct SettingsTab: View {
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
+    @AppStorage("allowLinks") private var allowLinks = true
     @AppStorage("calmStartShortcut") private var calmStart = ""
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
@@ -475,6 +476,7 @@ struct SettingsTab: View {
             GroupBox("General") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
+                    Toggle("Allow tarnctl and tarn:// links", isOn: $allowLinks)
                     Toggle("Show Tarn in the Dock", isOn: $showInDock)
                         .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
                     HStack(spacing: 6) {

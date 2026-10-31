@@ -2,13 +2,31 @@
 
 A tarn is a small, still mountain lake. Tarn is a calm Mac menu bar app for focus and for breathing.
 
+![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
+
 Free and open source. No account, no tracking. Made by Antelis Labs.
+
+<p align="center"><img src="docs/images/breathe.gif" alt="The breathing picture opening and closing, as a flower and as water" width="420"></p>
 
 ## What it does
 - **Focus:** Pomodoro rounds (15, 25, 45, 60 or 90 minutes) with calm, timed breaks. A glowing circle narrows as time runs out, dots show your place in the set, and breaks open into a gentle breathing guide. Click the circle to start or pause. Optional daily schedule, stats, an intention line and a color theme of your choice.
 - **Breathe:** a slow breathing picture, a flower or water, with four patterns (Settle, Deep, Box, 4 7 8), optional gentle prompts and spoken cues, and 1 to 20 minute sessions. Switching to Breathe never stops a running focus round. While you breathe, the controls fade away so only the picture and the word remain.
 - **Calm mode:** one button for full screen, your last sound mix and Hide apps (which only hides, never quits). Click anywhere or press Esc to return, and the sound fades out as your cue to get back. One switch in Settings turns full screen and hiding off completely.
 - **Sounds:** optional recorded ambient loops (ocean, forest, birds, stream) with presets and a fade out timer. Tarn makes no sound at all until you turn something on.
+
+### A closer look
+
+| Focus | Running | Break |
+|---|---|---|
+| ![Focus, ready](docs/images/focus-ready.png) | ![Focus, running](docs/images/focus-running.png) | ![A breathing break](docs/images/break.png) |
+
+| Breathe, flower | Breathe, water | Sounds |
+|---|---|---|
+| ![Breathe, flower](docs/images/breathe-flower.png) | ![Breathe, water](docs/images/breathe-water.png) | ![Sounds](docs/images/sounds.png) |
+
+| Settings | Settings, Breathe | Your color |
+|---|---|---|
+| ![Focus settings](docs/images/settings-focus.png) | ![Breathe settings](docs/images/settings-breathe.png) | ![A teal theme](docs/images/focus-teal.png) |
 
 macOS only for now. Timer, breathing and sound logic is kept apart from the interface so other platforms stay possible later.
 

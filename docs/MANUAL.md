@@ -74,5 +74,5 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 - The Focus Shortcut hooks run the Shortcuts you name, so they can do anything a Shortcut can. Leave them blank if you do not use them.
 - The optional round reminder asks macOS for permission to show a quiet banner. Nothing is sent anywhere.
 - Tarn follows the Mac setting Reduce Motion by holding the flower still and skipping the ripples.
-- Any web page can open a tarn:// link. Those links can only start or stop timers, hide windows or open full screen breathing.
+- Any web page can open a tarn:// link, and you can switch tarnctl and links off in Settings. Those links can only start or stop timers, hide windows or open full screen breathing.
 - The recorded sounds are public domain (CC0) from BigSoundBank. See SOURCES.md.

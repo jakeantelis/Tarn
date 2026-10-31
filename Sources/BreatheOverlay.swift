@@ -1,10 +1,12 @@
 import SwiftUI
 import AppKit
+import os
 
 /// Full screen, distraction free breathing. Optionally hides other apps and restores them on exit.
 @MainActor
 final class BreatheOverlay {
     static let shared = BreatheOverlay()
+    private static let log = Logger(subsystem: "com.antelislabs.tarn", category: "overlay")
     private var windows: [NSWindow] = []
     private var hidden: [NSRunningApplication] = []
     private var monitor: Any?
@@ -19,7 +21,8 @@ final class BreatheOverlay {
     static var allowed: Bool { UserDefaults.standard.object(forKey: "allowScreenTakeover") as? Bool ?? true }
 
     func show() {
-        guard Self.allowed, !isShowing else { return }
+        guard Self.allowed else { Self.log.notice("full screen refused: switched off in Settings"); return }
+        guard !isShowing else { Self.log.notice("full screen ignored: already showing"); return }
         startDate = Date()
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {
@@ -29,12 +32,12 @@ final class BreatheOverlay {
         }
         for (index, screen) in NSScreen.screens.enumerated() {
             let w = OverlayWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
-            w.onEscape = { [weak self] in self?.close() }
+            w.onEscape = { [weak self] in self?.close("escape or click") }
             w.level = .screenSaver
             w.backgroundColor = .clear
             w.isOpaque = false
             w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            let host = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close() }))
+            let host = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close("close button") }))
             host.sizingOptions = []          // the window decides the size, never the content
             w.contentView = host
             w.setFrame(screen.frame, display: true)
@@ -43,6 +46,7 @@ final class BreatheOverlay {
             NSAnimationContext.runAnimationGroup { $0.duration = 0.6; w.animator().alphaValue = 1 }
             windows.append(w)
         }
+        Self.log.notice("full screen shown on \(NSScreen.screens.count) screen(s)")
         NSApp.activate(ignoringOtherApps: true)
         // Hiding other apps can hand focus to Finder. Take it back so Esc reaches this window.
         for delay in [0.15, 0.5] {
@@ -53,12 +57,13 @@ final class BreatheOverlay {
             }
         }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
-            if e.keyCode == 53 { self?.close(); return nil }   // Esc
+            if e.keyCode == 53 { self?.close("escape key"); return nil }   // Esc
             return e
         }
     }
 
-    func close() {
+    func close(_ reason: String = "api") {
+        Self.log.notice("full screen closed: \(reason, privacy: .public)")
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
         let ws = windows

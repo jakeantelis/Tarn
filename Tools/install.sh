@@ -69,6 +69,8 @@ fi
 
 [ -d "$SRC" ] || { echo "Tarn.app was not found in the download." >&2; exit 1; }
 codesign --verify --deep --strict "$SRC" 2>/dev/null || { echo "The app's signature did not verify, so nothing was installed." >&2; exit 1; }
+# Apple's own check that the app is signed by a registered developer and notarized.
+spctl --assess --type execute "$SRC" 2>/dev/null || { echo "macOS would not accept this app (it is not notarized), so nothing was installed." >&2; exit 1; }
 
 if pgrep -x Tarn >/dev/null 2>&1; then
     echo "Closing the running Tarn..."
