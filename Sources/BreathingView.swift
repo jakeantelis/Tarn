@@ -66,6 +66,8 @@ struct BreathPattern: Identifiable, Hashable {
 struct BreathingView: View {
     var compact = false
     @Environment(\.popoverActive) private var active
+    @Environment(\.chromeVisible) private var chrome
+    @State private var blurbShown = false
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
     @ObservedObject private var sound = AppModel.shared.sound
@@ -95,6 +97,45 @@ struct BreathingView: View {
             .onDisappear { VoiceGuide.shared.reset() }
     }
 
+    /// One quiet menu for the things you set once: session length, the look, and background sound.
+    private var optionsMenu: some View {
+        Menu {
+            Section("Session") {
+                ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
+                    Button { setCoach(m) } label: {
+                        let name = m == 0 ? "No timer" : "\(m) minutes"
+                        if coachMinutes == m { Label(name, systemImage: "checkmark") } else { Text(name) }
+                    }
+                }
+            }
+            Section("Look") {
+                ForEach(BreathStyle.allCases) { st in
+                    Button { withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue } } label: {
+                        if styleRaw == st.rawValue { Label(st.rawValue, systemImage: "checkmark") } else { Text(st.rawValue) }
+                    }
+                }
+            }
+            Section("Sound") {
+                ForEach(SoundPreset.all) { p in
+                    Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
+                }
+                Button("Sound off") { sound.stop() }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "slider.horizontal.3")
+                Text(coachMinutes == 0 ? "Options" : "\(coachMinutes) min session")
+                if sound.isPlaying { Image(systemName: "speaker.wave.2.fill").font(.system(size: 9)) }
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+            }
+            .font(.caption)
+            .padding(.horizontal, 12).padding(.vertical, 5)
+            .background(Capsule().fill(Color.secondary.opacity(0.18)))
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+        .help("Session length, look and background sound")
+    }
+
     private func setCoach(_ minutes: Int) {
         coachMinutes = minutes
         coachDone = false
@@ -118,69 +159,21 @@ struct BreathingView: View {
         VStack(spacing: 12) {
             if !compact {
                 PillPicker(items: BreathPattern.all, selection: Binding(get: { pattern }, set: { pattern = $0 })) { $0.name }
-                .onChange(of: pattern) { _, _ in start = Date() }
+                    .onChange(of: pattern) { _, _ in
+                        start = Date()
+                        blurbShown = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { blurbShown = false }
+                    }
+                    .onHover { blurbShown = $0 || blurbShown }
+                    .fadesWithChrome(chrome)
+                // The description appears when you change or hover the pattern, then gets out of the way.
                 Text(pattern.blurb)
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
-                HStack(spacing: 8) {
-                Menu {
-                    ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
-                        Button { setCoach(m) } label: {
-                            if coachMinutes == m { Label(m == 0 ? "No timer" : "\(m) minutes", systemImage: "checkmark") }
-                            else { Text(m == 0 ? "No timer" : "\(m) minutes") }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "timer")
-                        Text(coachMinutes == 0 ? "No timer" : "\(coachMinutes) min")
-                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
-                    }
-                    .font(.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(Color.secondary.opacity(0.18)))
-                }
-                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-                .help("Session length. No timer keeps going until you stop.")
-                Menu {
-                    ForEach(BreathStyle.allCases) { st in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue }
-                        } label: {
-                            if styleRaw == st.rawValue { Label(st.rawValue, systemImage: "checkmark") } else { Text(st.rawValue) }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                        Text(styleRaw)
-                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
-                    }
-                    .font(.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(Color.secondary.opacity(0.18)))
-                }
-                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-                .help("Choose the look: Flower or Water")
-                Menu {
-                    ForEach(SoundPreset.all) { p in
-                        Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
-                    }
-                    Divider()
-                    Button("Sound off") { sound.stop() }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.slash")
-                        Text(sound.isPlaying ? "On" : "Off")
-                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
-                    }
-                    .font(.caption)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(sound.isPlaying ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.18)))
-                }
-                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-                .help("Background sound. It stays off until you choose one.")
-                }
+                    .opacity(blurbShown ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.4), value: blurbShown)
+                    .fadesWithChrome(chrome)
+                optionsMenu.fadesWithChrome(chrome)
             }
 
             TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil)) { ctx in
@@ -242,6 +235,7 @@ struct BreathingView: View {
                     }
                     .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
                     .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
+                    .fadesWithChrome(chrome)
                 }
                 // Quiet text actions under the main button, so the screen has one clear thing to press.
                 HStack(spacing: 14) {
@@ -257,6 +251,7 @@ struct BreathingView: View {
                 .buttonStyle(.plain)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fadesWithChrome(chrome)
             }
         }
     }

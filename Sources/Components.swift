@@ -231,3 +231,19 @@ struct RippleBurst: View {
             }
     }
 }
+
+/// While you breathe and the mouse is still, the controls fade so only the picture and the word remain.
+private struct ChromeVisibleKey: EnvironmentKey { static let defaultValue = true }
+extension EnvironmentValues {
+    var chromeVisible: Bool {
+        get { self[ChromeVisibleKey.self] }
+        set { self[ChromeVisibleKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Fades a control out with the rest of the chrome, and makes it ignore clicks while it is invisible.
+    func fadesWithChrome(_ visible: Bool) -> some View {
+        self.opacity(visible ? 1 : 0).allowsHitTesting(visible).animation(.easeInOut(duration: 1.2), value: visible)
+    }
+}

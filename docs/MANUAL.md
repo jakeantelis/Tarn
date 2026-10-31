@@ -32,6 +32,9 @@ It covers every screen with a calm background, including desktop icons. Click an
 **What is Calm mode?**  
 One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb.
 
+**Where did the controls go?**  
+While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound.
+
 **What is a Session?**  
 Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 

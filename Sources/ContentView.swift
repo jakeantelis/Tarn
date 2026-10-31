@@ -21,6 +21,9 @@ struct ContentView: View {
     @AppStorage("offerFullScreen") private var offerFullScreen = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @State private var popoverActive = true
+    @State private var chromeVisible = true
+    @State private var lastActivity = Date()
+    @State private var lastMouse = NSEvent.mouseLocation
     @AppStorage("welcomed") private var welcomed = false
     @AppStorage("eveningWarmth") private var eveningWarmth = false   // re-renders the colors when changed
     @AppStorage("focusPalette") private var paletteKey = "red"
@@ -33,6 +36,11 @@ struct ContentView: View {
         else { g = [Color.white.opacity(0.05), Color.white.opacity(0.0)] }
         return LinearGradient(colors: g, startPoint: .top, endPoint: .bottom)
     }
+    private func wake() {
+        lastActivity = Date()
+        if !chromeVisible { chromeVisible = true }
+    }
+
     private var effectiveTab: Int { timer.mode.hasTimer ? (tab == 2 || tab == 3 ? tab : 0) : (tab == 2 ? 2 : 1) }
 
     var body: some View {
@@ -47,10 +55,12 @@ struct ContentView: View {
             } else {
                 PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) { $0.rawValue }
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
+                    .fadesWithChrome(chromeVisible)
 
                 PillPicker(items: timer.mode.hasTimer ? [0, 3, 2] : [1, 2],
                            selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Practice")) }
                     .padding(.horizontal, 30)
+                    .fadesWithChrome(chromeVisible)
 
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
@@ -76,7 +86,7 @@ struct ContentView: View {
                         }
                         BreathingView()
                         let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
-                        QuoteLine(text: q.text, author: q.author)
+                        QuoteLine(text: q.text, author: q.author).fadesWithChrome(chromeVisible)
                     }
                 default: MixerTab(sound: sound)
                 }
@@ -102,11 +112,26 @@ struct ContentView: View {
                     .padding(.leading, 14)
             }
             .font(.callout)
+            .fadesWithChrome(chromeVisible)
         }
         .padding(16)
         .frame(width: 300)
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
+        .environment(\.chromeVisible, chromeVisible)
+        .onContinuousHover { phase in if case .active = phase { wake() } }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            // Only while you are breathing, with nothing else open, and only after a few quiet seconds.
+            let breathing = timer.mode == .breathe && effectiveTab == 1 && !showSettings && !showHelp && popoverActive
+            // The pointer moving over any Tarn window counts as activity, even if no hover event arrives.
+            let loc = NSEvent.mouseLocation
+            if loc != lastMouse {
+                lastMouse = loc
+                if NSApp.windows.contains(where: { $0.isVisible && $0.frame.contains(loc) }) { wake() }
+            }
+            if breathing, chromeVisible, Date().timeIntervalSince(lastActivity) > 6 { chromeVisible = false }
+            if !breathing, !chromeVisible { chromeVisible = true }
+        }
         .onChange(of: sound.isPlaying) { _, playing in if !playing { fullScreenOfferDismissed = false } }
         .background(breakTint)
         .tint(timer.mode == .breathe ? Color.breatheTint : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
@@ -692,6 +717,7 @@ enum HelpContent {
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
             ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb."),
+            ("Where did the controls go?", "While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound."),
             ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
         ]),

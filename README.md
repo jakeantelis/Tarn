@@ -5,9 +5,10 @@ A tarn is a small, still mountain lake. Tarn is a calm Mac menu bar app for focu
 Free and open source. No account, no tracking. Made by Antelis Labs.
 
 ## What it does
-- **Focus:** Pomodoro rounds (15, 25, 45, 60 or 90 minutes) with calm, timed breaks. A focus lens tightens as time runs out, and breaks open into guided breathing. Optional schedule, daily stats and an intention line.
-- **Breathe:** a slow breathing animation as a flower or water, with gentle prompts and an optional spoken guide. Full screen mode and a button to hide other apps (it never quits them).
-- **Sounds:** optional recorded ambient loops (ocean, forest, birds, stream) with presets and a fade out timer. Everything is off until you turn it on.
+- **Focus:** Pomodoro rounds (15, 25, 45, 60 or 90 minutes) with calm, timed breaks. A glowing circle narrows as time runs out, dots show your place in the set, and breaks open into a gentle breathing guide. Click the circle to start or pause. Optional daily schedule, stats, an intention line and a color theme of your choice.
+- **Breathe:** a slow breathing picture, a flower or water, with four patterns (Settle, Deep, Box, 4 7 8), optional gentle prompts and spoken cues, and 1 to 20 minute sessions. Switching to Breathe never stops a running focus round. While you breathe, the controls fade away so only the picture and the word remain.
+- **Calm mode:** one button for full screen, your last sound mix and Hide apps (which only hides, never quits). Click anywhere or press Esc to return, and the sound fades out as your cue to get back. One switch in Settings turns full screen and hiding off completely.
+- **Sounds:** optional recorded ambient loops (ocean, forest, birds, stream) with presets and a fade out timer. Tarn makes no sound at all until you turn something on.
 
 macOS only for now. Timer, breathing and sound logic is kept apart from the interface so other platforms stay possible later.
 
