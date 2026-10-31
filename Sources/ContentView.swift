@@ -133,6 +133,7 @@ struct ContentView: View {
                         Button("Open in a window") { WindowOpener.shared.show() }
                         Button("Settings…") { SettingsWindowOpener.shared.show(timer.mode == .breathe ? .breathe : .focus) }
                         Button("Help and FAQ") { SettingsWindowOpener.shared.show(.help) }
+                        Button("About Tarn") { AboutPanel.show() }
                         Button("Quit Tarn") { NSApplication.shared.terminate(nil) }
                     }
                 } label: {
@@ -684,6 +685,7 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Text("Free and open source, made by Antelis Labs. No account and no tracking. The recorded sounds are public domain (CC0) from BigSoundBank.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Button("About Tarn") { AboutPanel.show() }.buttonStyle(CapsuleButtonStyle(small: true))
                 }.padding(.vertical, 4)
             }
         }

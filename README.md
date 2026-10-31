@@ -4,7 +4,7 @@ A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a 
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
-Free and open source. No account, no tracking, and it only goes online when you press Check for updates. Made by Antelis Labs.
+Free and open source. No account, no tracking, and it only goes online when you press Check for updates. Made by [Antelis Labs](https://antelislabs.com).
 
 <p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
 
@@ -73,6 +73,8 @@ It talks to the app through `tarn://` links, so Shortcuts and Raycast can use th
 Every sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
 
 ## More from Antelis Labs
+See [antelislabs.com](https://antelislabs.com) for everything else.
+
 [**Matcha**](https://github.com/jakeantelis/Matcha) keeps your Mac awake for builds, exports and long running tasks. Tiny app, command line tool and crash safe. It pairs well with Tarn: let Matcha hold the Mac awake while Tarn holds your focus.
 
 ## License

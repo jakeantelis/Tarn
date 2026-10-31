@@ -102,6 +102,7 @@ final class AppModel {
             let section = SettingsSection.allCases.first { $0.rawValue.lowercased().hasPrefix((value("section") ?? "").lowercased()) && value("section") != nil }
             SettingsWindowOpener.shared.show(section ?? .focus)
         case "help": SettingsWindowOpener.shared.show(.help)
+        case "about": AboutPanel.show()
         case "calm": calmMode()
         case "clear": ScreenClearer.shared.clear()
         case "restore": ScreenClearer.shared.restore()
