@@ -268,7 +268,9 @@ final class PomodoroTimer: ObservableObject {
             "remainingSeconds": Int(remaining),
             "completedToday": StatsStore.shared.today.rounds,
         ]
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Tarn")
+        // Tests set TARN_STATUS_DIR so they never write over the real app's status file.
+        let dir = ProcessInfo.processInfo.environment["TARN_STATUS_DIR"].map { URL(fileURLWithPath: $0) }
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Tarn")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if let data = try? JSONSerialization.data(withJSONObject: dict) { try? data.write(to: dir.appendingPathComponent("status.json")) }
     }
