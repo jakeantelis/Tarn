@@ -57,10 +57,19 @@ struct ContentView: View {
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
                     .fadesWithChrome(chromeVisible)
 
-                PillPicker(items: timer.mode.hasTimer ? [0, 3, 2] : [1, 2],
-                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Practice")) }
-                    .padding(.horizontal, 30)
-                    .fadesWithChrome(chromeVisible)
+                // Focus has three tabs. Breathe has none: it is just the picture, with sounds one tap away in Options.
+                if timer.mode.hasTimer {
+                    PillPicker(items: [0, 3, 2],
+                               selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : "Timer") }
+                        .padding(.horizontal, 30)
+                        .fadesWithChrome(chromeVisible)
+                } else if effectiveTab == 2 {
+                    HStack {
+                        Text("Sounds").font(.headline)
+                        Spacer()
+                        Button("Back to breathing") { tab = 1 }.buttonStyle(CapsuleButtonStyle(small: true))
+                    }
+                }
 
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
@@ -84,7 +93,7 @@ struct ContentView: View {
                                 withAnimation { fullScreenOfferDismissed = true }
                             }
                         }
-                        BreathingView()
+                        BreathingView(onMix: { tab = 2 })
                         let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
                         QuoteLine(text: q.text, author: q.author).fadesWithChrome(chromeVisible)
                     }
@@ -717,12 +726,12 @@ enum HelpContent {
             ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
             ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
             ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb."),
-            ("Where did the controls go?", "While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound."),
+            ("Where did the controls go?", "While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound, including a full sound mixer."),
             ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too."),
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
         ]),
         ("Sounds", [
-            ("How do I turn sounds on?", "Open the Sounds tab and pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them."),
+            ("How do I turn sounds on?", "In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them."),
         ]),
         ("Good to know", [
             ("I cannot find the icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, then Open in a window, or turn on Show Tarn in the Dock."),

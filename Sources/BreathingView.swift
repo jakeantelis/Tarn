@@ -65,6 +65,8 @@ struct BreathPattern: Identifiable, Hashable {
 
 struct BreathingView: View {
     var compact = false
+    /// Opens the full sound mixer. Provided by the Breathe screen.
+    var onMix: (() -> Void)? = nil
     @Environment(\.popoverActive) private var active
     @Environment(\.chromeVisible) private var chrome
     @State private var blurbShown = false
@@ -120,6 +122,7 @@ struct BreathingView: View {
                     Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
                 }
                 Button("Sound off") { sound.stop() }
+                if let onMix { Button("Mix sounds…") { onMix() } }
             }
         } label: {
             HStack(spacing: 5) {
