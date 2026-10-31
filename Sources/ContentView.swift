@@ -18,11 +18,9 @@ struct ContentView: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
     @State private var tab: Int          // 0 timer, 1 breathe, 2 sounds
-    init(timer: PomodoroTimer, sound: SoundEngine, initialTab: Int = 0, startInSettings: Bool = false) {
-        self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab); _showSettings = State(initialValue: startInSettings)
+    init(timer: PomodoroTimer, sound: SoundEngine, initialTab: Int = 0) {
+        self.timer = timer; self.sound = sound; _tab = State(initialValue: initialTab)
     }
-    @State private var showSettings = false
-    @State private var showHelp = false
     @State private var fullScreenOfferDismissed = false
     @AppStorage("offerFullScreen") private var offerFullScreen = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
@@ -51,14 +49,6 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            if showHelp {
-                ScrollView { HelpTab() }.frame(maxHeight: 460)
-            } else if showSettings {
-                ScrollView {
-                    SettingsTab(timer: timer, sound: sound, mode: timer.mode, onHelp: { showHelp = true })
-                }
-                .frame(maxHeight: 460)
-            } else {
                 PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in withAnimation(.easeInOut(duration: 0.4)) { timer.setMode(m) } })) { $0.rawValue }
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
                     .fadesWithChrome(chromeVisible)
@@ -111,10 +101,9 @@ struct ContentView: View {
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.35), value: timer.mode)
                 .animation(.easeInOut(duration: 0.3), value: effectiveTab)
-            }
 
             HStack {
-                if !showSettings && !showHelp {
+                do {
                     Button {
                         sound.toggle()
                     } label: {
@@ -125,8 +114,9 @@ struct ContentView: View {
                     .accessibilityLabel(sound.isPlaying ? "Turn sound off" : "Turn sound on")
                 }
                 Spacer()
-                Button(showSettings || showHelp ? "Done" : "Settings") { if showHelp { showHelp = false } else { showSettings.toggle() } }
+                Button("Settings") { SettingsWindowOpener.shared.show(timer.mode == .breathe ? .breathe : .focus) }
                     .buttonStyle(.borderless)
+                    .help("Open the settings window")
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
@@ -146,7 +136,7 @@ struct ContentView: View {
         .onChange(of: tab) { _, _ in wake() }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Only while you are breathing, with nothing else open, and only after a few quiet seconds.
-            let breathing = timer.mode == .breathe && effectiveTab == 1 && !showSettings && !showHelp && popoverActive
+            let breathing = timer.mode == .breathe && effectiveTab == 1 && popoverActive
             // The pointer moving over any Tarn window counts as activity, even if no hover event arrives.
             let loc = NSEvent.mouseLocation
             if loc != lastMouse {
@@ -475,11 +465,23 @@ struct MixerTab: View {
     }
 }
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case focus = "Focus", breathe = "Breathe", general = "General", help = "How it works"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .focus: return "timer"
+        case .breathe: return "wind"
+        case .general: return "gearshape"
+        case .help: return "questionmark.circle"
+        }
+    }
+}
+
 struct SettingsTab: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
-    let mode: Mode
-    var onHelp: () -> Void = {}
+    let section: SettingsSection
     @AppStorage("offerFullScreen") private var offerFullScreen = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
@@ -501,12 +503,27 @@ struct SettingsTab: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(mode == .pomodoro ? "Focus settings" : "Breathe settings").font(.headline)
-            Text("Set Tarn up your way. Every option here is optional, and nothing hides your apps or fills your screen unless you ask it to.")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            if mode == .pomodoro { pomodoro } else { breathe }
-            GroupBox("General") {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(section == .help ? "How it works" : section.rawValue).font(.title2.weight(.semibold))
+            if section != .help {
+                Text(section == .general
+                     ? "Set Tarn up your way. Every option is optional, and nothing hides your apps or fills your screen unless you ask it to."
+                     : "Everything here is optional. Change what you like and leave the rest.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            switch section {
+            case .focus: pomodoro
+            case .breathe: breathe
+            case .general: general
+            case .help: HelpTab(showTitle: false)
+            }
+        }
+        .font(.callout)
+    }
+
+    private var general: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GroupBox("Startup and windows") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
                     Toggle("Allow tarnctl and tarn:// links", isOn: $allowLinks)
@@ -514,8 +531,6 @@ struct SettingsTab: View {
                         .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
                     HStack(spacing: 6) {
                         Button("Open in a window") { WindowOpener.shared.show() }
-                            .buttonStyle(CapsuleButtonStyle(small: true))
-                        Button("How it works") { onHelp() }
                             .buttonStyle(CapsuleButtonStyle(small: true))
                     }
                     Text("If the menu bar icon is hard to find, a window works the same way.")
@@ -533,7 +548,6 @@ struct SettingsTab: View {
                 }.padding(.vertical, 4)
             }
         }
-        .font(.callout)
     }
 
     @State private var loginOn = SMAppService.mainApp.status == .enabled
@@ -785,9 +799,10 @@ enum HelpContent {
 }
 
 struct HelpTab: View {
+    var showTitle = true
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("How it works").font(.headline)
+            if showTitle { Text("How it works").font(.headline) }
             ForEach(Array(HelpContent.sections.enumerated()), id: \.offset) { _, section in
                 VStack(alignment: .leading, spacing: 8) {
                     Text(section.title.uppercased()).font(.caption2.weight(.semibold)).tracking(1.2).foregroundStyle(.secondary)

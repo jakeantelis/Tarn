@@ -17,6 +17,7 @@ usage: tarnctl <command>
   sound on|off|toggle       ambient sound
   sound <preset>            ocean, forest, dawn, quiet
   window              open Tarn in a normal window
+  settings            open the Settings window
   calm                full screen, hide apps and sound in one go
   clear | restore     hide other windows (never quits apps) and bring them back
   status [--json]     show what Tarn is doing
@@ -32,7 +33,7 @@ case "$cmd" in
             [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 240 )) || { echo "minutes must be a number from 1 to 240" >&2; exit 2; }
             send "start?minutes=$2"
         else send "start"; fi ;;
-    pause|resume|toggle|stop|skip|break|clear|restore|window|calm) send "$cmd" ;;
+    pause|resume|toggle|stop|skip|break|clear|restore|window|settings|calm) send "$cmd" ;;
     breathe)
         if [[ "${2:-}" == "full" ]]; then send "breathe?fullscreen=1"; else send "breathe"; fi ;;
     sound)

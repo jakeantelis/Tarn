@@ -64,6 +64,8 @@ Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full.
 
 
 ## Make it yours
+Settings opens in its own roomy window with a sidebar: Focus, Breathe, General and this help. From Terminal, `tarnctl settings` opens it too.
+
 Everything in Settings is optional. Breaks do not take over your screen unless you turn that on, so you can watch a video or read during a break. In Breathe settings, "Allow full screen and hiding apps" is one switch: turn it off and Tarn never covers your screen or hides another app, and those buttons disappear. Otherwise you can keep Hide apps and Full screen as buttons you press only when you want them, switch the sound offer off, pick your own colors, set your own focus length, and open Tarn in a window or the Dock if you prefer.
 
 ## Requirements and caveats
