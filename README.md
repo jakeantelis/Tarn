@@ -2,6 +2,8 @@
 
 A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm Mac menu bar app for focus and for breathing: work in focused rounds, then breathe like still water.
 
+**[Download Tarn for Mac](https://github.com/jakeantelis/Tarn/releases/latest/download/Tarn.dmg)**  Free. Needs macOS 14 or newer.
+
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
 Free and open source. No account, no tracking, and it only goes online when you press Check for updates. Made by [Antelis Labs](https://antelislabs.com).
@@ -43,9 +45,11 @@ See [docs/MANUAL.md](docs/MANUAL.md) for the manual and FAQ. There is also a sea
 ## Install
 Works on any Mac with macOS 14 Sonoma or newer, Apple silicon or Intel. To check, choose About This Mac from the Apple menu.
 
-1. Download `Tarn.dmg` from the [latest release](https://github.com/jakeantelis/Tarn/releases/latest) and open it.
+1. [Download Tarn.dmg](https://github.com/jakeantelis/Tarn/releases/latest/download/Tarn.dmg) and open it.
 2. Double click Tarn and choose Move to Applications, or drag Tarn onto the Applications folder in the same window.
 3. Click the small flower in your menu bar.
+
+![The Tarn installer window: double click Tarn, or drag it onto Applications](docs/images/installer.png)
 
 Keep Tarn in Applications, because it will not keep working from the disk image. If macOS asks whether to open an app from the internet, choose Open. If the flower is hidden by a crowded menu bar or the notch, turn on "Show Tarn in the Dock" in Settings.
 
