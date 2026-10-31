@@ -165,14 +165,13 @@ struct FloatingCircleView: View {
         Button { Self.hide() } label: {
             Image(systemName: "xmark")
                 .font(.system(size: max(8, d * 0.075), weight: .bold))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white.opacity(hovering ? 0.95 : 0.5))
                 .frame(width: max(22, d * 0.19), height: max(22, d * 0.19))
-                .background(Circle().fill(Color.black.opacity(0.55)))
-                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
+                .background(Circle().fill(Color.black.opacity(hovering ? 0.55 : 0)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(hovering ? 0.25 : 0), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
-        .opacity(hovering ? 1 : 0.55)
         .animation(.easeOut(duration: 0.2), value: hovering)
         .help("Hide the floating circle. Turn it back on in Settings, Focus.")
         .accessibilityLabel("Hide floating circle")
@@ -193,13 +192,13 @@ struct FloatingCircleView: View {
 
     private var focus: some View {
         ZStack {
-            LensView(progress: timer.progress, running: timer.isRunning).padding(d * 0.006)
+            LensView(progress: timer.progress, running: timer.isRunning).padding(-d * 0.022)
             VStack(spacing: d * 0.015) {
                 Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS")
-                    .font(.system(size: max(8, d * 0.062), weight: .semibold)).tracking(1.3)
+                    .font(.system(size: max(8, d * 0.058), weight: .semibold)).tracking(1.3)
                     .foregroundStyle(timer.phase.isBreak ? Color.purple : Color.focusTint)
                 Text(timer.clockText)
-                    .font(.system(size: d * 0.205, weight: .light, design: .rounded)).monospacedDigit()
+                    .font(.system(size: d * 0.188, weight: .light, design: .rounded)).monospacedDigit()
                     .contentTransition(.numericText(countsDown: true))
                     .foregroundStyle(.white.opacity(0.96))
                 HStack(spacing: d * 0.07) {
@@ -232,8 +231,8 @@ struct FloatingCircleView: View {
             let s = pattern.state(at: t)
             ZStack {
                 switch BreathStyle(rawValue: styleRaw) ?? .bloom {
-                case .fill: FillCanvas(scale: s.scale, time: t).padding(d * 0.04)
-                case .bloom: BloomCanvas(scale: s.scale, time: t).padding(-d * 0.04)
+                case .fill: FillCanvas(scale: s.scale, time: t).padding(d * 0.02)
+                case .bloom: BloomCanvas(scale: s.scale, time: t).padding(-d * 0.09)
                 }
                 Text(s.label.lowercased())
                     .font(.system(size: max(9, d * 0.075), weight: .light, design: .serif)).tracking(1)
