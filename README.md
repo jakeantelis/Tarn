@@ -42,7 +42,7 @@ See [docs/MANUAL.md](docs/MANUAL.md) for the manual and FAQ. There is also a sea
 
 ## Install
 1. Download `Tarn.dmg` from the [latest release](https://github.com/jakeantelis/Tarn/releases/latest) and open it.
-2. Double click Tarn. It offers to move itself into Applications and then opens by itself. Or drag Tarn onto Applications yourself.
+2. Move Tarn into Applications. The easy way: double click Tarn and choose Move to Applications, and Tarn moves itself, opens and ejects the disk image. Or drag Tarn onto Applications yourself and open it from there. Keep Tarn in Applications, because it will not keep working if you run it from the disk image.
 3. Look for the small flower in your menu bar.
 
 Tarn needs macOS 14 or later and runs on Apple silicon and Intel. If a crowded menu bar or the notch hides the icon, turn on "Show Tarn in the Dock" in Settings, or run `tarnctl window`. On the first launch Tarn also opens a window.
