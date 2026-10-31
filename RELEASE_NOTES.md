@@ -2,7 +2,8 @@
 
 A small floating circle, and a clearer installer.
 
-- New, optional floating circle: a small frosted circle that stays above your other windows. It shows the Focus timer, or the breathing picture in Breathe. Turn it on in Settings, Focus. Four sizes, adjustable opacity, drag it anywhere, and a speaker button on hover to switch sound on or off. It is off by default and steps aside in full screen
+- New floating circle: a small frosted circle that stays above your other windows. It shows the Focus timer, or the breathing picture in Breathe. Click it to start or pause, hover for a speaker button, and drag it anywhere. It starts small, comes in four sizes, and you can turn it off in Settings, Focus, or from the three dots menu. It steps aside in full screen
+- Settings is tidier: the most used options come first, and the rarely used ones are folded away
 - The installer window now says exactly what to do: double click Tarn and choose Move to Applications, or drag Tarn onto Applications
 
 ## Tarn 0.1.1

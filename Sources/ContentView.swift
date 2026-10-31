@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var fullScreenOfferDismissed = false
     @AppStorage("offerFullScreen") private var offerFullScreen = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
+    @AppStorage("floatingCircle") private var floatingOn = true
     @State private var popoverActive = true
     @State private var chromeVisible = true
     @State private var lastActivity = Date()
@@ -131,6 +132,7 @@ struct ContentView: View {
                     }
                     Section("Tarn") {
                         Button("Open in a window") { WindowOpener.shared.show() }
+                        Toggle("Floating circle", isOn: Binding(get: { floatingOn }, set: { floatingOn = $0; FloatingCircle.shared.refresh() }))
                         Button("Settings…") { SettingsWindowOpener.shared.show(timer.mode == .breathe ? .breathe : .focus) }
                         Button("Help and FAQ") { SettingsWindowOpener.shared.show(.help) }
                         Button("About Tarn") { AboutPanel.show() }
@@ -573,8 +575,8 @@ struct SettingsTab: View {
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
-    @AppStorage("floatingCircle") private var floating = false
-    @AppStorage("floatingSize") private var floatingSize = 1
+    @AppStorage("floatingCircle") private var floating = true
+    @AppStorage("floatingSize") private var floatingSize = 0
     @AppStorage("floatingOpacity") private var floatingOpacity = 0.9
     @AppStorage("floatingClickThrough") private var floatingClickThrough = false
 
@@ -660,19 +662,13 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 }.padding(.vertical, 4)
             }
-            GroupBox("Tips") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Show a short tip at the bottom of the window", isOn: $showTips)
-                    Text("Off by default. Tips change through the day and never make a sound.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }.padding(.vertical, 4)
-            }
             GroupBox("Startup and windows") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
                     Toggle("Allow tarnctl and tarn:// links", isOn: $allowLinks)
                     Toggle("Show Tarn in the Dock", isOn: $showInDock)
                         .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
+                    Toggle("Show a short tip at the bottom of the window", isOn: $showTips)
                     HStack(spacing: 6) {
                         Button("Open in a window") { WindowOpener.shared.show() }
                             .buttonStyle(CapsuleButtonStyle(small: true))
@@ -717,40 +713,6 @@ struct SettingsTab: View {
 
     private var pomodoro: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Theme") {
-                VStack(alignment: .leading, spacing: 8) {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5), spacing: 10) {
-                        ForEach(FocusPalette.order, id: \.self) { key in
-                            let pal = FocusPalette.all[key]!
-                            Button {
-                                paletteKey = key
-                                timer.objectWillChange.send()
-                            } label: {
-                                VStack(spacing: 4) {
-                                    ZStack {
-                                        Circle().fill(LinearGradient(colors: [pal.tint.opacity(0.28), Color.black.opacity(0.35)], startPoint: .top, endPoint: .bottom))
-                                        Circle().stroke(pal.tint, lineWidth: 3).padding(5)
-                                        Circle().fill(pal.glow.opacity(0.85)).frame(width: 10, height: 10)
-                                    }
-                                    .frame(width: 38, height: 38)
-                                    .overlay(Circle().stroke(Color.primary.opacity(paletteKey == key ? 0.9 : 0), lineWidth: 2).padding(-3))
-                                    Text(pal.name).font(.caption2).foregroundStyle(paletteKey == key ? Color.primary : Color.secondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    Text("Colors for Focus. Breathe stays soft blue in every theme.").font(.caption).foregroundStyle(.secondary)
-                }.padding(.vertical, 4)
-            }
-            GroupBox("Quick starts") {
-                HStack(spacing: 6) {
-                    ForEach(QuickStart.all) { q in
-                        Button(q.name) { q.apply(timer: timer, sound: sound) }
-                            .buttonStyle(CapsuleButtonStyle())
-                    }
-                }.padding(.vertical, 4)
-            }
             GroupBox("Rounds") {
                 VStack(alignment: .leading, spacing: 8) {
                     Picker("Focus length", selection: Binding(get: { timer.focusMinutes }, set: { timer.setFocusMinutes($0) })) {
@@ -763,6 +725,43 @@ struct SettingsTab: View {
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Floating circle") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Show a small floating circle", isOn: $floating)
+                    if floating {
+                        Picker("Size", selection: $floatingSize) {
+                            ForEach(0..<FloatingCircle.sizeNames.count, id: \.self) { Text(FloatingCircle.sizeNames[$0]).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        HStack {
+                            Text("Opacity")
+                            Slider(value: $floatingOpacity, in: 0.3...1)
+                        }
+                        Toggle("Let clicks pass through it", isOn: $floatingClickThrough)
+                    }
+                    Text(floating
+                         ? "It shows the timer in Focus and the breathing picture in Breathe. Drag it anywhere. It steps aside in full screen. If clicks pass through, switch this off here to move it again."
+                         : "Off. A small circle can stay above your other windows so you can see the time without opening Tarn.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+                .onChange(of: floating) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingSize) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingOpacity) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingClickThrough) { _, _ in FloatingCircle.shared.refresh() }
+            }
+            GroupBox("Sound while focusing") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Play sounds while I focus", isOn: $soundEnabled)
+                    if !soundEnabled { Text("Off. Focus is silent unless you turn this on.").font(.caption).foregroundStyle(.secondary) }
+                    if soundEnabled {
+                        Picker("Play during", selection: $scopeRaw) {
+                            ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                        }
+                        Text(scopeRaw == SoundScope.always.rawValue ? "Soft during work, fuller on breaks. Choose the mix on the Sounds tab." : "Choose the mix on the Sounds tab.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }.padding(.vertical, 4)
             }
             GroupBox("Daily schedule") {
@@ -800,42 +799,39 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
-            GroupBox("Sound while focusing") {
+            GroupBox("Theme") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play sounds while I focus", isOn: $soundEnabled)
-                    if !soundEnabled { Text("Off. Focus is silent unless you turn this on.").font(.caption).foregroundStyle(.secondary) }
-                    if soundEnabled {
-                        Picker("Play during", selection: $scopeRaw) {
-                            ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5), spacing: 10) {
+                        ForEach(FocusPalette.order, id: \.self) { key in
+                            let pal = FocusPalette.all[key]!
+                            Button {
+                                paletteKey = key
+                                timer.objectWillChange.send()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    ZStack {
+                                        Circle().fill(LinearGradient(colors: [pal.tint.opacity(0.28), Color.black.opacity(0.35)], startPoint: .top, endPoint: .bottom))
+                                        Circle().stroke(pal.tint, lineWidth: 3).padding(5)
+                                        Circle().fill(pal.glow.opacity(0.85)).frame(width: 10, height: 10)
+                                    }
+                                    .frame(width: 38, height: 38)
+                                    .overlay(Circle().stroke(Color.primary.opacity(paletteKey == key ? 0.9 : 0), lineWidth: 2).padding(-3))
+                                    Text(pal.name).font(.caption2).foregroundStyle(paletteKey == key ? Color.primary : Color.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Text(scopeRaw == SoundScope.always.rawValue ? "Soft during work, fuller on breaks. Choose the mix on the Sounds tab." : "Choose the mix on the Sounds tab.")
-                            .font(.caption).foregroundStyle(.secondary)
                     }
+                    Text("Colors for Focus. Breathe stays soft blue in every theme.").font(.caption).foregroundStyle(.secondary)
                 }.padding(.vertical, 4)
             }
-            GroupBox("Floating circle") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Show a small floating circle", isOn: $floating)
-                    if floating {
-                        Picker("Size", selection: $floatingSize) {
-                            ForEach(0..<FloatingCircle.sizeNames.count, id: \.self) { Text(FloatingCircle.sizeNames[$0]).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        HStack {
-                            Text("Opacity")
-                            Slider(value: $floatingOpacity, in: 0.3...1)
-                        }
-                        Toggle("Let clicks pass through it", isOn: $floatingClickThrough)
+            GroupBox("Quick starts") {
+                HStack(spacing: 6) {
+                    ForEach(QuickStart.all) { q in
+                        Button(q.name) { q.apply(timer: timer, sound: sound) }
+                            .buttonStyle(CapsuleButtonStyle())
                     }
-                    Text(floating
-                         ? "It shows the timer in Focus and the breathing picture in Breathe. Drag it anywhere. It steps aside in full screen. If clicks pass through, switch this off here to move it again."
-                         : "Off. A small circle that stays above your other windows so you can see the time without opening Tarn.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
-                .onChange(of: floating) { _, _ in FloatingCircle.shared.refresh() }
-                .onChange(of: floatingSize) { _, _ in FloatingCircle.shared.refresh() }
-                .onChange(of: floatingOpacity) { _, _ in FloatingCircle.shared.refresh() }
-                .onChange(of: floatingClickThrough) { _, _ in FloatingCircle.shared.refresh() }
             }
             DisclosureGroup("Advanced") {
               VStack(alignment: .leading, spacing: 12) {
@@ -891,6 +887,8 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
+            DisclosureGroup("Advanced") {
+              VStack(alignment: .leading, spacing: 12) {
             GroupBox("Calm mode shortcuts") {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("Shortcut when Calm starts", text: $calmStart)
@@ -907,6 +905,9 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
+              }
+            }
+            .padding(.vertical, 2)
         }
     }
 }
@@ -972,6 +973,7 @@ enum HelpContent {
             ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. The break waits until you start it. When it ends, the next round starts on its own unless you turn that off in Settings, Focus."),
             ("Can Tarn run my day for me?", "Yes. In Settings, Focus, open Daily schedule. Turn it on, choose a start and end time and the days, or press Workday for 9 to 5 on weekdays. Tarn then alternates focus and breaks until the end time. It needs to be open, so turn on Open at login in General."),
             ("Can I silence notifications while I focus?", "Yes. In Settings, Focus, Advanced, name two Shortcuts from the Shortcuts app, one that turns a Focus mode on and one that turns it off. Tarn runs them when a round starts and ends."),
+            ("What is the floating circle?", "A small circle that stays above your other windows. In Focus it shows the time, and in Breathe it shows the breathing picture. Click it to start or pause, hover for a sound button, and drag it anywhere. Change its size, or turn it off, in Settings, Focus, or from the three dots menu. It steps aside in full screen."),
             ("Does the timer pause by itself?", "Yes, when your Mac sleeps or locks. You can turn that off in Settings, Focus, Advanced."),
         ]),
         ("Breathe", [
@@ -992,7 +994,7 @@ enum HelpContent {
             ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats. There is no account and no tracking. Tarn only goes online when you press Check for updates."),
             ("Which Macs does it support?", "macOS 14 or later, on Apple silicon and Intel."),
             ("Can I control it from Terminal?", "Yes. Open Settings, General, Command line and press Install tarnctl. Then in Terminal run tarnctl start 45, tarnctl pause, tarnctl breathe, tarnctl calm or tarnctl status. tarnctl help lists everything. You can switch it off with Allow tarnctl in General."),
-            ("What are Tips?", "Short hints at the bottom of the window. They are off by default. Turn them on in Settings, General, Tips."),
+            ("What are Tips?", "Short hints at the bottom of the window. They are off by default. Turn them on in Settings, General."),
         ]),
     ]
 }

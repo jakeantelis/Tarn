@@ -9,7 +9,7 @@ final class FloatingCircle {
     private var panel: NSPanel?
     private var moveObserver: NSObjectProtocol?
 
-    static var enabled: Bool { UserDefaults.standard.bool(forKey: "floatingCircle") }
+    static var enabled: Bool { UserDefaults.standard.object(forKey: "floatingCircle") as? Bool ?? true }
 
     /// Small, medium, large and extra large.
     static let sizes: [CGFloat] = [100, 132, 168, 212]
@@ -19,7 +19,7 @@ final class FloatingCircle {
     static let margin: CGFloat = 18
 
     private var diameter: CGFloat {
-        Self.diameter(forSize: UserDefaults.standard.object(forKey: "floatingSize") as? Int ?? 1)
+        Self.diameter(forSize: UserDefaults.standard.object(forKey: "floatingSize") as? Int ?? 0)
     }
 
     /// Shows, hides or resizes the circle to match the settings. Safe to call at any time.
@@ -92,7 +92,7 @@ final class FloatingCircle {
 /// The picture inside the floating circle: frosted glass, a fine edge light, and a soft shadow.
 struct FloatingCircleView: View {
     @ObservedObject var timer: PomodoroTimer
-    @AppStorage("floatingSize") private var sizeChoice = 1
+    @AppStorage("floatingSize") private var sizeChoice = 0
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
     @State private var start = Date()

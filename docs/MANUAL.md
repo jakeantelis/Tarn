@@ -80,7 +80,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 
 ## Help and tips
 
-Click Help along the bottom of the Tarn window to open the searchable FAQ (also Settings, Help and FAQ). Tips are short hints at the bottom of the window. They are off by default and switch on in Settings, General, Tips.
+Click Help along the bottom of the Tarn window to open the searchable FAQ (also Settings, Help and FAQ). Tips are short hints at the bottom of the window. They are off by default and switch on in Settings, General.
 
 ## Updates
 

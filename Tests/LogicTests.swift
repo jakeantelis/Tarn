@@ -135,16 +135,11 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         d.removeObject(forKey: "soundEnabled"); d.removeObject(forKey: "soundScope")
 
         print("Floating circle")
-        check(!FloatingCircle.enabled, "floating circle is off by default")
-        check(FloatingCircle.sizes.count == FloatingCircle.sizeNames.count, "every size has a name")
-        check(FloatingCircle.sizes == FloatingCircle.sizes.sorted(), "sizes grow from small to extra large")
-        check(FloatingCircle.diameter(forSize: -3) == FloatingCircle.sizes.first && FloatingCircle.diameter(forSize: 99) == FloatingCircle.sizes.last, "odd size choices stay in range")
-
-        print("Floating circle")
         check(FloatingCircle.sizes == FloatingCircle.sizes.sorted(), "sizes grow from small to extra large")
         check(FloatingCircle.sizes.count == FloatingCircle.sizeNames.count, "every size has a name")
         check(FloatingCircle.diameter(forSize: -3) == FloatingCircle.sizes.first && FloatingCircle.diameter(forSize: 99) == FloatingCircle.sizes.last, "a bad size choice is clamped")
-        check(!FloatingCircle.enabled, "the floating circle is off by default")
+        check(FloatingCircle.enabled, "the floating circle is on by default")
+        check(FloatingCircle.diameter(forSize: UserDefaults.standard.object(forKey: "floatingSize") as? Int ?? 0) == FloatingCircle.sizes.first, "and it starts at the small size")
 
         print("Stats")
         let st = StatsStore.shared
