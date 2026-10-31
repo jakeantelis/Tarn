@@ -47,6 +47,7 @@ final class BreatheOverlay {
             windows.append(w)
         }
         Self.log.notice("full screen shown on \(NSScreen.screens.count) screen(s)")
+        FloatingCircle.shared.refresh()
         NSApp.activate(ignoringOtherApps: true)
         // Hiding other apps can hand focus to Finder. Take it back so Esc reaches this window.
         for delay in [0.15, 0.5] {
@@ -72,6 +73,7 @@ final class BreatheOverlay {
                                              completionHandler: { ws.forEach { $0.orderOut(nil) } })
         hidden.forEach { $0.unhide() }
         hidden = []
+        FloatingCircle.shared.refresh()
         if calmActive {
             calmActive = false
             runShortcutNamed(UserDefaults.standard.string(forKey: "calmEndShortcut") ?? "")

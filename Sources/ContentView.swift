@@ -573,6 +573,10 @@ struct SettingsTab: View {
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
+    @AppStorage("floatingCircle") private var floating = false
+    @AppStorage("floatingSize") private var floatingSize = 1
+    @AppStorage("floatingOpacity") private var floatingOpacity = 0.9
+    @AppStorage("floatingClickThrough") private var floatingClickThrough = false
 
     private func bind<T>(_ get: @escaping () -> T, _ set: @escaping (T) -> Void) -> Binding<T> {
         Binding(get: get, set: { timer.objectWillChange.send(); set($0) })
@@ -808,6 +812,30 @@ struct SettingsTab: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }.padding(.vertical, 4)
+            }
+            GroupBox("Floating circle") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Show a small floating circle", isOn: $floating)
+                    if floating {
+                        Picker("Size", selection: $floatingSize) {
+                            ForEach(0..<FloatingCircle.sizeNames.count, id: \.self) { Text(FloatingCircle.sizeNames[$0]).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        HStack {
+                            Text("Opacity")
+                            Slider(value: $floatingOpacity, in: 0.3...1)
+                        }
+                        Toggle("Let clicks pass through it", isOn: $floatingClickThrough)
+                    }
+                    Text(floating
+                         ? "It shows the timer in Focus and the breathing picture in Breathe. Drag it anywhere. It steps aside in full screen. If clicks pass through, switch this off here to move it again."
+                         : "Off. A small circle that stays above your other windows so you can see the time without opening Tarn.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+                .onChange(of: floating) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingSize) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingOpacity) { _, _ in FloatingCircle.shared.refresh() }
+                .onChange(of: floatingClickThrough) { _, _ in FloatingCircle.shared.refresh() }
             }
             DisclosureGroup("Advanced") {
               VStack(alignment: .leading, spacing: 12) {

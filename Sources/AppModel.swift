@@ -27,6 +27,7 @@ final class AppModel {
     /// Keeps sound and full screen breathing in step with the timer, whatever started the change (window, shortcut or tarnctl).
     private func timerChanged() {
         sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
+        FloatingCircle.shared.refresh()
         if timer.fullScreenBreaks, timer.isRunning, timer.phase.isBreak, !BreatheOverlay.shared.isShowing {
             fullScreenForBreak = true
             BreatheOverlay.shared.show()
@@ -118,6 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if MoveToApplications.offerIfNeeded() { return }
         WindowOpener.applyDockPolicy()
         Task { @MainActor in AppModel.shared.timer.writeStatus() }   // so tarnctl status works straight after launch
+        Task { @MainActor in FloatingCircle.shared.refresh() }
         // On the very first launch, open a window so Tarn is easy to find even if the menu bar icon is hidden.
         if UserDefaults.standard.object(forKey: "welcomed") == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { WindowOpener.shared.show() }
