@@ -121,12 +121,14 @@ struct OverlayView: View {
             // Fully covers the desktop (icons, windows and wallpaper) with a calm dusk gradient.
             LinearGradient(colors: [Color(red: 0.09, green: 0.12, blue: 0.24), Color(red: 0.04, green: 0.06, blue: 0.13)],
                            startPoint: .top, endPoint: .bottom)
-                .opacity(0.97)
-                .ignoresSafeArea()
+                .ignoresSafeArea()   // fully opaque, so nothing from the desktop shows through
+            GeometryReader { geo in
+            // The picture scales with the screen, so it is generous on a big display and still fits a small one.
+            let side = max(320, min(geo.size.height * 0.56, geo.size.width * 0.6, 760))
             TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
                 let t = ctx.date.timeIntervalSince(start)
                 let s = pattern.state(at: t)
-                VStack(spacing: 28) {
+                VStack(spacing: 6) {
                     ZStack {
                         // Soft ripples drift outward from the picture, timed to the breath.
                         if !reduceMotion {
@@ -139,7 +141,7 @@ struct OverlayView: View {
                                     g.stroke(ring, with: .color(Color(red: 0.72, green: 0.80, blue: 1.0).opacity(0.18 * (1 - ph))), lineWidth: 1.4)
                                 }
                             }
-                            .frame(width: 900, height: 900)
+                            .frame(width: side * 1.65, height: side * 1.65)
                             .allowsHitTesting(false)
                         }
                         switch BreathStyle(rawValue: styleRaw) ?? .bloom {
@@ -147,11 +149,13 @@ struct OverlayView: View {
                         case .bloom: BloomCanvas(scale: s.scale, time: t)
                         }
                     }
-                    .frame(width: 540, height: 540)
+                    .frame(width: side, height: side)
                     Text(s.label.lowercased())
-                        .font(.system(size: 34, weight: .ultraLight, design: .serif))
-                        .tracking(2.4)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .font(.system(size: max(38, side * 0.075), weight: .light, design: .serif))
+                        .tracking(3)
+                        .foregroundStyle(.white.opacity(0.88))
+                        .shadow(color: .black.opacity(0.35), radius: 8)
+                        .frame(height: max(48, side * 0.1))
                         .id(s.label)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.9), value: s.label)
@@ -165,6 +169,8 @@ struct OverlayView: View {
                             .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
                     }
                 }
+                .frame(width: geo.size.width, height: geo.size.height)
+            }
             }
             VStack {
                 Spacer()

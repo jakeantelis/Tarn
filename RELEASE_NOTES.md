@@ -1,4 +1,12 @@
-# Tarn 0.1.0
+# Tarn 0.1.1
+
+A small update to the first release.
+
+- Full screen Breathe is easier on the eyes: the picture scales with your screen, the cue is larger and closer, and nothing from the desktop shows through
+- A proper About Tarn window, and copyright now in the name of Antelis Labs LLC
+- Settings, General has a Show the welcome again button
+
+## Tarn 0.1.0
 
 A tarn is a small, still mountain lake. Tarn is a calm place to focus, and to breathe.
 
