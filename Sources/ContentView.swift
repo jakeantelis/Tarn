@@ -8,6 +8,12 @@ extension Color {
     static let water = Color(red: 0.32, green: 0.64, blue: 0.78)
 }
 
+/// Reports how tall the content wants to be, so a window can be exactly that tall and leave no empty space.
+struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 struct ContentView: View {
     @ObservedObject var timer: PomodoroTimer
     @ObservedObject var sound: SoundEngine
@@ -125,6 +131,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
+        .background(GeometryReader { g in Color.clear.preference(key: ContentHeightKey.self, value: g.size.height) })
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
         .environment(\.chromeVisible, chromeVisible)
