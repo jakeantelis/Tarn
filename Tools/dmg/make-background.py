@@ -71,7 +71,7 @@ def make(scale):
         for ch, cw in zip(text, widths):
             d.text((x, y * scale), ch, font=f, fill=fill)
             x += cw + tracking * scale
-    centered("Double-click Tarn to install it", 196, font(25), (255, 255, 255, 240), tracking=0.8)
+    centered("Double click Tarn to install it", 196, font(25), (255, 255, 255, 240), tracking=0.8)
     centered("It moves into Applications and opens by itself. Or drag it across.", 234, font(14, italic=True), (236, 242, 252, 215), tracking=0.2)
 
     # a quiet arrow between the two icons

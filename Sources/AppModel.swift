@@ -98,7 +98,9 @@ final class AppModel {
             default: break
             }
         case "window": WindowOpener.shared.show()
-        case "settings": SettingsWindowOpener.shared.show()
+        case "settings":
+            let section = SettingsSection.allCases.first { $0.rawValue.lowercased().hasPrefix((value("section") ?? "").lowercased()) && value("section") != nil }
+            SettingsWindowOpener.shared.show(section ?? .focus)
         case "help": SettingsWindowOpener.shared.show(.help)
         case "calm": calmMode()
         case "clear": ScreenClearer.shared.clear()

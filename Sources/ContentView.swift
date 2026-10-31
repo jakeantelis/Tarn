@@ -594,6 +594,7 @@ struct SettingsTab: View {
             }
         }
         .font(.callout)
+        .groupBoxStyle(FullWidthGroupBox())
     }
 
     private var general: some View {
@@ -650,7 +651,7 @@ struct SettingsTab: View {
                         }
                         .padding(8).background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.12)))
                     }
-                    Text("Try: tarnctl start 45 · tarnctl pause · tarnctl breathe · tarnctl calm · tarnctl status. Run tarnctl help for the full list. Turn off Allow tarnctl above to block it.")
+                    Text("Try: tarnctl start 45 · tarnctl pause · tarnctl breathe · tarnctl calm · tarnctl status. Run tarnctl help for the full list. Turn off \u{201C}Allow tarnctl and tarn:// links\u{201D} below to block it.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 }.padding(.vertical, 4)
             }
@@ -1085,5 +1086,19 @@ struct RoundDots: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Round \(min(done + (timer.phase.isBreak ? 0 : 1), total)) of \(total)")
         .help("Rounds in this set. After the last one you get a longer break.")
+    }
+}
+
+
+/// Settings groups that always run the full width, so every section lines up the same way.
+struct FullWidthGroupBox: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            configuration.label.font(.callout.weight(.medium))
+            configuration.content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.10)))
+        }
     }
 }
