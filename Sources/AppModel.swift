@@ -99,6 +99,7 @@ final class AppModel {
             }
         case "window": WindowOpener.shared.show()
         case "settings": SettingsWindowOpener.shared.show()
+        case "help": SettingsWindowOpener.shared.show(.help)
         case "calm": calmMode()
         case "clear": ScreenClearer.shared.clear()
         case "restore": ScreenClearer.shared.restore()

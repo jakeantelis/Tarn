@@ -77,3 +77,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 - Tarn follows the Mac setting Reduce Motion by holding the flower still and skipping the ripples.
 - Any web page can open a tarn:// link, and you can switch tarnctl and links off in Settings. Those links can only start or stop timers, hide windows or open full screen breathing.
 - The recorded sounds are public domain (CC0) from BigSoundBank. See SOURCES.md.
+
+## Help and tips
+
+Click Help along the bottom of the Tarn window to open the searchable FAQ (also Settings, Help and FAQ). Tips are short hints at the bottom of the window. They are off by default and switch on in Settings, General, Tips.

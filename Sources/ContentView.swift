@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var lastMouse = NSEvent.mouseLocation
     @AppStorage("welcomed") private var welcomed = false
     @AppStorage("eveningWarmth") private var eveningWarmth = false   // re-renders the colors when changed
+    @AppStorage("showTips") private var showTips = false
     @AppStorage("focusPalette") private var paletteKey = "red"
 
     private var onBreak: Bool { timer.mode.hasTimer && timer.phase.isBreak }
@@ -102,6 +103,7 @@ struct ContentView: View {
                 .id("\(timer.mode.rawValue)-\(effectiveTab)")
                 .transition(.identity)   // switching screens snaps cleanly, with no overlapping crossfade
 
+            if showTips && welcomed { TipLine().fadesWithChrome(chromeVisible) }
             HStack {
                 do {
                     Button {
@@ -114,6 +116,11 @@ struct ContentView: View {
                     .accessibilityLabel(sound.isPlaying ? "Turn sound off" : "Turn sound on")
                 }
                 Spacer()
+                Button("Help") { SettingsWindowOpener.shared.show(.help) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 10)
+                    .help("Questions and answers, with search")
                 Button("Settings") { SettingsWindowOpener.shared.show(timer.mode == .breathe ? .breathe : .focus) }
                     .buttonStyle(.borderless)
                     .help("Open the settings window")
@@ -502,7 +509,7 @@ struct MixerTab: View {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case focus = "Focus", breathe = "Breathe", general = "General", help = "How it works"
+    case focus = "Focus", breathe = "Breathe", general = "General", help = "Help and FAQ"
     var id: String { rawValue }
     var symbol: String {
         switch self {
@@ -524,6 +531,7 @@ struct SettingsTab: View {
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
     @AppStorage("allowLinks") private var allowLinks = true
+    @AppStorage("showTips") private var showTips = false
     @AppStorage("calmStartShortcut") private var calmStart = ""
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
@@ -541,7 +549,7 @@ struct SettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(section == .help ? "How it works" : section.rawValue).font(.title2.weight(.semibold))
+            Text(section.rawValue).font(.title2.weight(.semibold))
             if section != .help {
                 Text(section == .general
                      ? "Set Tarn up your way. Every option is optional, and nothing hides your apps or fills your screen unless you ask it to."
@@ -560,6 +568,13 @@ struct SettingsTab: View {
 
     private var general: some View {
         VStack(alignment: .leading, spacing: 14) {
+            GroupBox("Tips") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Show a short tip at the bottom of the window", isOn: $showTips)
+                    Text("Off by default. Tips change through the day and never make a sound.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.padding(.vertical, 4)
+            }
             GroupBox("Startup and windows") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
@@ -641,14 +656,64 @@ struct SettingsTab: View {
             }
             GroupBox("Rounds") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Pick a focus length on the Timer tab. Breaks scale with it.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Picker("Focus length", selection: Binding(get: { timer.focusMinutes }, set: { timer.setFocusMinutes($0) })) {
+                        ForEach(PomodoroTimer.focusChoices, id: \.self) { Text("\($0) min").tag($0) }
+                    }
+                    Text("Breaks scale with the focus length.").font(.caption).foregroundStyle(.secondary)
                     Picker("Breaks", selection: bind({ timer.breakStyle }, { timer.breakStyleRaw = $0.rawValue })) {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
                     Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Daily schedule") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Run focus rounds automatically each day", isOn: bind({ timer.scheduleEnabled }, { timer.scheduleEnabled = $0 }))
+                    if timer.scheduleEnabled {
+                        HStack {
+                            DatePicker("From", selection: minutesBinding(\.scheduleStart), displayedComponents: .hourAndMinute)
+                            DatePicker("until", selection: minutesBinding(\.scheduleEnd), displayedComponents: .hourAndMinute)
+                        }
+                        HStack(spacing: 4) {
+                            ForEach(0..<7, id: \.self) { d in
+                                let on = timer.scheduleDays & (1 << d) != 0
+                                Button(["S", "M", "T", "W", "T", "F", "S"][d]) {
+                                    timer.objectWillChange.send()
+                                    timer.scheduleDays ^= (1 << d)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(width: 26, height: 26)
+                                .background(Circle().fill(on ? Color.focusTint : Color.secondary.opacity(0.15)))
+                                .foregroundStyle(on ? Color.onTint : Color.primary)
+                            }
+                            Spacer(minLength: 8)
+                            Button("Workday") {
+                                timer.objectWillChange.send()
+                                timer.scheduleStart = 9 * 60; timer.scheduleEnd = 17 * 60; timer.scheduleDays = 0b0111110
+                            }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                            .help("9:00 to 17:00, Monday to Friday")
+                        }
+                    }
+                    Text(timer.scheduleEnabled
+                         ? "At the start time Tarn begins a focus round, then alternates focus and breaks by itself until the end time. It needs to be open: turn on Open at login in General. If Tarn opens more than 30 minutes late, that day's start is skipped."
+                         : "Off. Turn it on to have Tarn run focus and break rounds on its own, such as 9 to 5 on weekdays.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Sound while focusing") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Play sounds while I focus", isOn: $soundEnabled)
+                    if !soundEnabled { Text("Off. Focus is silent unless you turn this on.").font(.caption).foregroundStyle(.secondary) }
+                    if soundEnabled {
+                        Picker("Play during", selection: $scopeRaw) {
+                            ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
+                        }
+                        Text(scopeRaw == SoundScope.always.rawValue ? "Soft during work, fuller on breaks. Choose the mix on the Sounds tab." : "Choose the mix on the Sounds tab.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }.padding(.vertical, 4)
             }
             DisclosureGroup("Advanced") {
@@ -664,47 +729,9 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
-            GroupBox("Schedule") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Start work automatically on a schedule", isOn: bind({ timer.scheduleEnabled }, { timer.scheduleEnabled = $0 }))
-                    if timer.scheduleEnabled {
-                        HStack {
-                            DatePicker("From", selection: minutesBinding(\.scheduleStart), displayedComponents: .hourAndMinute)
-                            DatePicker("to", selection: minutesBinding(\.scheduleEnd), displayedComponents: .hourAndMinute)
-                        }
-                        HStack(spacing: 4) {
-                            ForEach(0..<7, id: \.self) { d in
-                                let on = timer.scheduleDays & (1 << d) != 0
-                                Button(["S", "M", "T", "W", "T", "F", "S"][d]) {
-                                    timer.objectWillChange.send()
-                                    timer.scheduleDays ^= (1 << d)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(width: 26, height: 26)
-                                .background(Circle().fill(on ? Color.focusTint : Color.secondary.opacity(0.15)))
-                                .foregroundStyle(on ? Color.onTint : Color.primary)
-                            }
-                        }
-                        Text("Rounds and breaks then run on their own between these times, on the days you pick. The app needs to be open.")
-                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    }
-                }.padding(.vertical, 4)
-            }
               }
             }
             .padding(.vertical, 2)
-            GroupBox("Background sound") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Play sounds while focusing", isOn: $soundEnabled)
-                    if soundEnabled {
-                        Picker("Play during", selection: $scopeRaw) {
-                            ForEach(SoundScope.allCases) { Text($0.rawValue).tag($0.rawValue) }
-                        }
-                        Text(scopeRaw == SoundScope.always.rawValue ? "Soft during work, fuller on breaks. Choose the mix on the Sounds tab." : "Choose the mix on the Sounds tab.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }.padding(.vertical, 4)
-            }
         }
     }
 
@@ -810,50 +837,137 @@ struct FocusPalette {
 enum HelpContent {
     static let sections: [(title: String, items: [(q: String, a: String)])] = [
         ("Getting started", [
-            ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking."),
+            ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. It is free, with no account and no tracking."),
+            ("Where do I find things?", "Click the flower in the menu bar. The switch at the top moves between Focus and Breathe. Help, Settings and Quit are along the bottom. Settings has four sections: Focus, Breathe, General, and this Help."),
+            ("I cannot find the menu bar icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, General, and turn on Show Tarn in the Dock, then click the Dock icon to open a window. You can also run tarnctl window in Terminal."),
+        ]),
+        ("Focus", [
             ("How do I start a round?", "Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes."),
-            ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. Tap it to change it. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break."),
-            ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings."),
+            ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break."),
+            ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. The break waits until you start it. When it ends, the next round starts on its own unless you turn that off in Settings, Focus."),
+            ("Can Tarn run my day for me?", "Yes. In Settings, Focus, open Daily schedule. Turn it on, choose a start and end time and the days, or press Workday for 9 to 5 on weekdays. Tarn then alternates focus and breaks until the end time. It needs to be open, so turn on Open at login in General."),
+            ("Can I silence notifications while I focus?", "Yes. In Settings, Focus, Advanced, name two Shortcuts from the Shortcuts app, one that turns a Focus mode on and one that turns it off. Tarn runs them when a round starts and ends."),
+            ("Does the timer pause by itself?", "Yes, when your Mac sleeps or locks. You can turn that off in Settings, Focus, Advanced."),
         ]),
         ("Breathe", [
-            ("How do I use Breathe?", "Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it."),
-            ("What are Settle, Deep, Box and 4 7 8?", "Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8."),
-            ("What does Full screen do?", "It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix."),
-            ("What is Calm mode?", "One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb."),
-            ("Where did the controls go?", "While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound, including a full sound mixer."),
-            ("What is a Session?", "Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too."),
-            ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
+            ("How do I use Breathe?", "Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it. The sound and any session clock pause too."),
+            ("What are Settle, Deep, Box and 4 7 8?", "They are breathing rhythms. Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8. Choose one in Options under Rhythm, or in Settings, Breathe."),
+            ("What is a session?", "In Options choose a session length of 1, 3, 5, 10 or 20 minutes, or No timer to keep going. When it ends, the sound fades out, which is your quiet cue that it is time to get back. You can keep the sound playing in Settings, Breathe. It works as a simple meditation timer too."),
+            ("Does Breathe play sound?", "Yes, a soft sound by default, starting when you open Breathe, begin a session or use Calm mode. Switch it off with the speaker button, in Options, or in Settings, Breathe, Sound."),
+            ("How do I go full screen?", "Press the small expand button next to Options, or choose Full screen in Options under More. Click anywhere, press Esc, or use Close to go back. The buttons in the top right corner turn sound on or off and pick a mix."),
+            ("What is Calm mode?", "One button for full screen, your last sound mix and Hide other apps. When you leave, the sound fades out unless you keep it playing in Settings. Add two Shortcuts in Settings, Breathe if you also want Do Not Disturb."),
+            ("What does Hide other apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Choose Bring back hidden apps in Options, or start a focus round, and they return. Quitting Tarn brings them back too. You can switch full screen and hiding off completely in Settings, Breathe, Screen and apps."),
+            ("Where did the controls go?", "While you breathe and the mouse is still, the controls fade and the picture grows to fill the window. Move the mouse and the controls come back."),
         ]),
         ("Sounds", [
-            ("How do I turn sounds on?", "In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings."),
+            ("How do I turn sounds on in Focus?", "Open the Sounds tab, pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Focus is silent unless you turn sounds on, and Settings, Focus, Sound while focusing lets Tarn play them for you during rounds."),
+            ("How do I change the sound in Breathe?", "Open Options, then Sound. Pick a preset, or choose Mix sounds for sliders."),
         ]),
-        ("Good to know", [
-            ("I cannot find the icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, then Open in a window, or turn on Show Tarn in the Dock."),
-            ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats."),
+        ("Privacy and extras", [
+            ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats. There is no account, no tracking and no network use."),
             ("Which Macs does it support?", "macOS 14 or later, on Apple silicon and Intel."),
-            ("Can I control it from Terminal?", "Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full."),
+            ("Can I control it from Terminal?", "Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full. You can switch this off in Settings, General."),
+            ("What are Tips?", "Short hints at the bottom of the window. They are off by default. Turn them on in Settings, General, Tips."),
         ]),
     ]
 }
 
+/// The FAQ: searchable, with each answer tucked under its question so the page stays easy to scan.
 struct HelpTab: View {
     var showTitle = true
+    @State private var query = ""
+    @State private var open: Set<String> = []
+
+    private func matches(_ item: (q: String, a: String)) -> Bool {
+        let words = query.lowercased().split(separator: " ")
+        guard !words.isEmpty else { return true }
+        let hay = (item.q + " " + item.a).lowercased()
+        return words.allSatisfy { hay.contains($0) }
+    }
+
     var body: some View {
+        let searching = !query.trimmingCharacters(in: .whitespaces).isEmpty
         VStack(alignment: .leading, spacing: 14) {
-            if showTitle { Text("How it works").font(.headline) }
-            ForEach(Array(HelpContent.sections.enumerated()), id: \.offset) { _, section in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(section.title.uppercased()).font(.caption2.weight(.semibold)).tracking(1.2).foregroundStyle(.secondary)
-                    ForEach(Array(section.items.enumerated()), id: \.offset) { _, item in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.q).font(.callout.weight(.medium))
-                            Text(item.a).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            if showTitle { Text("Help and FAQ").font(.headline) }
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("Search help", text: $query).textFieldStyle(.plain)
+                if searching {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                        .buttonStyle(.plain).accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.14)))
+
+            let visible = HelpContent.sections.map { sec in (sec.title, sec.items.filter(matches)) }.filter { !$0.1.isEmpty }
+            if visible.isEmpty {
+                Text("Nothing matches \u{201C}\(query)\u{201D}. Try a simpler word, like sound, break or screen.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, section in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(section.0.uppercased()).font(.caption2.weight(.semibold)).tracking(1.2).foregroundStyle(.secondary)
+                    ForEach(Array(section.1.enumerated()), id: \.offset) { _, item in
+                        let expanded = searching || open.contains(item.q)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Button {
+                                if open.contains(item.q) { open.remove(item.q) } else { open.insert(item.q) }
+                            } label: {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(item.q).font(.callout.weight(.medium)).multilineTextAlignment(.leading)
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
+                                        .rotationEffect(.degrees(expanded ? 90 : 0)).foregroundStyle(.secondary)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            if expanded {
+                                Text(item.a).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                            }
                         }
+                        .padding(.vertical, 2)
+                        Divider().opacity(0.5)
                     }
                 }
             }
+            Text("Full manual: docs/MANUAL.md in the Tarn repository.").font(.caption2).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One short, optional hint. Chosen by the hour, so it holds still while you work.
+enum Tips {
+    static let all = [
+        "Click the picture in Breathe to pause it. The sound pauses too.",
+        "Press the small expand button in Breathe to go full screen. Esc brings you back.",
+        "A 25 minute round with a 5 minute break is the classic Pomodoro. Try 45 for deeper work.",
+        "Breaks wait until you start them, so finish your thought first.",
+        "Daily schedule, in Settings, Focus, runs your whole day on its own.",
+        "Calm mode gives you full screen, sound and hidden apps in one button.",
+        "Rhythm in the Breathe Options menu changes the pace of your breath.",
+        "Name a Shortcut in Settings to switch on Do Not Disturb while you focus.",
+        "Breathe sessions end with the sound fading out. That is your cue to get back.",
+        "Tarn never speaks and never collects anything. Tips can be switched off in Settings.",
+    ]
+    static var current: String {
+        let n = Int(Date().timeIntervalSinceReferenceDate / 3600)
+        return all[n % all.count]
+    }
+}
+
+struct TipLine: View {
+    var body: some View {
+        Label(Tips.current, systemImage: "lightbulb")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .labelStyle(.titleAndIcon)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
     }
 }
 
