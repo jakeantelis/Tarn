@@ -66,7 +66,9 @@ final class FloatingCircle {
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        let host = FirstMouseHostingView(rootView: FloatingCircleView(timer: AppModel.shared.timer))
+        let hover = FloatingHover()
+        let host = FloatingHostingView(rootView: FloatingCircleView(timer: AppModel.shared.timer, hover: hover))
+        host.onHover = { [weak hover] inside in hover?.inside = inside }
         host.sizingOptions = []
         p.contentView = host
         panel = p
@@ -88,6 +90,28 @@ final class FloatingCircle {
     }
 }
 
+/// Whether the pointer is over the circle. Fed by a tracking area that works even when Tarn is not the front app.
+@MainActor
+final class FloatingHover: ObservableObject {
+    @Published var inside = ProcessInfo.processInfo.environment["TARN_PREVIEW_HOVER"] == "1"   // the variable is only for taking preview pictures
+}
+
+/// Hosts the circle and reports the pointer entering and leaving, even while another app is in front.
+final class FloatingHostingView<Content: View>: NSHostingView<Content> {
+    var onHover: ((Bool) -> Void)?
+    private var area: NSTrackingArea?
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area { removeTrackingArea(area) }
+        let a = NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self, userInfo: nil)
+        addTrackingArea(a)
+        area = a
+    }
+    override func mouseEntered(with event: NSEvent) { onHover?(true) }
+    override func mouseExited(with event: NSEvent) { onHover?(false) }
+}
+
 /// The picture inside the floating circle: frosted glass, a fine edge light, and a soft shadow.
 struct FloatingCircleView: View {
     @ObservedObject var timer: PomodoroTimer
@@ -95,12 +119,13 @@ struct FloatingCircleView: View {
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
     @State private var start = Date()
-    @State private var hovering = ProcessInfo.processInfo.environment["TARN_PREVIEW_HOVER"] == "1"   // only for taking preview pictures
+    @ObservedObject var hover: FloatingHover
     @ObservedObject private var sound = AppModel.shared.sound
 
     private var d: CGFloat { FloatingCircle.diameter(forSize: sizeChoice) }
     private var pattern: BreathPattern { BreathPattern.all.first { $0.id == patternID } ?? .settle }
     private var isBreathe: Bool { timer.mode == .breathe }
+    private var hovering: Bool { hover.inside }
 
     var body: some View {
         ZStack {
@@ -118,7 +143,6 @@ struct FloatingCircleView: View {
         .animation(.easeInOut(duration: 0.5), value: isBreathe)
         .padding(FloatingCircle.margin)
         .contentShape(Circle().inset(by: FloatingCircle.margin))
-        .onHover { hovering = $0 }
         .onTapGesture { if !isBreathe { timer.toggle() } }
         .help(isBreathe ? "Drag to move" : "Click to start or pause. Drag to move.")
         .contextMenu {
@@ -149,7 +173,7 @@ struct FloatingCircleView: View {
         .buttonStyle(.plain)
         .contentShape(Circle().inset(by: -6))
         .padding(d * 0.03)
-        .opacity(hovering ? 1 : 0)
+        .opacity(hovering ? 1 : 0.5)
         .animation(.easeOut(duration: 0.2), value: hovering)
         .help("Hide the floating circle. Turn it back on in Settings, Focus.")
         .accessibilityLabel("Hide floating circle")
