@@ -5,7 +5,6 @@ A polish pass on the floating circle.
 - The ring now sits at the edge of the circle, with no dark band around it
 - The close button is a quiet small X until you hover, then it becomes a clear button
 - A little more room around the time at the small size, and a larger breathing picture
-- The close button now sits inside the circle, so all of it can be clicked
 
 ## Tarn 0.2.0
 
