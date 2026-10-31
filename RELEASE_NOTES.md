@@ -13,4 +13,5 @@ First release. A free, open source Mac app made by Antelis Labs, no account and 
 - **Help:** a searchable FAQ in the app, plus optional tips (off by default)
 - **Install:** drag to Applications, or open Tarn from the disk image and let it move itself. One click installs `tarnctl` from Settings
 - A quick actions menu in the window, and a daily schedule with a one tap Workday preset
-- Never speaks, never collects anything, never touches the network
+- **Check for updates:** a button in Settings. Tarn only goes online when you press it, and it sends nothing about you
+- Never speaks and never collects anything

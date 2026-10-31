@@ -559,6 +559,7 @@ struct SettingsTab: View {
     @AppStorage("showInDock") private var showInDock = false
     @AppStorage("allowLinks") private var allowLinks = true
     @AppStorage("showTips") private var showTips = false
+    @StateObject private var updates = UpdateChecker()
     @State private var cliInstalled = CommandLineTool.isInstalled
     @State private var cliFailed = false
     @AppStorage("calmStartShortcut") private var calmStart = ""
@@ -597,6 +598,31 @@ struct SettingsTab: View {
 
     private var general: some View {
         VStack(alignment: .leading, spacing: 14) {
+            GroupBox("Updates") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Text("Tarn \(UpdateChecker.currentVersion)")
+                        Spacer()
+                        switch updates.state {
+                        case .available(_, let url):
+                            Button("Download") { NSWorkspace.shared.open(url) }.buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+                        default:
+                            Button(updates.state == .checking ? "Checking…" : "Check for updates") { updates.check() }
+                                .buttonStyle(CapsuleButtonStyle(small: true)).disabled(updates.state == .checking)
+                        }
+                    }
+                    switch updates.state {
+                    case .upToDate: Label("You are up to date.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .available(let v, _): Label("Version \(v) is available.", systemImage: "arrow.down.circle.fill").foregroundStyle(Color.accentColor)
+                    case .failed:
+                        Text("Could not check right now. Try again later, or look on the [releases page](\(UpdateChecker.releasesPage.absoluteString)).")
+                            .font(.caption).foregroundStyle(.secondary)
+                    default: EmptyView()
+                    }
+                    Text("Tarn only goes online when you press Check for updates. It asks GitHub for the newest version and sends nothing about you. Nothing installs by itself: you download the new version and drag it over the old one.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
             GroupBox("Command line") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -901,6 +927,7 @@ enum HelpContent {
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. It is free, with no account and no tracking."),
             ("Where do I find things?", "Click the flower in the menu bar. The switch at the top moves between Focus and Breathe. Help, Settings and Quit are along the bottom. Settings has four sections: Focus, Breathe, General, and this Help."),
+            ("How do I update Tarn?", "Open Settings, General, Updates and press Check for updates. If a newer version exists, press Download, then drag the new Tarn over the old one in Applications. Tarn never checks by itself."),
             ("How do I install or move Tarn?", "Open the disk image and drag Tarn onto Applications. If you open Tarn straight from the disk image or Downloads, it offers once to move itself into Applications for you."),
             ("I cannot find the menu bar icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, General, and turn on Show Tarn in the Dock, then click the Dock icon to open a window. You can also run tarnctl window in Terminal."),
         ]),
@@ -927,7 +954,7 @@ enum HelpContent {
             ("How do I change the sound in Breathe?", "Open Options, then Sound. Pick a preset, or choose Mix sounds for sliders."),
         ]),
         ("Privacy and extras", [
-            ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats. There is no account, no tracking and no network use."),
+            ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats. There is no account and no tracking. Tarn only goes online when you press Check for updates."),
             ("Which Macs does it support?", "macOS 14 or later, on Apple silicon and Intel."),
             ("Can I control it from Terminal?", "Yes. Open Settings, General, Command line and press Install tarnctl. Then in Terminal run tarnctl start 45, tarnctl pause, tarnctl breathe, tarnctl calm or tarnctl status. tarnctl help lists everything. You can switch it off with Allow tarnctl in General."),
             ("What are Tips?", "Short hints at the bottom of the window. They are off by default. Turn them on in Settings, General, Tips."),

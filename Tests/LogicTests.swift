@@ -34,6 +34,15 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(!MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Applications/Tarn.app"), "never offers from ~/Applications")
         check(!MoveToApplications.shouldOffer(path: "/Users/dev/Projects/Tarn/build/Tarn.app"), "never offers for a development build")
 
+        print("Updates")
+        check(UpdateChecker.isNewer("v0.2.0", than: "0.1.0"), "0.2.0 is newer than 0.1.0")
+        check(UpdateChecker.isNewer("0.1.1", than: "0.1.0"), "0.1.1 is newer than 0.1.0")
+        check(UpdateChecker.isNewer("1.0", than: "0.9.9"), "1.0 is newer than 0.9.9")
+        check(!UpdateChecker.isNewer("0.1.0", than: "0.1.0"), "same version is not newer")
+        check(!UpdateChecker.isNewer("v0.1.0", than: "0.1"), "0.1.0 equals 0.1")
+        check(!UpdateChecker.isNewer("0.0.9", than: "0.1.0"), "older is not newer")
+        check(UpdateChecker.isNewer("0.2.0-beta", than: "0.1.0"), "a pre-release suffix is ignored")
+
         print("Timer")
         for k in ["mode", "focusMinutes", "soundEnabled"] { UserDefaults.standard.removeObject(forKey: k) }
         let t = PomodoroTimer()

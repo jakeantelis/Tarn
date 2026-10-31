@@ -70,7 +70,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 
 ## Requirements and caveats
 - macOS 14 (Sonoma) or later, on Apple silicon and Intel. Built and tested on macOS 27; older versions are expected to work but have not been tested on hardware.
-- Tarn needs no special permissions. It does not use the microphone, camera, location or the network.
+- Tarn needs no special permissions. It does not use the microphone, camera or location. It uses the network only when you press Check for updates in Settings, General, which asks GitHub for the newest version and sends nothing about you.
 - Hide apps uses the same hide as the Cmd+H shortcut. It never quits an app and never closes a document.
 - The Focus Shortcut hooks run the Shortcuts you name, so they can do anything a Shortcut can. Leave them blank if you do not use them.
 - The optional round reminder asks macOS for permission to show a quiet banner. Nothing is sent anywhere.
@@ -81,3 +81,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 ## Help and tips
 
 Click Help along the bottom of the Tarn window to open the searchable FAQ (also Settings, Help and FAQ). Tips are short hints at the bottom of the window. They are off by default and switch on in Settings, General, Tips.
+
+## Updates
+
+Open Settings, General, Updates and press Check for updates. Tarn never checks by itself. If a newer version exists, press Download, then drag the new Tarn over the old one in Applications.
