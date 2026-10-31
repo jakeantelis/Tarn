@@ -17,4 +17,4 @@ show_tab_view = False
 show_toolbar = False
 show_pathbar = False
 show_sidebar = False
-icon_locations = {"Tarn.app": (170, 215), "Applications": (490, 215)}
+icon_locations = {"Tarn.app": (170, 270), "Applications": (490, 270)}
