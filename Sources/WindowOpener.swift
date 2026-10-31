@@ -23,7 +23,7 @@ final class WindowOpener {
             let newHeight = w.frameRect(forContentRect: NSRect(x: 0, y: 0, width: 300, height: target)).height
             f.origin.y = f.maxY - newHeight          // keep the top edge where it is
             f.size.height = newHeight
-            w.setFrame(f, display: true, animate: false)
+            w.setFrame(f, display: true, animate: true)
         }
         pendingFit = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)

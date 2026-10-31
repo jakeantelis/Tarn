@@ -59,7 +59,7 @@ struct ContentView: View {
                 }
                 .frame(maxHeight: 460)
             } else {
-                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { timer.setMode($0) })) { $0.rawValue }
+                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in withAnimation(.easeInOut(duration: 0.4)) { timer.setMode(m) } })) { $0.rawValue }
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
                     .fadesWithChrome(chromeVisible)
 
@@ -77,6 +77,7 @@ struct ContentView: View {
                     }
                 }
 
+                Group {
                 switch effectiveTab {
                 case 0: TimerTab(timer: timer)
                 case 3: StatsTab(stats: StatsStore.shared)
@@ -105,6 +106,11 @@ struct ContentView: View {
                     }
                 default: MixerTab(sound: sound)
                 }
+                }
+                .id("\(timer.mode.rawValue)-\(effectiveTab)")
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.35), value: timer.mode)
+                .animation(.easeInOut(duration: 0.3), value: effectiveTab)
             }
 
             HStack {
@@ -136,6 +142,8 @@ struct ContentView: View {
         .environment(\.popoverActive, popoverActive)
         .environment(\.chromeVisible, chromeVisible)
         .onContinuousHover { phase in if case .active = phase { wake() } }
+        .onChange(of: timer.mode) { _, _ in wake() }
+        .onChange(of: tab) { _, _ in wake() }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Only while you are breathing, with nothing else open, and only after a few quiet seconds.
             let breathing = timer.mode == .breathe && effectiveTab == 1 && !showSettings && !showHelp && popoverActive
@@ -230,13 +238,19 @@ struct QuoteLine: View {
     let text: String
     var author: String? = nil
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 3) {
             Text("\u{201C}\(text)\u{201D}")
-                .font(.system(.caption, design: .serif).italic())
-            if let author { Text(author).font(.caption2) }
+                .font(.system(size: 13, design: .serif).italic())
+                .foregroundStyle(Color.primary.opacity(0.82))
+                .lineSpacing(2)
+            if let author {
+                Text(author.uppercased())
+                    .font(.system(size: 10, weight: .medium)).tracking(1.2)
+                    .foregroundStyle(Color.primary.opacity(0.55))
+            }
         }
-        .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
+        .padding(.horizontal, 6)
         .fixedSize(horizontal: false, vertical: true)
     }
 }
