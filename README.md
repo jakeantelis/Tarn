@@ -1,6 +1,6 @@
 # Tarn
 
-A tarn is a small, still mountain lake. Tarn is a calm Mac menu bar app for focus and for breathing.
+A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm Mac menu bar app for focus and for breathing: work in focused rounds, then breathe like still water.
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 

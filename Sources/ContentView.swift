@@ -127,7 +127,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
-        .frame(minHeight: welcomed ? 0 : 470)   // the welcome card needs room to show all of its text
+        .frame(minHeight: welcomed ? 0 : 500)   // the welcome card needs room to show all of its text
         .background(GeometryReader { g in Color.clear.preference(key: ContentHeightKey.self, value: g.size.height) })
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
@@ -200,6 +200,12 @@ struct Welcome: View {
                 Text("A tarn is a small, still mountain lake.")
                     .font(.system(.callout, design: .serif).italic())
                     .foregroundStyle(.secondary)
+                Text("Quiet enough to hold the sky. Work in focused rounds, then breathe like still water.")
+                    .font(.caption)
+                    .foregroundStyle(Color.primary.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 8)
             }
 
             // Two worlds, two clear choices. Focus is first and a little larger, because it is the main idea.
@@ -569,7 +575,7 @@ struct SettingsTab: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Tarn \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
                         .font(.callout.weight(.medium))
-                    Text("A tarn is a small, still mountain lake. Tarn is a calm place to focus, and to breathe.")
+                    Text("A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm place to focus, and to breathe.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Text("Free and open source, made by Antelis Labs. No account and no tracking. The recorded sounds are public domain (CC0) from BigSoundBank.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
