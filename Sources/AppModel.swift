@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Combine
 
 /// One shared instance of the timer and sound engine, so the menu bar UI and URL commands drive the same state.
 @MainActor
@@ -9,8 +10,18 @@ final class AppModel {
     let sound = SoundEngine()
     private var fullScreenForBreak = false
 
+    private var soundWatch: AnyCancellable?
+
     private init() {
         timer.onStateChange = { [weak self] in self?.timerChanged() }
+        // Once the sound stops for any reason, it is no longer "Breathe's" sound, so Focus never stops a mix you started later.
+        soundWatch = sound.$isPlaying.sink { [weak self] playing in if !playing { self?.startedForBreathe = false } }
+    }
+
+    /// Brings every hidden app back and drops the overlay, so quitting Tarn never leaves your screen changed.
+    func restoreScreen() {
+        BreatheOverlay.shared.close("quit")
+        ScreenClearer.shared.restore()
     }
 
     /// Keeps sound and full screen breathing in step with the timer, whatever started the change (window, shortcut or tarnctl).
@@ -105,6 +116,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if UserDefaults.standard.object(forKey: "welcomed") == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { WindowOpener.shared.show() }
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        MainActor.assumeIsolated { AppModel.shared.restoreScreen() }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

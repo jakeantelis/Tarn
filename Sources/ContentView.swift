@@ -221,7 +221,7 @@ struct Welcome: View {
             }
 
             VStack(spacing: 4) {
-                Text("Sound is off until you turn it on. Everything is yours to set up in [**Settings**](tarn://settings).")
+                Text("Focus is silent. Breathe plays a soft sound you can switch off. Everything is yours to set up in [**Settings**](tarn://settings).")
                     .font(.caption).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -532,6 +532,7 @@ struct SettingsTab: View {
     @AppStorage("keepSoundAfterSession") private var keepSound = false
     @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("guideMe") private var guideMe = false
+    @AppStorage("breathPattern") private var breathPattern = "settle"
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
     @AppStorage("soundScope") private var scopeRaw = SoundScope.always.rawValue
@@ -711,11 +712,38 @@ struct SettingsTab: View {
 
     private var breathe: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Visual") {
-                PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
-                    .padding(.vertical, 4)
+            GroupBox("Sound") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Play a soft sound when I breathe", isOn: $breatheSound)
+                    Toggle("Keep the sound playing when a session or Calm ends", isOn: $keepSound)
+                    Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off here, with the speaker button, or in the Options menu. Pick or mix sounds from Options on the Breathe screen.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
             }
-            GroupBox("Calm mode") {
+            GroupBox("Look and rhythm") {
+                VStack(alignment: .leading, spacing: 8) {
+                    PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
+                    Picker("Rhythm", selection: $breathPattern) {
+                        ForEach(BreathPattern.all) { Text("\($0.name): \($0.short)").tag($0.id) }
+                    }
+                    Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
+                    Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Screen and apps") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Allow full screen and hiding apps", isOn: $allowTakeover)
+                    Group {
+                        Toggle("Offer full screen when I turn sound on", isOn: $offerFullScreen)
+                        Toggle("Hide other apps in full screen", isOn: $hideOthers)
+                        Toggle("Fill the screen on Focus breaks", isOn: Binding(get: { timer.fullScreenBreaks }, set: { timer.objectWillChange.send(); timer.fullScreenBreaks = $0 }))
+                    }
+                    .disabled(!allowTakeover)
+                    Text("Off means Tarn never covers your screen or hides another app. Apps are only ever hidden, never quit, and they come back when you leave.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Calm mode shortcuts") {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("Shortcut when Calm starts", text: $calmStart)
                     TextField("Shortcut when Calm ends", text: $calmEnd)
@@ -727,37 +755,7 @@ struct SettingsTab: View {
                         }
                         .buttonStyle(CapsuleButtonStyle(small: true))
                     }
-                    Text("To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
-                    Toggle("Keep sound playing after Calm or a session ends", isOn: $keepSound)
-
-                }.padding(.vertical, 4)
-            }
-            GroupBox("Screen and apps") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Allow full screen and hiding apps", isOn: $allowTakeover)
-                    Group {
-                        Toggle("Offer full screen when sounds start", isOn: $offerFullScreen)
-                        Toggle("Hide other apps in full screen", isOn: $hideOthers)
-                        Toggle("Fill the screen on breaks", isOn: Binding(get: { timer.fullScreenBreaks }, set: { timer.objectWillChange.send(); timer.fullScreenBreaks = $0 }))
-                    }
-                    .disabled(!allowTakeover)
-                    Text("Off means Tarn never covers your screen or hides another app. Apps are only ever hidden, never quit, and they come back when you leave.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                }.padding(.vertical, 4)
-            }
-            GroupBox("Guidance") {
-                VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Show gentle prompts while I breathe", isOn: $guideMe)
-                    Text("Short written lines that change every half minute. Tarn never speaks.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                }.padding(.vertical, 4)
-            }
-            GroupBox("Sound") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Play a soft sound when I breathe", isOn: $breatheSound)
-                    Text("Starts when you open Breathe, begin a session or use Calm mode. On by default, so it feels relaxing. Turn it off here, or with the speaker button in Calm mode and the Options menu. Mix your own on the Sounds tab.")
+                    Text("Optional. To silence notifications, make two Shortcuts with the Set Focus action: one that turns Do Not Disturb on and one that turns it off. Leave these blank to skip.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -829,7 +827,7 @@ enum HelpContent {
             ("What does Hide apps do?", "It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return. You can switch full screen and hiding off completely in Breathe settings."),
         ]),
         ("Sounds", [
-            ("How do I turn sounds on?", "In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them."),
+            ("How do I turn sounds on?", "In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings."),
         ]),
         ("Good to know", [
             ("I cannot find the icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, then Open in a window, or turn on Show Tarn in the Dock."),

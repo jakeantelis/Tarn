@@ -45,7 +45,7 @@ It hides other apps' windows so you can breathe. It never quits anything. Press 
 ## Sounds
 
 **How do I turn sounds on?**  
-In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Sounds are off until you choose them.
+In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings, under Breathe.
 
 
 ## Good to know

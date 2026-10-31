@@ -30,14 +30,14 @@ final class BreatheOverlay {
             }
             hidden.forEach { $0.hide() }
         }
-        for (index, screen) in NSScreen.screens.enumerated() {
+        for screen in NSScreen.screens {
             let w = OverlayWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
             w.onEscape = { [weak self] in self?.close("escape or click") }
             w.level = .screenSaver
             w.backgroundColor = .clear
             w.isOpaque = false
             w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            let host = FirstMouseHostingView(rootView: OverlayView(speaks: index == 0, onClose: { [weak self] in self?.close("close button") }))
+            let host = FirstMouseHostingView(rootView: OverlayView(onClose: { [weak self] in self?.close("close button") }))
             host.sizingOptions = []          // the window decides the size, never the content
             w.contentView = host
             w.setFrame(screen.frame, display: true)
@@ -109,7 +109,6 @@ final class OverlayWindow: NSWindow {
 
 struct OverlayView: View {
     @ObservedObject private var sound = AppModel.shared.sound
-    let speaks: Bool
     let onClose: () -> Void
     @AppStorage("breathPattern") private var patternID = "settle"
     @AppStorage("guideMe") private var guideMe = false
