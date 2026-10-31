@@ -93,7 +93,7 @@ final class FloatingCircle {
 /// Whether the pointer is over the circle. Fed by a tracking area that works even when Tarn is not the front app.
 @MainActor
 final class FloatingHover: ObservableObject {
-    @Published var inside = ProcessInfo.processInfo.environment["TARN_PREVIEW_HOVER"] == "1"   // the variable is only for taking preview pictures
+    @Published var inside = false
 }
 
 /// Hosts the circle and reports the pointer entering and leaving, even while another app is in front.
@@ -137,7 +137,7 @@ struct FloatingCircleView: View {
             .clipShape(Circle())
         }
         .frame(width: d, height: d)
-        .overlay(alignment: .topTrailing) { closeButton }
+        .overlay { closeButton.offset(x: d * 0.238, y: -d * 0.283) }   // inside the round edge, so every part of it can be clicked
         .scaleEffect(hovering && !isBreathe ? 1.04 : 1)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hovering)
         .animation(.easeInOut(duration: 0.5), value: isBreathe)
@@ -171,9 +171,8 @@ struct FloatingCircleView: View {
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
-        .contentShape(Circle().inset(by: -6))
-        .padding(d * 0.03)
-        .opacity(hovering ? 1 : 0.5)
+        .contentShape(Circle())
+        .opacity(hovering ? 1 : 0.55)
         .animation(.easeOut(duration: 0.2), value: hovering)
         .help("Hide the floating circle. Turn it back on in Settings, Focus.")
         .accessibilityLabel("Hide floating circle")
