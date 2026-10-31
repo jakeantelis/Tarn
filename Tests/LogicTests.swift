@@ -112,6 +112,28 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check((e.levels[.ocean] ?? 0) == 0, "quietest sound steps aside")
         check(SoundPreset.all.allSatisfy { $0.mix.filter { $0.value > 0 }.count <= SoundEngine.maxLayers }, "all presets within the cap")
 
+        print("Sound keeps playing into full screen")
+        // Full screen and Calm mode switch the app to Breathe. That change must never cut sound that is already playing.
+        let d = UserDefaults.standard
+        for enabled in [false, true] {
+            for scope in SoundScope.allCases {
+                d.set(enabled, forKey: "soundEnabled"); d.set(scope.rawValue, forKey: "soundScope")
+                let manual = SoundEngine()
+                manual.play()
+                manual.sync(mode: .breathe, phase: .work, timerRunning: false)
+                check(manual.isPlaying, "mix you started by hand keeps playing (timer sound \(enabled ? "on" : "off"), scope \(scope.rawValue))")
+                manual.stop()
+            }
+        }
+        d.set(true, forKey: "soundEnabled"); d.set(SoundScope.focus.rawValue, forKey: "soundScope")
+        let timed = SoundEngine()
+        timed.sync(mode: .pomodoro, phase: .work, timerRunning: true)
+        check(timed.isPlaying, "timer driven sound starts with a Focus round")
+        timed.sync(mode: .breathe, phase: .work, timerRunning: true)
+        check(timed.isPlaying, "timer driven sound keeps playing when the app switches to Breathe mid round")
+        timed.stop()
+        d.removeObject(forKey: "soundEnabled"); d.removeObject(forKey: "soundScope")
+
         print("Stats")
         let st = StatsStore.shared
         let before = st.today.rounds
