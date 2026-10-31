@@ -49,7 +49,7 @@ struct ContentView: View {
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
 
                 PillPicker(items: timer.mode.hasTimer ? [0, 3, 2] : [1, 2],
-                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Breathe")) }
+                           selection: Binding(get: { effectiveTab }, set: { tab = $0 })) { $0 == 2 ? "Sounds" : ($0 == 3 ? "Stats" : ($0 == 0 ? "Timer" : "Practice")) }
                     .padding(.horizontal, 30)
 
                 switch effectiveTab {
@@ -69,6 +69,10 @@ struct ContentView: View {
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(Capsule().fill(Color.secondary.opacity(0.14)))
                             .transition(.opacity)
+                            .task {
+                                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                                withAnimation { fullScreenOfferDismissed = true }
+                            }
                         }
                         BreathingView()
                         let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
@@ -230,7 +234,7 @@ struct TimerTab: View {
                 ZStack {
                     LensView(progress: timer.progress, running: timer.isRunning)
                     VStack(spacing: 6) {
-                        Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS  \u{B7}  \(timer.completedRounds % timer.roundsPerSet + 1) of \(timer.roundsPerSet)")
+                        Text(timer.phase.isBreak ? timer.phase.rawValue.uppercased() : "FOCUS")
                             .font(.caption.weight(.semibold))
                             .tracking(1.5)
                             .padding(.horizontal, 10).padding(.vertical, 3)
@@ -247,6 +251,7 @@ struct TimerTab: View {
                         }
                         .font(.caption)
                         .foregroundStyle(timer.isRunning && !hoveringLens ? Color.secondary : Color.primary.opacity(0.85))
+                        RoundDots(timer: timer).padding(.top, 2)
                     }
                 }
                 .frame(width: 200, height: 200)
@@ -679,7 +684,7 @@ enum HelpContent {
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking."),
             ("How do I start a round?", "Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes."),
-            ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. Tap it to change it. \"1 of 4\" is the round you are on. After the last round you get a longer break."),
+            ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. Tap it to change it. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break."),
             ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings."),
         ]),
         ("Breathe", [
@@ -719,5 +724,32 @@ struct HelpTab: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Your place in the set, as quiet dots: filled for finished rounds, a ring for the one you are on.
+struct RoundDots: View {
+    @ObservedObject var timer: PomodoroTimer
+    private var done: Int {
+        let n = timer.roundsPerSet
+        if timer.phase == .longBreak { return n }
+        return timer.completedRounds % n
+    }
+
+    var body: some View {
+        let total = timer.roundsPerSet
+        HStack(spacing: 6) {
+            ForEach(0..<total, id: \.self) { i in
+                let isDone = i < done
+                let isCurrent = !timer.phase.isBreak && i == done
+                Circle()
+                    .fill(isDone ? Color.focusTint : Color.clear)
+                    .overlay(Circle().stroke(Color.focusTint.opacity(isCurrent ? 0.95 : 0.35), lineWidth: isCurrent ? 1.6 : 1))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Round \(min(done + (timer.phase.isBreak ? 0 : 1), total)) of \(total)")
+        .help("Rounds in this set. After the last one you get a longer break.")
     }
 }

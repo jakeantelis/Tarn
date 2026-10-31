@@ -12,7 +12,7 @@ struct TarnApp: App {
             ContentView(timer: timer, sound: sound)
         } label: {
             HStack(spacing: 4) {
-                if timer.mode.hasTimer && (timer.isRunning || timer.remaining < timer.duration(for: timer.phase)) {
+                if timer.isRunning || (timer.mode.hasTimer && timer.remaining < timer.duration(for: timer.phase)) {
                     Image(nsImage: Self.ringIcon(progress: timer.progress))
                     if !timer.hideCountdown { Text(timer.clockText).monospacedDigit() }
                 } else {

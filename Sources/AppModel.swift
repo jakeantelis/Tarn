@@ -16,7 +16,6 @@ final class AppModel {
     /// Keeps sound and full screen breathing in step with the timer, whatever started the change (window, shortcut or tarnctl).
     private func timerChanged() {
         sound.sync(mode: timer.mode, phase: timer.phase, timerRunning: timer.isRunning)
-        guard timer.mode.hasTimer else { return }
         if timer.fullScreenBreaks, timer.isRunning, timer.phase.isBreak, !BreatheOverlay.shared.isShowing {
             fullScreenForBreak = true
             BreatheOverlay.shared.show()

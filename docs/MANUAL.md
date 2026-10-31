@@ -12,7 +12,7 @@ A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a 
 Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes.
 
 **What does the length pill mean?**  
-The small pill under the circle is the length of one focus round. Tap it to change it. "1 of 4" is the round you are on. After the last round you get a longer break.
+The small pill under the circle is the length of one focus round. Tap it to change it. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break.
 
 **What happens on a break?**  
 The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings.

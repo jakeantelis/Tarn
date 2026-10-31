@@ -68,6 +68,7 @@ struct BreathingView: View {
     @Environment(\.popoverActive) private var active
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
+    @ObservedObject private var sound = AppModel.shared.sound
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
@@ -125,14 +126,14 @@ struct BreathingView: View {
                 Menu {
                     ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
                         Button { setCoach(m) } label: {
-                            if coachMinutes == m { Label(m == 0 ? "Open, no end" : "\(m) minutes", systemImage: "checkmark") }
-                            else { Text(m == 0 ? "Open, no end" : "\(m) minutes") }
+                            if coachMinutes == m { Label(m == 0 ? "No timer" : "\(m) minutes", systemImage: "checkmark") }
+                            else { Text(m == 0 ? "No timer" : "\(m) minutes") }
                         }
                     }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "timer")
-                        Text(coachMinutes == 0 ? "Open" : "\(coachMinutes) min")
+                        Text(coachMinutes == 0 ? "No timer" : "\(coachMinutes) min")
                         Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
                     }
                     .font(.caption)
@@ -140,7 +141,7 @@ struct BreathingView: View {
                     .background(Capsule().fill(Color.secondary.opacity(0.18)))
                 }
                 .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-                .help("Session length: Open keeps going until you stop")
+                .help("Session length. No timer keeps going until you stop.")
                 Menu {
                     ForEach(BreathStyle.allCases) { st in
                         Button {
@@ -161,6 +162,24 @@ struct BreathingView: View {
                 }
                 .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
                 .help("Choose the look: Flower or Water")
+                Menu {
+                    ForEach(SoundPreset.all) { p in
+                        Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
+                    }
+                    Divider()
+                    Button("Sound off") { sound.stop() }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.slash")
+                        Text(sound.isPlaying ? "On" : "Off")
+                        Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(sound.isPlaying ? Color.accentColor.opacity(0.35) : Color.secondary.opacity(0.18)))
+                }
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
+                .help("Background sound. It stays off until you choose one.")
                 }
             }
 
@@ -224,22 +243,20 @@ struct BreathingView: View {
                     .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
                     .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
                 }
-                HStack(spacing: 6) {
+                // Quiet text actions under the main button, so the screen has one clear thing to press.
+                HStack(spacing: 14) {
                     if allowTakeover {
-                        Button { BreatheOverlay.shared.show() } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
-                            .buttonStyle(CapsuleButtonStyle(small: true))
-                            .help("Dim every screen so you can breathe. Esc leaves.")
-                        Button { cleared.isCleared ? cleared.restore() : cleared.clear() } label: {
-                            Label(cleared.isCleared ? "Bring back" : "Hide apps", systemImage: cleared.isCleared ? "rectangle.on.rectangle" : "rectangle.on.rectangle.slash")
-                        }
-                        .buttonStyle(CapsuleButtonStyle(prominent: cleared.isCleared, small: true))
-                        .help("Hides other windows. Nothing is quit.")
+                        Button("Full screen") { BreatheOverlay.shared.show() }
+                            .help("Dim every screen so you can breathe. Esc or a click returns.")
+                        Button(cleared.isCleared ? "Bring back" : "Hide apps") { cleared.isCleared ? cleared.restore() : cleared.clear() }
+                            .help("Hides other windows. Nothing is quit.")
                     }
-                    Button { guideMe.toggle() } label: { Label("Guide", systemImage: "text.bubble") }
-                        .buttonStyle(CapsuleButtonStyle(prominent: guideMe, small: true))
+                    Button(guideMe ? "Guide on" : "Guide") { guideMe.toggle() }
                         .help("Gentle prompts while you breathe")
                 }
+                .buttonStyle(.plain)
                 .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
     }

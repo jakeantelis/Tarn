@@ -156,7 +156,7 @@ final class SoundEngine: ObservableObject {
     /// stops sound that it started itself, so a mix you turned on by hand is left alone.
     func sync(mode: Mode, phase: Phase, timerRunning: Bool) {
         let d = UserDefaults.standard
-        guard d.bool(forKey: "soundEnabled"), mode.hasTimer else {
+        guard d.bool(forKey: "soundEnabled") else {
             if autoPlaying { autoPlaying = false; stop() }
             return
         }

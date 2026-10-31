@@ -55,7 +55,7 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         t.startWork(minutes: 60)
         check(t.phase == .work && t.effectiveMinutes == 60 && t.focusMinutes == 15 && t.isRunning && t.remaining == 3600, "startWork(60) from a break uses 60 for this session only")
         t.setMode(.breathe)
-        check(!t.isRunning && t.mode == .breathe, "switching to Breathe stops the timer")
+        check(t.isRunning && t.mode == .breathe, "switching to Breathe keeps a running round going")
         t.setMode(.pomodoro)
         check(t.nextLabel.contains("Break") || t.nextLabel.contains("break"), "next label: \(t.nextLabel)")
 
@@ -72,7 +72,7 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         m.handle(URL(string: "tarn://break")!)
         check(m.timer.phase.isBreak && m.timer.isRunning, "break twice stays in a break")
         m.handle(URL(string: "tarn://breathe")!)
-        check(m.timer.mode == .breathe && !m.timer.isRunning, "breathe")
+        check(m.timer.mode == .breathe, "breathe switches the view")
         m.handle(URL(string: "tarn://bogus")!)
         m.handle(URL(string: "https://example.com")!)
         check(true, "unknown and foreign URLs are ignored")

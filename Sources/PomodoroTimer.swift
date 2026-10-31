@@ -96,7 +96,7 @@ final class PomodoroTimer: ObservableObject {
     }
 
     private func checkSchedule() {
-        guard scheduleEnabled, mode.hasTimer else { return }
+        guard scheduleEnabled else { return }
         let cal = Calendar.current, now = Date()
         let weekday = cal.component(.weekday, from: now) - 1            // Sunday = 0
         guard scheduleDays & (1 << weekday) != 0 else { return }
@@ -150,15 +150,12 @@ final class PomodoroTimer: ObservableObject {
     /// Rounds before a long break.
     var roundsPerSet: Int { effectiveMinutes > 30 ? 3 : 4 }
 
+    /// Switching between Focus and Breathe only changes what you are looking at. A running round keeps going,
+    /// so you can breathe for a minute and come back to the same countdown.
     func setMode(_ new: Mode) {
         guard new != mode else { return }
-        stopTicker()
         mode = new
-        overrideMinutes = nil
         UserDefaults.standard.set(new.rawValue, forKey: "mode")
-        phase = .work
-        completedRounds = 0
-        remaining = duration(for: .work)
         onStateChange?()
     }
 
