@@ -49,7 +49,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in withAnimation(.easeInOut(duration: 0.4)) { timer.setMode(m) }; AppModel.shared.userChose(m) })) { $0.rawValue }
+                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in timer.setMode(m); AppModel.shared.userChose(m) })) { $0.rawValue }
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
                     .fadesWithChrome(chromeVisible)
 
@@ -100,9 +100,7 @@ struct ContentView: View {
                 }
                 }
                 .id("\(timer.mode.rawValue)-\(effectiveTab)")
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.35), value: timer.mode)
-                .animation(.easeInOut(duration: 0.3), value: effectiveTab)
+                .transition(.identity)   // switching screens snaps cleanly, with no overlapping crossfade
 
             HStack {
                 do {

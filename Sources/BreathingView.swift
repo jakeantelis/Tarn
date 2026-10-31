@@ -195,7 +195,21 @@ struct BreathingView: View {
     private var content: some View {
         VStack(spacing: 12) {
             if !compact {
-                optionsMenu.fadesWithChrome(chrome)
+                HStack(spacing: 8) {
+                    optionsMenu
+                    if allowTakeover {
+                        Button { BreatheOverlay.shared.show() } label: {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(7)
+                                .background(Circle().fill(Color.secondary.opacity(0.18)))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Full screen. Esc or a click brings you back.")
+                        .accessibilityLabel("Full screen")
+                    }
+                }
+                .fadesWithChrome(chrome)
             }
 
             TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil || still)) { ctx in
@@ -210,6 +224,9 @@ struct BreathingView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: compact ? 120 : 190)
+                // With the controls out of the way, the picture grows to fill the card.
+                .scaleEffect(!compact && !still && !chrome ? 1.3 : 1)
+                .animation(.easeInOut(duration: 0.9), value: chrome)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }
