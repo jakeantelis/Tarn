@@ -29,19 +29,10 @@ struct BreathPattern: Identifiable, Hashable {
 
     var blurb: String {
         switch id {
-        case "settle": return "Starts easy and slowly deepens over three minutes."
-        case "deep": return "In for 6, hold 2, out for 8. A slow, full breath."
-        case "box": return "In 4, hold 4, out 4, hold 4. Steady and even."
-        default: return "In for 4, hold 7, out for 8. Good for winding down."
-        }
-    }
-
-    var short: String {
-        switch id {
-        case "settle": return "eases deeper over 3 min"
-        case "deep": return "in 6, hold 2, out 8"
-        case "box": return "4 4 4 4"
-        default: return "in 4, hold 7, out 8"
+        case "settle": return "Starts easy and slowly deepens over three minutes. A good everyday choice."
+        case "deep": return "In for 6, a short pause, out for 8. A slow, full breath."
+        case "box": return "In for 4, hold 4, out for 4, hold 4. Steady and even."
+        default: return "In for 4, hold for 7, out for 8. Good for winding down."
         }
     }
 
@@ -127,8 +118,7 @@ struct BreathingView: View {
                     Button {
                         pattern = pt; start = Date()
                     } label: {
-                        let name = "\(pt.name)  \(pt.short)"
-                        if patternID == pt.id { Label(name, systemImage: "checkmark") } else { Text(name) }
+                        if patternID == pt.id { Label(pt.name, systemImage: "checkmark") } else { Text(pt.name) }
                     }
                 }
             }

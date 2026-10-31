@@ -809,8 +809,10 @@ struct SettingsTab: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
                     Picker("Rhythm", selection: $breathPattern) {
-                        ForEach(BreathPattern.all) { Text("\($0.name): \($0.short)").tag($0.id) }
+                        ForEach(BreathPattern.all) { Text($0.name).tag($0.id) }
                     }
+                    Text((BreathPattern.all.first { $0.id == breathPattern } ?? .settle).blurb)
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
                     Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
                 }.padding(.vertical, 4)
