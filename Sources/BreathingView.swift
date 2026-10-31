@@ -245,7 +245,7 @@ struct BreathingView: View {
     }
 }
 
-/// Matcha green bloom: soft petals open on the inhale and close on the exhale.
+/// Flower bloom: soft petals open on the inhale and close on the exhale.
 struct BloomCanvas: View {
     let scale: Double
     let time: Double
