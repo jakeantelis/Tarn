@@ -97,6 +97,8 @@ struct BreathingView: View {
     @State private var coachStart: Date? = nil
     @State private var coachDone = false
     @State private var burst = 0
+    @State private var pausedFrom: Date? = nil
+    @State private var soundWasOn = false
 
     var body: some View {
         content
@@ -211,8 +213,18 @@ struct BreathingView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }
-                    if let p = pausedAt { start = Date().addingTimeInterval(-p); pausedAt = nil }
-                    else { pausedAt = Date().timeIntervalSince(start) }
+                    if let p = pausedAt {
+                        // Resume: the breath, the session clock and the sound all pick up where they stopped.
+                        start = Date().addingTimeInterval(-p)
+                        if let at = pausedFrom, coachStart != nil { coachStart = coachStart?.addingTimeInterval(Date().timeIntervalSince(at)) }
+                        pausedAt = nil; pausedFrom = nil
+                        if soundWasOn { soundWasOn = false; sound.play() }
+                    } else {
+                        // Pause: the sound stops too, so a paused session is really quiet.
+                        pausedAt = Date().timeIntervalSince(start); pausedFrom = Date()
+                        soundWasOn = sound.isPlaying
+                        if soundWasOn { sound.stop() }
+                    }
                 }
                 .help(compact ? "" : (pausedAt == nil ? "Click to pause" : "Click to resume"))
 
