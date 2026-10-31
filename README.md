@@ -6,6 +6,8 @@ A tarn is a small, still mountain lake. Tarn is a calm Mac menu bar app for focu
 
 Free and open source. No account, no tracking. Made by Antelis Labs.
 
+<p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
+
 <p align="center"><img src="docs/images/breathe.gif" alt="The breathing picture opening and closing, as a flower and as water" width="420"></p>
 
 ## What it does

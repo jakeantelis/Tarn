@@ -127,6 +127,7 @@ struct ContentView: View {
         }
         .padding(16)
         .frame(width: 300)
+        .frame(minHeight: welcomed ? 0 : 590)   // the welcome card needs room to show all of its text
         .background(GeometryReader { g in Color.clear.preference(key: ContentHeightKey.self, value: g.size.height) })
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)
@@ -190,9 +191,15 @@ struct Welcome: View {
     let done: (Mode) -> Void
     var body: some View {
         VStack(spacing: 14) {
-            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
-                .resizable().frame(width: 64, height: 64)
-                .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+            ZStack {
+                // A soft halo that runs from the Focus red to the Breathe blue: both worlds in one mark.
+                Circle()
+                    .fill(AngularGradient(colors: [Color.focusTint, Color.breatheTint, Color.focusTint], center: .center))
+                    .frame(width: 84, height: 84).blur(radius: 16).opacity(0.55)
+                Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                    .resizable().frame(width: 64, height: 64)
+                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+            }
             Text("Welcome to Tarn").font(.title3.weight(.medium))
             Text("A tarn is a small, still mountain lake.")
                 .font(.system(.callout, design: .serif).italic())
@@ -201,11 +208,17 @@ struct Welcome: View {
                 Label("**Focus** runs Pomodoro rounds for work or study. Breaks open into gentle breathing.", systemImage: "timer")
                 Label("**Breathe** is a calm animation any time, no timer needed.", systemImage: "wind")
                 Label("**Sounds** are optional and off until you turn them on.", systemImage: "speaker.wave.2")
-                Label("Everything is yours to set up in **Settings**.", systemImage: "slider.horizontal.3")
+                Label("Everything is yours to set up in [**Settings**](tarn://settings).", systemImage: "slider.horizontal.3")
             }
             .font(.callout)
             .labelStyle(.titleAndIcon)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
+            .environment(\.openURL, OpenURLAction { url in
+                // The word Settings above is a link that opens the Settings window.
+                if url.scheme == "tarn" { SettingsWindowOpener.shared.show(.focus); return .handled }
+                return .systemAction
+            })
             QuoteLine(text: Lines.focus[0].text, author: Lines.focus[0].author)
                 .padding(.top, 6)
             VStack(spacing: 8) {
@@ -214,13 +227,21 @@ struct Welcome: View {
                     .tint(Color.focusTint)
                     .keyboardShortcut(.defaultAction)
                 Button { done(.breathe) } label: { Text("Just breathe").frame(maxWidth: .infinity) }
-                    .buttonStyle(CapsuleButtonStyle())
+                    .buttonStyle(CapsuleButtonStyle(prominent: true))
+                    .tint(Color.breatheTint)
             }
             .padding(.top, 6)
         }
         .padding(22)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.regularMaterial)
+        .background {
+            ZStack {
+                Rectangle().fill(.regularMaterial)
+                // Warm Focus red in one corner, calm Breathe blue in the other, blending in the middle.
+                LinearGradient(colors: [Color.focusTint.opacity(0.30), Color.breatheTint.opacity(0.30)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
     }
 }
 
