@@ -137,6 +137,7 @@ struct ContentView: View {
         .environment(\.chromeVisible, chromeVisible)
         .onContinuousHover { phase in if case .active = phase { wake() } }
         .onChange(of: timer.mode) { _, _ in wake() }
+        .onChange(of: popoverActive) { _, active in if active { wake() } }   // opening the popover always shows the controls
         .onChange(of: tab) { _, _ in wake() }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Only while you are breathing, with nothing else open, and only after a few quiet seconds.
