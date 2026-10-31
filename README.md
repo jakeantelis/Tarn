@@ -18,11 +18,15 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
+**Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
+
+![The floating circle in Focus and in Breathe](docs/images/floating-circle.png)
+
 **Calm mode.** One button for full screen, your last sound mix and Hide other apps, which only hides and never quits anything. Click anywhere or press Esc to return, and the sound fades out as your cue to get back. One switch in Settings turns full screen and hiding off completely.
 
 **Sounds.** Recorded ambient loops (ocean, forest, birds and stream) with presets, a mixer and a fade out timer. Focus is silent until you turn sounds on.
 
-**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except when you press Check for updates. It never speaks, and it never covers your screen unless you ask.
+**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except when you press Check for updates. It never speaks, and it never fills your screen unless you ask.
 
 ### A closer look
 

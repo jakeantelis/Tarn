@@ -18,6 +18,9 @@ The small pill under the circle is the length of one focus round. Tap it to chan
 The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings.
 
 
+## Floating circle
+A small frosted circle stays above your other windows. In Focus it shows the time, and in Breathe it shows the breathing picture. Click it to start or pause, hover for a sound button, and drag it anywhere. Close it with the X, or right click it for more. Change its size, or turn it off, in Settings, Focus, or from the three dots menu. It steps aside in full screen.
+
 ## Breathe
 
 **How do I use Breathe?**  
