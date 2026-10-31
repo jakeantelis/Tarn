@@ -2,7 +2,7 @@
 # Needs Pillow. The mid tone blue keeps Finder's icon labels readable in both light and dark appearance.
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import math, os, subprocess
-W, H = 660, 420
+W, H = 660, 440
 S = 2   # draw once at 2x, then also make the 1x version
 
 def make(scale):
@@ -18,21 +18,25 @@ def make(scale):
     im = base.convert("RGBA")
 
     cx, cy = w / 2, 100 * scale
-    # a gentle glow behind the flower
+    # a warm glow and one faint ripple behind the flower (kept well clear of the text below)
     glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     gd = ImageDraw.Draw(glow)
-    for r in range(150 * scale, 0, -3 * scale):
-        a = int(70 * (1 - r / (150 * scale)) ** 2)
-        gd.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(250, 206, 170, a))
+    for r in range(110 * scale, 0, -3 * scale):
+        gd.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(250, 206, 170, int(60 * (1 - r / (110 * scale)) ** 2)))
     im = Image.alpha_composite(im, glow.filter(ImageFilter.GaussianBlur(8 * scale)))
+    ring = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    r0 = 70 * scale
+    ImageDraw.Draw(ring).ellipse([cx - r0, cy - r0, cx + r0, cy + r0], outline=(235, 242, 255, 55), width=scale)
+    im = Image.alpha_composite(im, ring)
 
-    # ripples, like the full screen Breathe view: faint rings on their own layer so the alpha blends
-    rings = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    rd = ImageDraw.Draw(rings)
-    for k, rr in enumerate((66, 84)):
-        r = rr * scale
-        rd.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(235, 242, 255, 60 - k * 20), width=scale)
-    im = Image.alpha_composite(im, rings)
+    # soft light halos behind the two icons, so the dark app icon stands out clearly against the blue
+    halo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(halo)
+    for hx in (170, 490):
+        for r in range(96 * scale, 0, -2 * scale):
+            hd.ellipse([hx * scale - r, 312 * scale - r, hx * scale + r, 312 * scale + r],
+                       fill=(240, 246, 255, int(120 * (1 - r / (96 * scale)) ** 1.4)))
+    im = Image.alpha_composite(im, halo.filter(ImageFilter.GaussianBlur(5 * scale)))
 
     # the flower, drawn like the app icon: layered outlined petals in blue, rose and gold, with a warm centre.
     # Drawn at 3x and shrunk, so the edges are smooth.
@@ -67,11 +71,11 @@ def make(scale):
         for ch, cw in zip(text, widths):
             d.text((x, y * scale), ch, font=f, fill=fill)
             x += cw + tracking * scale
-    centered("Drag Tarn into Applications", 178, font(25), (255, 255, 255, 240), tracking=0.8)
-    centered("Then open Tarn. Look for the small flower in your menu bar.", 216, font(14, italic=True), (236, 242, 252, 215), tracking=0.2)
+    centered("Drag Tarn into Applications", 196, font(25), (255, 255, 255, 240), tracking=0.8)
+    centered("Then open Tarn. Look for the small flower in your menu bar.", 234, font(14, italic=True), (236, 242, 252, 215), tracking=0.2)
 
     # a quiet arrow between the two icons
-    y = 292 * scale
+    y = 312 * scale
     x0, x1 = 268 * scale, 392 * scale
     arrow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     ad = ImageDraw.Draw(arrow)
