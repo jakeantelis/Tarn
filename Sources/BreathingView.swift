@@ -146,7 +146,10 @@ struct BreathingView: View {
         coachDone = false
         start = Date(); pausedAt = nil
         coachStart = minutes > 0 ? Date() : nil
-        if minutes > 0 { burst += 1 }
+        if minutes > 0 {
+            burst += 1
+            AppModel.shared.startBreatheSound()
+        }
     }
 
     private func checkCoach() {
@@ -215,6 +218,10 @@ struct BreathingView: View {
                     let left = max(0, Double(coachMinutes * 60) - ctx.date.timeIntervalSince(cs))
                     Text(String(format: "%d:%02d left", Int(left) / 60, Int(left) % 60))
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    if sound.isPlaying {
+                        Text("Sound is on. Change it in Options, or turn it off in Settings.")
+                            .font(.caption2).foregroundStyle(.secondary.opacity(0.8)).multilineTextAlignment(.center)
+                    }
                 } else if coachDone {
                     Text("Well done. Take a moment before you go.").font(.caption).foregroundStyle(.secondary)
                 }

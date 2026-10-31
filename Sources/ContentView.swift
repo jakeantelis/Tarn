@@ -526,6 +526,7 @@ struct SettingsTab: View {
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
     @AppStorage("keepSoundAfterSession") private var keepSound = false
+    @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
@@ -751,8 +752,13 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
-            Text("Sounds for Breathe are mixed on the Sounds tab and play when you turn them on.")
-                .font(.caption).foregroundStyle(.secondary)
+            GroupBox("Sound") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Play a soft sound during breathing sessions and Calm mode", isOn: $breatheSound)
+                    Text("On by default, so it feels relaxing. Turn it off here, or with the speaker button in Calm mode and the Options menu. Mix your own on the Sounds tab.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
         }
     }
 }

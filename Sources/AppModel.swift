@@ -25,12 +25,18 @@ final class AppModel {
         }
     }
 
+    /// Breathing sessions start a soft sound unless it is switched off in Settings. A mix already playing is left alone.
+    func startBreatheSound() {
+        guard UserDefaults.standard.object(forKey: "breatheSound") as? Bool ?? true, !sound.isPlaying else { return }
+        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
+        if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p) }
+    }
+
     /// One button: full screen, hide apps (if allowed), your last sound mix, and the optional Shortcut for Do Not Disturb.
     func calmMode() {
         guard BreatheOverlay.allowed else { return }
         timer.setMode(.breathe)
-        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
-        if !sound.isPlaying, let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p) }
+        startBreatheSound()
         runShortcutNamed(UserDefaults.standard.string(forKey: "calmStartShortcut") ?? "")
         BreatheOverlay.shared.calmActive = true
         BreatheOverlay.shared.show()
