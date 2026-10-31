@@ -29,7 +29,18 @@ final class AppModel {
     func startBreatheSound() {
         guard UserDefaults.standard.object(forKey: "breatheSound") as? Bool ?? true, !sound.isPlaying else { return }
         let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
-        if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p) }
+        if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p); startedForBreathe = true }
+    }
+
+    private var startedForBreathe = false
+
+    /// You chose a mode yourself. Breathe starts the soft sound; going back to Focus fades out what Breathe started.
+    func userChose(_ mode: Mode) {
+        if mode == .breathe { startBreatheSound() }
+        else if startedForBreathe {
+            startedForBreathe = false
+            if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { sound.stop() }
+        }
     }
 
     /// One button: full screen, hide apps (if allowed), your last sound mix, and the optional Shortcut for Do Not Disturb.

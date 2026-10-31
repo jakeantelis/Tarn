@@ -49,7 +49,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in withAnimation(.easeInOut(duration: 0.4)) { timer.setMode(m) } })) { $0.rawValue }
+                PillPicker(items: Mode.allCases, selection: Binding(get: { timer.mode }, set: { m in withAnimation(.easeInOut(duration: 0.4)) { timer.setMode(m) }; AppModel.shared.userChose(m) })) { $0.rawValue }
                     .help("Focus: Pomodoro rounds with calm breaks. Breathe: slow down any time, no timer.")
                     .fadesWithChrome(chromeVisible)
 
@@ -72,7 +72,7 @@ struct ContentView: View {
                 case 0: TimerTab(timer: timer)
                 case 3: StatsTab(stats: StatsStore.shared)
                 case 1:
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         if sound.isPlaying && offerFullScreen && allowTakeover && !fullScreenOfferDismissed {
                             HStack(spacing: 8) {
                                 Text("Sounds are on. Go full screen?").font(.caption)
@@ -92,7 +92,9 @@ struct ContentView: View {
                         }
                         BreathingView(onMix: { tab = 2 })
                         let q = Lines.calmQuote(Int(Date().timeIntervalSinceReferenceDate / 90))
-                        QuoteLine(text: q.text, author: q.author).fadesWithChrome(chromeVisible)
+                        QuoteLine(text: q.text, author: q.author)
+                            .padding(.top, 16).padding(.bottom, 6)   // clear of the card above and the footer below
+                            .fadesWithChrome(chromeVisible)
                     }
                 default: MixerTab(sound: sound)
                 }
@@ -152,7 +154,7 @@ struct ContentView: View {
         .tint(timer.mode == .breathe ? Color.breatheTint : FocusPalette.all[paletteKey]?.tint ?? Color.focusTint)
         .animation(.easeInOut(duration: 1.2), value: onBreak)
         .animation(.easeInOut(duration: 0.6), value: timer.mode)
-        .overlay { if !welcomed { Welcome { mode in welcomed = true; timer.setMode(mode) } } }
+        .overlay { if !welcomed { Welcome { mode in welcomed = true; timer.setMode(mode); AppModel.shared.userChose(mode) } } }
     }
 }
 
@@ -754,8 +756,8 @@ struct SettingsTab: View {
             }
             GroupBox("Sound") {
                 VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Play a soft sound during breathing sessions and Calm mode", isOn: $breatheSound)
-                    Text("On by default, so it feels relaxing. Turn it off here, or with the speaker button in Calm mode and the Options menu. Mix your own on the Sounds tab.")
+                    Toggle("Play a soft sound when I breathe", isOn: $breatheSound)
+                    Text("Starts when you open Breathe, begin a session or use Calm mode. On by default, so it feels relaxing. Turn it off here, or with the speaker button in Calm mode and the Options menu. Mix your own on the Sounds tab.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
