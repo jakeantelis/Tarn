@@ -43,8 +43,8 @@ case "$cmd" in
             *) echo "unknown sound '$arg' (use on, off, toggle, ocean, forest, dawn or quiet)" >&2; exit 2 ;;
         esac ;;
     status)
-        if [[ ! -f "$STATUS_FILE" ]]; then echo "Tarn has not run yet."; exit 1; fi
         if ! pgrep -x Tarn >/dev/null; then echo "Tarn is not running."; exit 1; fi
+        if [[ ! -f "$STATUS_FILE" ]]; then echo "Tarn is open and idle."; exit 0; fi
         if [[ "${2:-}" == "--json" ]]; then cat "$STATUS_FILE"; echo; exit 0; fi
         mode=$(plutil -extract mode raw "$STATUS_FILE")
         phase=$(plutil -extract phase raw "$STATUS_FILE")

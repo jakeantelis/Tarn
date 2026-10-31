@@ -82,6 +82,7 @@ final class AppModel {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         WindowOpener.applyDockPolicy()
+        Task { @MainActor in AppModel.shared.timer.writeStatus() }   // so tarnctl status works straight after launch
         // On the very first launch, open a window so Tarn is easy to find even if the menu bar icon is hidden.
         if UserDefaults.standard.object(forKey: "welcomed") == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { WindowOpener.shared.show() }
