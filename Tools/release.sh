@@ -96,12 +96,21 @@ DMG="$DIST/Tarn.dmg"
 DMG_NOTARIZED=false
 DMG_STAGE=build/dmg
 rm -f "$DMG" "$DMG.sha256"
-rm -rf "$DMG_STAGE"
-mkdir -p "$DMG_STAGE"
-cp -R "$APP" "$DMG_STAGE/Tarn.app"
-ln -s /Applications "$DMG_STAGE/Applications"
-hdiutil create -volname "Tarn" -srcfolder "$DMG_STAGE" -fs APFS -format UDZO -ov "$DMG" >/dev/null
-rm -rf "$DMG_STAGE"
+# The polished window (background, arrow, icon positions) is made with dmgbuild when it is installed
+# (MIT licensed, used only while building, never shipped). Without it, a plain drag-to-Applications image is made.
+DMGBUILD="${DMGBUILD:-$(ls .build-tools/bin/dmgbuild 2>/dev/null || command -v dmgbuild || true)}"
+if [[ -n "$DMGBUILD" ]] && "$DMGBUILD" -s Tools/dmg/settings.py -D here="$PWD/Tools/dmg" -D app="$APP" -D icon=Resources/AppIcon.icns "Tarn" "$DMG" >/dev/null 2>&1 \
+   && hdiutil verify "$DMG" >/dev/null 2>&1; then
+    echo "DMG built with the polished window."
+else
+    echo "note: using the plain disk image (dmgbuild unavailable or its image did not verify)"
+    rm -f "$DMG"
+    mkdir -p "$DMG_STAGE"
+    cp -R "$APP" "$DMG_STAGE/Tarn.app"
+    ln -s /Applications "$DMG_STAGE/Applications"
+    hdiutil create -volname "Tarn" -srcfolder "$DMG_STAGE" -fs APFS -format UDZO -ov "$DMG" >/dev/null
+    rm -rf "$DMG_STAGE"
+fi
 
 if [[ "$SIGNED" == true ]]; then
     codesign --force --timestamp --sign "$DEV_ID" "$DMG"

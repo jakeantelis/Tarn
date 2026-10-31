@@ -532,6 +532,8 @@ struct SettingsTab: View {
     @AppStorage("showInDock") private var showInDock = false
     @AppStorage("allowLinks") private var allowLinks = true
     @AppStorage("showTips") private var showTips = false
+    @State private var cliInstalled = CommandLineTool.isInstalled
+    @State private var cliFailed = false
     @AppStorage("calmStartShortcut") private var calmStart = ""
     @AppStorage("calmEndShortcut") private var calmEnd = ""
     @AppStorage("eveningWarmth") private var eveningWarmth = false
@@ -568,6 +570,37 @@ struct SettingsTab: View {
 
     private var general: some View {
         VStack(alignment: .leading, spacing: 14) {
+            GroupBox("Command line") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        if cliInstalled {
+                            Label("tarnctl is installed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                            Spacer()
+                            Button("Remove") { CommandLineTool.remove(); cliInstalled = CommandLineTool.isInstalled }
+                                .buttonStyle(CapsuleButtonStyle(small: true))
+                        } else {
+                            Text("Control Tarn from Terminal, scripts and shortcuts.")
+                            Spacer()
+                            Button("Install tarnctl") { cliFailed = !CommandLineTool.install(); cliInstalled = CommandLineTool.isInstalled }
+                                .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
+                        }
+                    }
+                    if cliFailed { Text("Could not install. Try again from the Tarn app in your Applications folder.").font(.caption).foregroundStyle(.red) }
+                    if cliInstalled && !CommandLineTool.onPath {
+                        Text("One more step so Terminal finds it. Paste this line into Terminal once, then open a new Terminal window:")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        HStack {
+                            Text(CommandLineTool.pathLine).font(.system(size: 10, design: .monospaced)).textSelection(.enabled)
+                                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 6)
+                            Button("Copy") { CommandLineTool.copy(CommandLineTool.pathLine) }.buttonStyle(CapsuleButtonStyle(small: true))
+                        }
+                        .padding(8).background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.12)))
+                    }
+                    Text("Try: tarnctl start 45 · tarnctl pause · tarnctl breathe · tarnctl calm · tarnctl status. Run tarnctl help for the full list. Turn off Allow tarnctl above to block it.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                }.padding(.vertical, 4)
+            }
             GroupBox("Tips") {
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle("Show a short tip at the bottom of the window", isOn: $showTips)
@@ -866,7 +899,7 @@ enum HelpContent {
         ("Privacy and extras", [
             ("Does Tarn collect anything?", "No. Everything stays on your Mac, including your stats. There is no account, no tracking and no network use."),
             ("Which Macs does it support?", "macOS 14 or later, on Apple silicon and Intel."),
-            ("Can I control it from Terminal?", "Yes. Run tarnctl, for example tarnctl start 45 or tarnctl breathe full. You can switch this off in Settings, General."),
+            ("Can I control it from Terminal?", "Yes. Open Settings, General, Command line and press Install tarnctl. Then in Terminal run tarnctl start 45, tarnctl pause, tarnctl breathe, tarnctl calm or tarnctl status. tarnctl help lists everything. You can switch it off with Allow tarnctl in General."),
             ("What are Tips?", "Short hints at the bottom of the window. They are off by default. Turn them on in Settings, General, Tips."),
         ]),
     ]
