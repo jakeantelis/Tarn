@@ -113,6 +113,7 @@ struct FloatingCircleView: View {
             .clipShape(Circle())
         }
         .frame(width: d, height: d)
+        .overlay(alignment: .topTrailing) { closeButton }
         .scaleEffect(hovering && !isBreathe ? 1.04 : 1)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hovering)
         .animation(.easeInOut(duration: 0.5), value: isBreathe)
@@ -121,6 +122,37 @@ struct FloatingCircleView: View {
         .onHover { hovering = $0 }
         .onTapGesture { if !isBreathe { timer.toggle() } }
         .help(isBreathe ? "Drag to move" : "Click to start or pause. Drag to move.")
+        .contextMenu {
+            Button("Hide floating circle") { Self.hide() }
+            Menu("Size") {
+                ForEach(0..<FloatingCircle.sizeNames.count, id: \.self) { i in
+                    Button(FloatingCircle.sizeNames[i]) { sizeChoice = i; FloatingCircle.shared.refresh() }
+                }
+            }
+        }
+    }
+
+    static func hide() {
+        UserDefaults.standard.set(false, forKey: "floatingCircle")
+        FloatingCircle.shared.refresh()
+    }
+
+    /// A small close button that appears on hover. Hiding the circle is always one click away.
+    private var closeButton: some View {
+        Button { Self.hide() } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: max(8, d * 0.075), weight: .bold))
+                .foregroundStyle(.white.opacity(0.9))
+                .frame(width: max(18, d * 0.17), height: max(18, d * 0.17))
+                .background(Circle().fill(Color.black.opacity(0.55)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .padding(d * 0.04)
+        .opacity(hovering ? 1 : 0)
+        .animation(.easeOut(duration: 0.2), value: hovering)
+        .help("Hide the floating circle. Turn it back on in Settings, Focus.")
+        .accessibilityLabel("Hide floating circle")
     }
 
     /// Frosted glass over whatever is behind it, tinted dark enough to keep the numbers easy to read.
