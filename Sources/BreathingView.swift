@@ -36,6 +36,15 @@ struct BreathPattern: Identifiable, Hashable {
         }
     }
 
+    var short: String {
+        switch id {
+        case "settle": return "eases deeper over 3 min"
+        case "deep": return "in 6, hold 2, out 8"
+        case "box": return "4 4 4 4"
+        default: return "in 4, hold 7, out 8"
+        }
+    }
+
     var cycle: Double { steps.reduce(0, +) }
 
     /// Returns label and circle scale (0...1) at time t into the cycle.
@@ -112,6 +121,16 @@ struct BreathingView: View {
                     }
                 }
             }
+            Section("Rhythm") {
+                ForEach(BreathPattern.all) { pt in
+                    Button {
+                        pattern = pt; start = Date()
+                    } label: {
+                        let name = "\(pt.name)  \(pt.short)"
+                        if patternID == pt.id { Label(name, systemImage: "checkmark") } else { Text(name) }
+                    }
+                }
+            }
             Section("Look") {
                 ForEach(BreathStyle.allCases) { st in
                     Button { withAnimation(.easeInOut(duration: 0.4)) { styleRaw = st.rawValue } } label: {
@@ -126,6 +145,15 @@ struct BreathingView: View {
                 Button("Sound off") { sound.stop() }
                 if let onMix { Button("Mix sounds…") { onMix() } }
             }
+            Section("More") {
+                if allowTakeover {
+                    Button("Full screen") { BreatheOverlay.shared.show() }
+                    Button(cleared.isCleared ? "Bring back hidden apps" : "Hide other apps") { cleared.isCleared ? cleared.restore() : cleared.clear() }
+                }
+                Button { guideMe.toggle() } label: {
+                    if guideMe { Label("Gentle guide", systemImage: "checkmark") } else { Text("Gentle guide") }
+                }
+            }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "slider.horizontal.3")
@@ -138,7 +166,7 @@ struct BreathingView: View {
             .background(Capsule().fill(Color.secondary.opacity(0.18)))
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .help("Session length, look and background sound")
+        .help("Session length, rhythm, look, sound and screen")
     }
 
     private func setCoach(_ minutes: Int) {
@@ -166,21 +194,6 @@ struct BreathingView: View {
     private var content: some View {
         VStack(spacing: 12) {
             if !compact {
-                PillPicker(items: BreathPattern.all, selection: Binding(get: { pattern }, set: { pattern = $0 })) { $0.name }
-                    .onChange(of: pattern) { _, _ in
-                        start = Date()
-                        blurbShown = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { blurbShown = false }
-                    }
-                    .onHover { blurbShown = $0 || blurbShown }
-                    .fadesWithChrome(chrome)
-                // The description appears when you change or hover the pattern, then gets out of the way.
-                Text(pattern.blurb)
-                    .font(.caption).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity).multilineTextAlignment(.center)
-                    .opacity(blurbShown ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.4), value: blurbShown)
-                    .fadesWithChrome(chrome)
                 optionsMenu.fadesWithChrome(chrome)
             }
 
@@ -249,21 +262,6 @@ struct BreathingView: View {
                     .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
                     .fadesWithChrome(chrome)
                 }
-                // Quiet text actions under the main button, so the screen has one clear thing to press.
-                HStack(spacing: 14) {
-                    if allowTakeover {
-                        Button("Full screen") { BreatheOverlay.shared.show() }
-                            .help("Dim every screen so you can breathe. Esc or a click returns.")
-                        Button(cleared.isCleared ? "Bring back" : "Hide apps") { cleared.isCleared ? cleared.restore() : cleared.clear() }
-                            .help("Hides other windows. Nothing is quit.")
-                    }
-                    Button(guideMe ? "Guide on" : "Guide") { guideMe.toggle() }
-                        .help("Gentle prompts while you breathe")
-                }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fadesWithChrome(chrome)
             }
         }
     }

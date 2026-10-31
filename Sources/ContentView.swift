@@ -73,7 +73,7 @@ struct ContentView: View {
                 case 3: StatsTab(stats: StatsStore.shared)
                 case 1:
                     VStack(spacing: 12) {
-                        if sound.isPlaying && offerFullScreen && allowTakeover && !fullScreenOfferDismissed {
+                        if sound.isPlaying && !AppModel.shared.startedForBreathe && offerFullScreen && allowTakeover && !fullScreenOfferDismissed {
                             HStack(spacing: 8) {
                                 Text("Sounds are on. Go full screen?").font(.caption)
                                 Spacer(minLength: 0)
@@ -130,6 +130,7 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 300)
         .frame(minHeight: welcomed ? 0 : 500)   // the welcome card needs room to show all of its text
+        .fixedSize(horizontal: false, vertical: true)   // report the real content height, never a squeezed one
         .background(GeometryReader { g in Color.clear.preference(key: ContentHeightKey.self, value: g.size.height) })
         .background(PopoverVisibilityReader(active: $popoverActive))
         .environment(\.popoverActive, popoverActive)

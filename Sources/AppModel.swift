@@ -32,7 +32,7 @@ final class AppModel {
         if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p); startedForBreathe = true }
     }
 
-    private var startedForBreathe = false
+    private(set) var startedForBreathe = false
 
     /// You chose a mode yourself. Breathe starts the soft sound; going back to Focus fades out what Breathe started.
     func userChose(_ mode: Mode) {
