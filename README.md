@@ -41,11 +41,13 @@ macOS only for now. Timer, breathing and sound logic is kept apart from the inte
 See [docs/MANUAL.md](docs/MANUAL.md) for the manual and FAQ. There is also a searchable Help inside the app.
 
 ## Install
-1. Download `Tarn.dmg` from the [latest release](https://github.com/jakeantelis/Tarn/releases/latest) and open it.
-2. Move Tarn into Applications. The easy way: double click Tarn and choose Move to Applications, and Tarn moves itself, opens and ejects the disk image. Or drag Tarn onto Applications yourself and open it from there. Keep Tarn in Applications, because it will not keep working if you run it from the disk image.
-3. Look for the small flower in your menu bar.
+Works on any Mac with macOS 14 Sonoma or newer, Apple silicon or Intel. To check, choose About This Mac from the Apple menu.
 
-Tarn needs macOS 14 or later and runs on Apple silicon and Intel. If a crowded menu bar or the notch hides the icon, turn on "Show Tarn in the Dock" in Settings, or run `tarnctl window`. On the first launch Tarn also opens a window.
+1. Download `Tarn.dmg` from the [latest release](https://github.com/jakeantelis/Tarn/releases/latest) and open it.
+2. Double click Tarn and choose Move to Applications.
+3. Click the small flower in your menu bar.
+
+Keep Tarn in Applications, because it will not keep working from the disk image. If macOS asks whether to open an app from the internet, choose Open. If the flower is hidden by a crowded menu bar or the notch, turn on "Show Tarn in the Dock" in Settings.
 
 **Updates.** Open Settings, General and press Check for updates. Tarn never checks by itself.
 
