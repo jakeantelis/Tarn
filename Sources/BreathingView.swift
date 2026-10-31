@@ -106,8 +106,7 @@ struct BreathingView: View {
                                      startPoint: .top, endPoint: .bottom))
                 .padding(-8))
             .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in checkCoach() }
-            .onAppear { VoiceGuide.shared.reset(); if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
-            .onDisappear { VoiceGuide.shared.reset() }
+            .onAppear { if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
     }
 
     /// One quiet menu for the things you set once: session length, the look, and background sound.
@@ -249,8 +248,6 @@ struct BreathingView: View {
                         .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
                 }
                 }
-                .onChange(of: s.label) { _, new in VoiceGuide.shared.cue(new) }
-                .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }
 
             if !compact {

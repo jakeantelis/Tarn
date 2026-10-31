@@ -531,7 +531,6 @@ struct SettingsTab: View {
     @AppStorage("eveningWarmth") private var eveningWarmth = false
     @AppStorage("keepSoundAfterSession") private var keepSound = false
     @AppStorage("breatheSound") private var breatheSound = true
-    @AppStorage("voiceGuide") private var voiceGuide = false
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
@@ -748,11 +747,10 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
-            GroupBox("Voice") {
+            GroupBox("Guidance") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Spoken cues (breathe in, hold, breathe out)", isOn: $voiceGuide)
-                    Toggle("Guide me with gentle prompts", isOn: $guideMe)
-                    Text("Uses your Mac's built in voice, offline. For a nicer voice, install a Premium voice in System Settings, Accessibility, Spoken Content.")
+                    Toggle("Show gentle prompts while I breathe", isOn: $guideMe)
+                    Text("Short written lines that change every half minute. Tarn never speaks.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }

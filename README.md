@@ -12,7 +12,7 @@ Free and open source. No account, no tracking. Made by Antelis Labs.
 
 ## What it does
 - **Focus:** Pomodoro rounds (15, 25, 45, 60 or 90 minutes) with calm, timed breaks. A glowing circle narrows as time runs out, dots show your place in the set, and breaks open into a gentle breathing guide. Click the circle to start or pause. Optional daily schedule, stats, an intention line and a color theme of your choice.
-- **Breathe:** a slow breathing picture, a flower or water, with four patterns (Settle, Deep, Box, 4 7 8), optional gentle prompts and spoken cues, and 1 to 20 minute sessions. Switching to Breathe never stops a running focus round. While you breathe, the controls fade away so only the picture and the word remain.
+- **Breathe:** a slow breathing picture, a flower or water, with four patterns (Settle, Deep, Box, 4 7 8), optional written prompts, and 1 to 20 minute sessions. Switching to Breathe never stops a running focus round. While you breathe, the controls fade away so only the picture and the word remain.
 - **Calm mode:** one button for full screen, your last sound mix and Hide apps (which only hides, never quits). Click anywhere or press Esc to return, and the sound fades out as your cue to get back. One switch in Settings turns full screen and hiding off completely.
 - **Sounds:** optional recorded ambient loops (ocean, forest, birds, stream) with presets and a fade out timer. Tarn makes no sound at all until you turn something on.
 

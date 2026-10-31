@@ -72,7 +72,6 @@ final class BreatheOverlay {
                                              completionHandler: { ws.forEach { $0.orderOut(nil) } })
         hidden.forEach { $0.unhide() }
         hidden = []
-        VoiceGuide.shared.reset()
         if calmActive {
             calmActive = false
             runShortcutNamed(UserDefaults.standard.string(forKey: "calmEndShortcut") ?? "")
@@ -167,8 +166,6 @@ struct OverlayView: View {
                             .animation(.easeInOut(duration: 1.2), value: Guidance.index(at: t))
                     }
                 }
-                .onChange(of: s.label) { _, new in if speaks { VoiceGuide.shared.cue(new) } }
-                .onChange(of: Guidance.index(at: t)) { _, _ in if guideMe && speaks { VoiceGuide.shared.say(Guidance.line(at: t)) } }
             }
             VStack {
                 Spacer()

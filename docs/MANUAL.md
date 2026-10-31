@@ -72,7 +72,6 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 - macOS 14 (Sonoma) or later, on Apple silicon and Intel. Built and tested on macOS 27; older versions are expected to work but have not been tested on hardware.
 - Tarn needs no special permissions. It does not use the microphone, camera, location or the network.
 - Hide apps uses the same hide as the Cmd+H shortcut. It never quits an app and never closes a document.
-- Spoken cues use your Mac's built in voice, offline. Install a Premium voice in System Settings, Accessibility, Spoken Content for a more natural sound.
 - The Focus Shortcut hooks run the Shortcuts you name, so they can do anything a Shortcut can. Leave them blank if you do not use them.
 - The optional round reminder asks macOS for permission to show a quiet banner. Nothing is sent anywhere.
 - Tarn follows the Mac setting Reduce Motion by holding the flower still and skipping the ripples.
