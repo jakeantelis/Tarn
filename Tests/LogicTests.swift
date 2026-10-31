@@ -27,6 +27,13 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(settle.warped(300) > settle.warped(180), "Settle: warped time keeps increasing")
         check(abs(settle.warped(180 + 1e-6) - settle.warped(180 - 1e-6)) < 1e-3, "Settle: warp continuous at 3 minutes")
 
+        print("Move to Applications")
+        check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")
+        check(MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Downloads/Tarn.app"), "offers from Downloads")
+        check(!MoveToApplications.shouldOffer(path: "/Applications/Tarn.app"), "never offers from Applications")
+        check(!MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Applications/Tarn.app"), "never offers from ~/Applications")
+        check(!MoveToApplications.shouldOffer(path: "/Users/dev/Projects/Tarn/build/Tarn.app"), "never offers for a development build")
+
         print("Timer")
         for k in ["mode", "focusMinutes", "soundEnabled"] { UserDefaults.standard.removeObject(forKey: k) }
         let t = PomodoroTimer()

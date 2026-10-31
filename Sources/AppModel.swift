@@ -111,6 +111,8 @@ final class AppModel {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Opened from the disk image or Downloads? Offer to move into Applications first. If it moves, this copy quits.
+        if MoveToApplications.offerIfNeeded() { return }
         WindowOpener.applyDockPolicy()
         Task { @MainActor in AppModel.shared.timer.writeStatus() }   // so tarnctl status works straight after launch
         // On the very first launch, open a window so Tarn is easy to find even if the menu bar icon is hidden.

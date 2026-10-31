@@ -35,13 +35,13 @@ macOS only for now. Timer, breathing and sound logic is kept apart from the inte
 See [docs/MANUAL.md](docs/MANUAL.md) for the manual and FAQ.
 
 ## Install
-Download `Tarn.dmg`, open it and drag Tarn to Applications. Tarn needs macOS 14 or later. It lives in the menu bar as a small flower. If you cannot see the icon (a crowded menu bar or the notch can hide it), run `tarnctl window`, or open Tarn from Applications and click its Dock icon after turning on "Show Tarn in the Dock" in Settings. On the first launch Tarn also opens a window.
+Download `Tarn.dmg`, open it and drag Tarn to Applications. If you open Tarn straight from the disk image or Downloads, it offers once to move itself into Applications for you. Tarn needs macOS 14 or later. It lives in the menu bar as a small flower. If you cannot see the icon (a crowded menu bar or the notch can hide it), run `tarnctl window`, or open Tarn from Applications and click its Dock icon after turning on "Show Tarn in the Dock" in Settings. On the first launch Tarn also opens a window.
 
 ## Build
 `./build.sh` builds `build/Tarn.app`. Add `run` to launch it.
 
 ## Command line
-`Tools/install-cli.sh` links `tarnctl` onto your PATH. Examples: `tarnctl start 45`, `tarnctl break`, `tarnctl breathe full`, `tarnctl sound forest`, `tarnctl clear` (hides other windows, never quits apps), `tarnctl restore`, `tarnctl status`, `tarnctl window` (open Tarn in a normal window), `tarnctl settings`. It talks to the app through `tarn://` links, so Shortcuts and Raycast can use them too. Note that any web page can open a `tarn://` link, so these links can only start, pause or stop timers, hide windows or open full screen breathing; they cannot read files or run anything.
+In the app, open Settings, General and press Install tarnctl (no password needed). From a source checkout, `Tools/install-cli.sh` does the same. Examples: `tarnctl start 45`, `tarnctl break`, `tarnctl breathe full`, `tarnctl sound forest`, `tarnctl clear` (hides other windows, never quits apps), `tarnctl restore`, `tarnctl status`, `tarnctl window` (open Tarn in a normal window), `tarnctl settings`. It talks to the app through `tarn://` links, so Shortcuts and Raycast can use them too. Note that any web page can open a `tarn://` link, so these links can only start, pause or stop timers, hide windows or open full screen breathing; they cannot read files or run anything.
 
 ## Release
 `Tools/release.sh` builds a universal app, signs, notarizes and makes a DMG.

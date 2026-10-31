@@ -872,6 +872,7 @@ enum HelpContent {
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. It is free, with no account and no tracking."),
             ("Where do I find things?", "Click the flower in the menu bar. The switch at the top moves between Focus and Breathe. Help, Settings and Quit are along the bottom. Settings has four sections: Focus, Breathe, General, and this Help."),
+            ("How do I install or move Tarn?", "Open the disk image and drag Tarn onto Applications. If you open Tarn straight from the disk image or Downloads, it offers once to move itself into Applications for you."),
             ("I cannot find the menu bar icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, General, and turn on Show Tarn in the Dock, then click the Dock icon to open a window. You can also run tarnctl window in Terminal."),
         ]),
         ("Focus", [
