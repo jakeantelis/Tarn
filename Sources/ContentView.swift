@@ -115,6 +115,33 @@ struct ContentView: View {
                     .help(sound.isPlaying ? "Sound is on. Click to turn it off." : "Sound is off. Click to turn it on.")
                     .accessibilityLabel(sound.isPlaying ? "Turn sound off" : "Turn sound on")
                 }
+                Menu {
+                    Section("Focus") {
+                        Button("Start 25 minutes") { timer.setMode(.pomodoro); AppModel.shared.userChose(.pomodoro); timer.startWork(minutes: 25) }
+                        Button("Start 45 minutes") { timer.setMode(.pomodoro); AppModel.shared.userChose(.pomodoro); timer.startWork(minutes: 45) }
+                        if timer.isRunning { Button("Pause") { timer.pause() } }
+                        else if timer.mode.hasTimer && timer.remaining < timer.duration(for: timer.phase) { Button("Resume") { timer.start() } }
+                    }
+                    Section("Breathe") {
+                        Button("Open Breathe") { timer.setMode(.breathe); AppModel.shared.userChose(.breathe) }
+                        if allowTakeover {
+                            Button("Calm mode") { AppModel.shared.calmMode() }
+                            Button("Full screen") { BreatheOverlay.shared.show() }
+                        }
+                    }
+                    Section("Tarn") {
+                        Button("Open in a window") { WindowOpener.shared.show() }
+                        Button("Settings…") { SettingsWindowOpener.shared.show(timer.mode == .breathe ? .breathe : .focus) }
+                        Button("Help and FAQ") { SettingsWindowOpener.shared.show(.help) }
+                        Button("Quit Tarn") { NSApplication.shared.terminate(nil) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                .padding(.leading, 6)
+                .help("Quick actions")
+                .accessibilityLabel("Quick actions")
                 Spacer()
                 Button("Help") { SettingsWindowOpener.shared.show(.help) }
                     .buttonStyle(.borderless)
