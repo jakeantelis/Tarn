@@ -199,10 +199,17 @@ struct BreathingView: View {
     /// Easy to find on the Breathe screen itself: pick a length to start a guided meditation, or end the one playing.
     @ViewBuilder private var guidedButton: some View {
         if meditation.isActive {
-            Button { endGuided() } label: {
-                Label("End meditation", systemImage: "stop.circle").frame(maxWidth: .infinity)
+            VStack(spacing: 6) {
+                levelSlider("Voice", symbol: "waveform", value: $meditation.voiceLevel)
+                if sound.isPlaying {
+                    levelSlider("Sounds", symbol: "music.note", value: Binding(get: { SoundEngine.meditationLevel },
+                                                                              set: { sound.setMeditationLevel($0) }))
+                }
+                Button { endGuided() } label: {
+                    Label("End meditation", systemImage: "stop.circle").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CapsuleButtonStyle(small: true))
             }
-            .buttonStyle(CapsuleButtonStyle(small: true))
         } else {
             let voice = Meditation.voice(preferring: voiceSetting)
             Menu {
@@ -226,6 +233,19 @@ struct BreathingView: View {
             .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden)
             .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath")
         }
+    }
+
+    /// A small labelled volume slider for a guided session. Each one is remembered for next time.
+    private func levelSlider(_ name: String, symbol: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 14)
+            Text(name).font(.caption).foregroundStyle(.secondary).frame(width: 44, alignment: .leading)
+            Slider(value: value, in: 0...1).controlSize(.small)
+        }
+        .padding(.horizontal, 6)
+        .help("\(name) volume during a guided meditation")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name) volume")
     }
 
     /// A guided session: the voice track, Settle, and soft sound underneath. Any timed session stops first.

@@ -118,6 +118,21 @@ final class SoundEngine: ObservableObject {
     /// Quieter under a guided meditation, so the voice stays clear.
     private var gain: Float = 1
     private var startedForMeditation = false
+    private var underMeditation = false
+
+    /// How loud sound plays under the voice, as a share of its normal level. Set with the Sounds slider in a session.
+    static var meditationLevel: Double {
+        get { UserDefaults.standard.object(forKey: "meditationSoundLevel") as? Double ?? 0.45 }
+        set { UserDefaults.standard.set(min(1, max(0, newValue)), forKey: "meditationSoundLevel") }
+    }
+
+    /// Moves the sound under a running meditation to a new level and remembers it for next time.
+    func setMeditationLevel(_ level: Double) {
+        Self.meditationLevel = level
+        guard underMeditation, slowFadeTimer == nil else { return }
+        gain = Float(Self.meditationLevel)
+        applyGains()
+    }
     private var slowFadeTimer: Timer?
     private var lingerWork: DispatchWorkItem?
 
@@ -163,7 +178,8 @@ final class SoundEngine: ObservableObject {
     func beginMeditation(startedForBreathe: Bool) {
         lingerWork?.cancel(); lingerWork = nil
         cancelSlowFade()
-        gain = 0.45
+        underMeditation = true
+        gain = Float(Self.meditationLevel)
         if isPlaying { startedForMeditation = startedForBreathe; applyGains(); return }
         if !Soundscape.allCases.contains(where: { (levels[$0] ?? 0) > 0 }), let ocean = SoundPreset.all.first {
             for s in Soundscape.allCases { setLevel(ocean.mix[s] ?? 0, for: s, enforceCap: false) }
@@ -175,6 +191,7 @@ final class SoundEngine: ObservableObject {
     /// After a meditation, sound that started for it stays on, still soft, for `lingerMinutes`, then drifts away
     /// with the slow fade. Sound the person had on already, or chose to keep, returns to its normal level.
     func endMeditation(lingerMinutes: Int, keep: Bool = false) {
+        underMeditation = false
         guard startedForMeditation, !keep, isPlaying else {
             startedForMeditation = false
             gain = 1

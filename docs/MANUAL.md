@@ -50,6 +50,9 @@ In Breathe, click Guided meditation under Calm mode (or open Options) and choose
 **What happens to the sound in a guided meditation?**  
 Your sound mix plays softly underneath, or Ocean calm if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.
 
+**Can I change how loud the voice and the sounds are?**  
+Yes. During a guided meditation, two sliders above End meditation set the Voice and the Sounds. Tarn remembers them for next time. Move the mouse if the controls have faded.
+
 **I cannot hear the voice.**  
 If the Mac is muted or the volume is almost all the way down, Tarn shows a quiet line: Volume is low. Turn it up to hear the voice.
 

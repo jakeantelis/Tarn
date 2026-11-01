@@ -18,7 +18,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
-**Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. One switch in Settings hides it if you never use it.
+**Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath, with a slider each for the voice and the sounds. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. One switch in Settings hides it if you never use it.
 
 **Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
 

@@ -28,6 +28,14 @@ final class Meditation: ObservableObject {
     private var ticker: Timer?
 
     var isActive: Bool { minutes != nil }
+
+    /// How loud the voice plays, remembered between sessions. Set with the Voice slider in a session.
+    @Published var voiceLevel: Double = UserDefaults.standard.object(forKey: "meditationVoiceLevel") as? Double ?? 1 {
+        didSet {
+            UserDefaults.standard.set(voiceLevel, forKey: "meditationVoiceLevel")
+            player?.volume = Float(voiceLevel)
+        }
+    }
     var total: Double { Double((minutes ?? 0) * 60) }
 
     /// Seconds since the first breath. Negative during the lead-in. Holds still while paused.
@@ -67,6 +75,7 @@ final class Meditation: ObservableObject {
         let d = UserDefaults.standard
         let voice = Self.voice(preferring: d.string(forKey: "meditationVoice") ?? "soft")
         guard let url = Self.url(voice: voice, minutes: m), let p = try? AVAudioPlayer(contentsOf: url) else { return }
+        p.volume = Float(voiceLevel)
         p.prepareToPlay()
         p.play()
         player = p
