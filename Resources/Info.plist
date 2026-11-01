@@ -39,5 +39,13 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Antelis Labs LLC</string>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/jakeantelis/Tarn/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>N0Ogph0i4ofgBtXAQj7UJFkkto3T+EYAlKwJwd1LjN4=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>604800</integer>
 </dict>
 </plist>

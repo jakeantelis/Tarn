@@ -6,7 +6,7 @@ A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a 
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
-Free and open source. No account, no tracking, and it only goes online when you press Check for updates. Made by [Antelis Labs](https://antelislabs.com).
+Free and open source. No account, no tracking, and the only thing it ever asks the internet is whether there is a newer Tarn. Made by [Antelis Labs](https://antelislabs.com).
 
 <p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
 
@@ -18,7 +18,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
-**Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath, with a small mixer for the voice, the nature sound and which sound plays. Best with headphones and your eyes closed. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. One switch in Settings hides it if you never use it.
+**Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, and the words appear under the picture as they are spoken. Your sound mix plays softly underneath, and a small mixer sets the voice, the nature sound and which sound plays. It is best with headphones and your eyes closed. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. If you never use it, one switch in Settings hides it.
 
 **Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, or hover for a sound button and an X that closes it. Pick one of four sizes, or turn it off, in Settings, Focus.
 
@@ -28,7 +28,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Sounds.** Recorded ambient loops (ocean, forest, birds and stream) with presets, a mixer and a fade out timer. Each sound drifts slightly over time and fades in and out gently, so it suits a whole day. Focus is silent until you turn sounds on.
 
-**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except when you press Check for updates. It never speaks, and it never fills your screen unless you ask.
+**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except checking GitHub for updates, which sends no personal information. It only speaks in a guided meditation you choose, and it never fills your screen unless you ask.
 
 ### A closer look
 
@@ -59,7 +59,7 @@ Works on any Mac with macOS 14 Sonoma or newer, Apple silicon or Intel. To check
 
 Keep Tarn in Applications, because it will not keep working from the disk image. If macOS asks whether to open an app from the internet, choose Open. If the flower is hidden by a crowded menu bar or the notch, turn on "Show Tarn in the Dock" in Settings.
 
-**Updates.** Open Settings, General and press Check for updates. Tarn never checks by itself.
+**Updates.** Tarn asks once whether to check for updates automatically. If you say yes, it checks about once a week. Checks go to GitHub and send no personal information. You can also press Check for updates in Settings, General, and choose there whether updates download and install by themselves. Every update is signed, and Tarn checks the signature before installing it.
 
 ## Command line
 In the app, open Settings, General and press Install tarnctl (no password needed). From a source checkout, `Tools/install-cli.sh` does the same.
@@ -79,12 +79,14 @@ tarnctl window          open Tarn in a normal window
 It talks to the app through `tarn://` links, so Shortcuts and Raycast can use them too. Any web page can open a `tarn://` link, so these links can only start, pause or stop timers, hide windows or open full screen breathing. They cannot read files or run anything. You can switch them off in Settings.
 
 ## Build
-`./build.sh` builds `build/Tarn.app`. Add `run` to launch it. `Tools/run-tests.sh` runs the logic tests, and `Tools/release.sh` builds a universal app, signs it, notarizes it and makes the DMG.
+`./build.sh` builds `build/Tarn.app`. Add `run` to launch it. The first build downloads Sparkle into `.build-tools/` and checks its checksum. `Tools/run-tests.sh` runs the logic tests, and `Tools/release.sh` builds a universal app, signs it, notarizes it and makes the DMG. With `--publish` it also creates the GitHub release and adds it to the update feed.
 
 ## Sounds and credits
 Every ambient sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
 
 The guided meditation voices are credited in [SOURCES.md](SOURCES.md). See License below for their terms.
+
+Updates use [Sparkle](https://sparkle-project.org) (MIT license). Its license is included in the app as `Sparkle-LICENSE.txt`.
 
 ## More from Antelis Labs
 See [antelislabs.com](https://antelislabs.com) for everything else.

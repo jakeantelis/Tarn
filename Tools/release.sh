@@ -6,12 +6,25 @@ APP=build/Tarn.app
 TMP=build/universal
 DIST=dist
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
+BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" Resources/Info.plist)
+SPARKLE_ACCOUNT="${TARN_SPARKLE_ACCOUNT:-tarn}"   # the Keychain account holding Tarn's update signing key
+
+# Sparkle compares build numbers, so a published release needs a higher CFBundleVersion than the feed has.
+if [[ "${1:-}" == "--publish" ]]; then
+    LAST=$(grep -o "<sparkle:version>[0-9]*</sparkle:version>" appcast.xml | grep -o "[0-9]*" | sort -n | tail -1)
+    if [[ -n "$LAST" && "$BUILD" -le "$LAST" ]]; then
+        echo "ERROR: CFBundleVersion $BUILD is not higher than build $LAST in appcast.xml. Raise it first." >&2
+        exit 1
+    fi
+fi
 
 DEV_ID="${TARN_DEV_ID:-D430FCAFBA0DBC0F48D765E55C07BF3BA1FCEF85}"
 NOTARY_PROFILE="${TARN_NOTARY_PROFILE:-jake-antelis}"
 
 rm -rf "$APP" "$TMP"
 mkdir -p "$TMP/arm64" "$TMP/x86_64" "$APP/Contents/MacOS" "$APP/Contents/Resources"
+
+SPARKLE=$(Tools/fetch-sparkle.sh)
 
 FLAGS=(
     -O
@@ -21,6 +34,7 @@ FLAGS=(
     -framework AppKit
     -framework AVFoundation
     -framework ServiceManagement -framework UserNotifications
+    -F "$SPARKLE" -framework Sparkle -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 )
 
 echo "Compiling arm64..."
@@ -47,7 +61,8 @@ date "+%Y-%m-%d %H:%M:%S" > "$APP/Contents/Resources/BUILD_STAMP"
 SIGNED=false
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "$DEV_ID"; then
     echo "Signing with $DEV_ID (hardened runtime + timestamp)..."
-    if codesign --force --options runtime --timestamp --sign "$DEV_ID" "$APP" 2>&1; then
+    # Sparkle is signed inside out first; the app is signed last, never with --deep.
+    if Tools/embed-sparkle.sh "$SPARKLE" "$APP" "$DEV_ID" && codesign --force --options runtime --timestamp --sign "$DEV_ID" "$APP" 2>&1; then
         if codesign -dv --verbose=2 "$APP" 2>&1 | grep "Authority=Developer ID Certification Authority" >/dev/null; then
             codesign --verify --deep --strict "$APP"
             SIGNED=true
@@ -58,6 +73,7 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q "$DEV_ID"; the
 fi
 if [[ "$SIGNED" != true ]]; then
     echo "warning: no Developer ID identity found, falling back to ad-hoc signature" >&2
+    Tools/embed-sparkle.sh "$SPARKLE" "$APP" -
     if ! codesign --force --sign - "$APP" 2>&1; then
         echo "warning: ad-hoc codesign failed, continuing unsigned" >&2
     fi
@@ -141,11 +157,28 @@ if [[ "${1:-}" == "--publish" ]]; then
         exit 1
     fi
     spctl -a -vv "$APP"
+    # Only this version's section of RELEASE_NOTES.md, not the whole history.
+    NOTES="$DIST/release-notes-$VERSION.md"
+    awk -v v="$VERSION" '$0 ~ "^#+ Tarn " v "$" {on=1; next} on && /^#/ {exit} on' RELEASE_NOTES.md > "$NOTES"
+    if [[ ! -s "$NOTES" ]]; then
+        echo "ERROR: RELEASE_NOTES.md has no section headed Tarn $VERSION" >&2
+        exit 1
+    fi
     gh release create "v$VERSION" \
         "$DIST/Tarn.zip" \
         "$DIST/Tarn.zip.sha256" \
         "$DIST/Tarn.dmg" \
         "$DIST/Tarn.dmg.sha256" \
         --title "Tarn $VERSION" \
-        --notes-file RELEASE_NOTES.md
+        --notes-file "$NOTES"
+
+    # The update feed: sign the zip that was just published, add it to appcast.xml, commit and push.
+    # This runs only after the release exists, so the feed never points at a missing download.
+    SIGNATURE=$("$SPARKLE/bin/sign_update" --account "$SPARKLE_ACCOUNT" "$DIST/Tarn.zip")
+    python3 -I Tools/add-to-appcast.py "$VERSION" "$BUILD" "$SIGNATURE" RELEASE_NOTES.md
+    xmllint --noout appcast.xml
+    git add appcast.xml
+    git commit -m "Appcast: Tarn $VERSION"
+    git push
+    echo "Tarn $VERSION is in the update feed."
 fi

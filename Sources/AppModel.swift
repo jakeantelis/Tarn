@@ -121,6 +121,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         WindowOpener.applyDockPolicy()
         Task { @MainActor in AppModel.shared.timer.writeStatus() }   // so tarnctl status works straight after launch
         Task { @MainActor in FloatingCircle.shared.refresh() }
+        // Start the updater at launch, so the weekly check runs if the person allowed it.
+        Task { @MainActor in _ = UpdateChecker.shared }
         // On the very first launch, open a window so Tarn is easy to find even if the menu bar icon is hidden.
         if UserDefaults.standard.object(forKey: "welcomed") == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { WindowOpener.shared.show() }
