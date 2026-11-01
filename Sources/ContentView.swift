@@ -622,7 +622,7 @@ struct SettingsTab: View {
                     Toggle("Check for updates automatically", isOn: Binding(get: { updates.automaticallyChecks }, set: { updates.automaticallyChecks = $0 }))
                     Toggle("Download and install updates automatically", isOn: Binding(get: { updates.automaticallyInstalls }, set: { updates.automaticallyInstalls = $0 }))
                         .disabled(!updates.automaticallyChecks)
-                    Text("Tarn asks once whether to check for updates automatically, about once a week. A check asks GitHub for the newest version and sends no personal information. Every update is signed, and Tarn checks the signature before it installs anything. You can also look on the [releases page](\(UpdateChecker.releasesPage.absoluteString)).")
+                    Text("Tarn asks once whether to check for updates automatically. If you say yes, it checks about once a week. A check asks GitHub for the newest version and sends no personal information. Every update is signed, and Tarn checks the signature before it installs anything. You can also look on the [releases page](\(UpdateChecker.releasesPage.absoluteString)).")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -983,7 +983,7 @@ enum HelpContent {
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. It is free, with no account and no tracking."),
             ("Where do I find things?", "Click the flower in the menu bar. The switch at the top moves between Focus and Breathe. Help, Settings and Quit are along the bottom. Settings has four sections: Focus, Breathe, General, and this Help."),
-            ("How do I update Tarn?", "Open Settings, General, Updates and press Check for updates. If a newer version exists, Tarn shows what is new and installs it when you say so. Tarn asks once whether to check by itself about once a week, and you can change that answer in the same place."),
+            ("How do I update Tarn?", "Open Settings, General, Updates and press Check for updates. If a newer version exists, Tarn shows what is new and installs it when you say so. Tarn asks once whether to check by itself. If you say yes, it checks about once a week, and you can change that answer in the same place."),
             ("How do I install or move Tarn?", "Open the disk image and drag Tarn onto Applications. If you open Tarn straight from the disk image or Downloads, it offers once to move itself into Applications for you."),
             ("I cannot find the menu bar icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, General, and turn on Show Tarn in the Dock, then click the Dock icon to open a window. You can also run tarnctl window in Terminal."),
         ]),

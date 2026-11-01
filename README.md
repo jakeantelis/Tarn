@@ -59,7 +59,7 @@ Works on any Mac with macOS 14 Sonoma or newer, Apple silicon or Intel. To check
 
 Keep Tarn in Applications, because it will not keep working from the disk image. If macOS asks whether to open an app from the internet, choose Open. If the flower is hidden by a crowded menu bar or the notch, turn on "Show Tarn in the Dock" in Settings.
 
-**Updates.** Tarn asks once whether to check for updates automatically, about once a week. Checks go to GitHub and send no personal information. You can also press Check for updates in Settings, General, and choose there whether updates download and install by themselves. Every update is signed, and Tarn checks the signature before installing it.
+**Updates.** Tarn asks once whether to check for updates automatically. If you say yes, it checks about once a week. Checks go to GitHub and send no personal information. You can also press Check for updates in Settings, General, and choose there whether updates download and install by themselves. Every update is signed, and Tarn checks the signature before installing it.
 
 ## Command line
 In the app, open Settings, General and press Install tarnctl (no password needed). From a source checkout, `Tools/install-cli.sh` does the same.
