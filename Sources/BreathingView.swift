@@ -77,6 +77,8 @@ struct BreathingView: View {
     @ObservedObject private var sound = AppModel.shared.sound
     @ObservedObject private var meditation = Meditation.shared
     @AppStorage("meditationVoice") private var voiceSetting = "soft"
+    /// Guided meditation is offered in Options unless it is switched off in Settings.
+    @AppStorage("offerMeditation") private var offerMeditation = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
@@ -117,7 +119,7 @@ struct BreathingView: View {
     /// One quiet menu for the things you set once: session length, the look, and background sound.
     private var optionsMenu: some View {
         Menu {
-            Section("Session") {
+            Section(offerMeditation && Meditation.isAvailable ? "Session, no voice" : "Session") {
                 ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
                     Button { setCoach(m) } label: {
                         let name = m == 0 ? "No timer" : "\(m) minutes"
@@ -125,8 +127,8 @@ struct BreathingView: View {
                     }
                 }
             }
-            if Meditation.isAvailable {
-                Section("Guided meditation") {
+            if Meditation.isAvailable && (offerMeditation || meditation.isActive) {
+                Section("Guided meditation, with a voice") {
                     let voice = Meditation.voice(preferring: voiceSetting)
                     ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
                         Button { beginGuided(m) } label: {
@@ -192,6 +194,38 @@ struct BreathingView: View {
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
         .help("Session length, guided meditation, rhythm, look, sound and screen")
+    }
+
+    /// Easy to find on the Breathe screen itself: pick a length to start a guided meditation, or end the one playing.
+    @ViewBuilder private var guidedButton: some View {
+        if meditation.isActive {
+            Button { endGuided() } label: {
+                Label("End meditation", systemImage: "stop.circle").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(CapsuleButtonStyle(small: true))
+        } else {
+            let voice = Meditation.voice(preferring: voiceSetting)
+            Menu {
+                Section("Guided meditation, with a voice") {
+                    ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
+                        Button("\(m) minutes") { beginGuided(m) }
+                    }
+                }
+                if Meditation.voices.count > 1 {
+                    Section("Voice") {
+                        ForEach(Meditation.voices, id: \.self) { v in
+                            Button { voiceSetting = v } label: {
+                                if voice == v { Label(Meditation.label(v), systemImage: "checkmark") } else { Text(Meditation.label(v)) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Guided meditation", systemImage: "waveform").frame(maxWidth: .infinity)
+            }
+            .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden)
+            .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath")
+        }
     }
 
     /// A guided session: the voice track, Settle, and soft sound underneath. Any timed session stops first.
@@ -361,6 +395,9 @@ struct BreathingView: View {
                     .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
                     .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
                     .fadesWithChrome(chrome)
+                }
+                if Meditation.isAvailable && offerMeditation {
+                    guidedButton.fadesWithChrome(chrome)
                 }
             }
         }

@@ -41,8 +41,11 @@ While you breathe and the mouse is still, the controls fade so only the picture 
 **What is a Session?**  
 Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 
+**Is there always a voice?**  
+No. Breathe and its sessions are quiet. The voice only plays when you choose one: use the Guided meditation button under Calm mode on the Breathe screen, or Options, under "Guided meditation, with a voice". If you never use it, switch off "Offer guided meditation" in Settings, under Breathe, and the button and menu items go away.
+
 **How does guided meditation work?**  
-In Breathe, open Options and choose 5, 10 or 20 minutes under Guided meditation, and pick a voice there: Soft, Warm or Grounded. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
+In Breathe, click Guided meditation under Calm mode (or open Options) and choose 5, 10 or 20 minutes. Pick a voice in the same menu: Soft, Warm or Grounded. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
 
 **What happens to the sound in a guided meditation?**  
 Your sound mix plays softly underneath, or Ocean calm if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.

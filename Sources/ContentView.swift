@@ -572,6 +572,7 @@ struct SettingsTab: View {
     @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("meditationVoice") private var meditationVoice = "soft"
+    @AppStorage("offerMeditation") private var offerMeditation = true
     @AppStorage("meditationSounds") private var soundsUnderMeditation = true
     @AppStorage("meditationLinger") private var lingerMinutes = 0
     @AppStorage("breathPattern") private var breathPattern = "settle"
@@ -868,6 +869,8 @@ struct SettingsTab: View {
             if Meditation.isAvailable {
                 GroupBox("Guided meditation") {
                     VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Offer guided meditation", isOn: $offerMeditation)
+                        Group {
                         if Meditation.voices.count > 1 {
                             Picker("Voice", selection: Binding(get: { Meditation.voice(preferring: meditationVoice) }, set: { meditationVoice = $0 })) {
                                 ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
@@ -880,7 +883,9 @@ struct SettingsTab: View {
                             Text("Stay 10 minutes").tag(10)
                         }
                         .disabled(!soundsUnderMeditation)
-                        Text("Start one from Options on the Breathe screen: 5, 10 or 20 minutes. A quiet voice guides you with long stretches of silence, and your sound mix plays softly underneath, or Ocean calm if you have none. Sound that started for the meditation drifts away afterwards. Sound you had on already goes back to its normal level.")
+                        }
+                        .disabled(!offerMeditation)
+                        Text("The voice only plays when you choose a guided meditation. Breathe and its sessions stay quiet otherwise. Start one with the Guided meditation button on the Breathe screen, or from Options: 5, 10 or 20 minutes. A quiet voice guides you with long stretches of silence, and your sound mix plays softly underneath, or Ocean calm if you have none. Sound that started for the meditation drifts away afterwards. Sound you had on already goes back to its normal level. Switch it off to hide the button and the menu items.")
                             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }.padding(.vertical, 4)
                 }
