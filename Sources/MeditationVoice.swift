@@ -29,10 +29,10 @@ final class Meditation: ObservableObject {
 
     var isActive: Bool { minutes != nil }
 
-    /// How loud the voice plays, remembered between sessions. Set with the Voice slider in a session.
-    @Published var voiceLevel: Double = UserDefaults.standard.object(forKey: "meditationVoiceLevel") as? Double ?? 1 {
+    /// How loud the voice plays, remembered between sessions. Set with the Voice slider in a session's mixer.
+    @Published var voiceLevel: Double = UserDefaults.standard.object(forKey: "meditationVoiceVolume") as? Double ?? 1 {
         didSet {
-            UserDefaults.standard.set(voiceLevel, forKey: "meditationVoiceLevel")
+            UserDefaults.standard.set(voiceLevel, forKey: "meditationVoiceVolume")
             player?.volume = Float(voiceLevel)
         }
     }
@@ -85,9 +85,8 @@ final class Meditation: ObservableObject {
         script = VoiceScript.timeline(total: Double(m * 60))
         nextLine = 0
         caption = ""
-        if d.object(forKey: "meditationSounds") as? Bool ?? true {
-            AppModel.shared.sound.beginMeditation(startedForBreathe: AppModel.shared.startedForBreathe)
-        }
+        AppModel.shared.sound.beginMeditation(startedForBreathe: AppModel.shared.startedForBreathe,
+                                              start: d.object(forKey: "meditationSounds") as? Bool ?? true)
         ticker?.invalidate()
         let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in Task { @MainActor in self?.tick() } }
         RunLoop.main.add(t, forMode: .common)

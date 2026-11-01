@@ -120,10 +120,19 @@ final class SoundEngine: ObservableObject {
     private var startedForMeditation = false
     private var underMeditation = false
 
-    /// How loud sound plays under the voice, as a share of its normal level. Set with the Sounds slider in a session.
+    /// How loud nature sound plays under the voice, as a share of its normal level. 0 is silent.
+    /// Set with the Nature slider in a session's mixer.
     static var meditationLevel: Double {
-        get { UserDefaults.standard.object(forKey: "meditationSoundLevel") as? Double ?? 0.45 }
-        set { UserDefaults.standard.set(min(1, max(0, newValue)), forKey: "meditationSoundLevel") }
+        get { UserDefaults.standard.object(forKey: "meditationNatureLevel") as? Double ?? 0.45 }
+        set { UserDefaults.standard.set(min(1, max(0, newValue)), forKey: "meditationNatureLevel") }
+    }
+
+    /// Picks the sound under a running meditation. Sound that was off starts now and counts as started
+    /// for the meditation, so it fades away afterwards like the rest.
+    func setMeditationPreset(_ preset: SoundPreset) {
+        if !isPlaying { startedForMeditation = true }
+        if underMeditation, slowFadeTimer == nil { gain = Float(Self.meditationLevel) }
+        applyPreset(preset)
     }
 
     /// Moves the sound under a running meditation to a new level and remembers it for next time.
@@ -175,12 +184,15 @@ final class SoundEngine: ObservableObject {
 
     /// Plays sound softly under a guided meditation. Uses the person's own mix, or Ocean calm if they have none.
     /// `startedForBreathe` counts sound Breathe turned on by itself, which a session already fades away when it ends.
-    func beginMeditation(startedForBreathe: Bool) {
+    /// With `start` off nothing new begins, but sound already playing still steps back under the voice.
+    func beginMeditation(startedForBreathe: Bool, start: Bool = true) {
         lingerWork?.cancel(); lingerWork = nil
         cancelSlowFade()
         underMeditation = true
         gain = Float(Self.meditationLevel)
+        startedForMeditation = false
         if isPlaying { startedForMeditation = startedForBreathe; applyGains(); return }
+        guard start else { return }
         if !Soundscape.allCases.contains(where: { (levels[$0] ?? 0) > 0 }), let ocean = SoundPreset.all.first {
             for s in Soundscape.allCases { setLevel(ocean.mix[s] ?? 0, for: s, enforceCap: false) }
         }

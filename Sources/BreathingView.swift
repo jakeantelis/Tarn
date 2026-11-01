@@ -77,6 +77,9 @@ struct BreathingView: View {
     @ObservedObject private var sound = AppModel.shared.sound
     @ObservedObject private var meditation = Meditation.shared
     @AppStorage("meditationVoice") private var voiceSetting = "soft"
+    @AppStorage("meditationNatureLevel") private var natureLevel = 0.45
+    @AppStorage("lastPreset") private var lastPreset = ""
+    @State private var mixerShown = false
     /// Guided meditation is offered in Options unless it is switched off in Settings.
     @AppStorage("offerMeditation") private var offerMeditation = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
@@ -199,12 +202,16 @@ struct BreathingView: View {
     /// Easy to find on the Breathe screen itself: pick a length to start a guided meditation, or end the one playing.
     @ViewBuilder private var guidedButton: some View {
         if meditation.isActive {
-            VStack(spacing: 6) {
-                levelSlider("Voice", symbol: "waveform", value: $meditation.voiceLevel)
-                if sound.isPlaying {
-                    levelSlider("Sounds", symbol: "music.note", value: Binding(get: { SoundEngine.meditationLevel },
-                                                                              set: { sound.setMeditationLevel($0) }))
+            HStack(spacing: 8) {
+                Button { mixerShown.toggle() } label: {
+                    Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.fill")
+                        .font(.system(size: 11))
+                        .frame(width: 28, height: 22)
                 }
+                .buttonStyle(CapsuleButtonStyle(small: true))
+                .help("Voice and nature sound")
+                .accessibilityLabel("Voice and nature sound")
+                .popover(isPresented: $mixerShown, arrowEdge: .top) { mixer }
                 Button { endGuided() } label: {
                     Label("End meditation", systemImage: "stop.circle").frame(maxWidth: .infinity)
                 }
@@ -235,11 +242,39 @@ struct BreathingView: View {
         }
     }
 
+    /// The meditation mixer: how loud the voice is, how loud the nature sound under it is, and which sound.
+    /// Every change applies at once and is remembered. Clicking outside closes it.
+    var mixer: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            levelSlider("Voice", symbol: "waveform", value: $meditation.voiceLevel)
+            levelSlider("Nature", symbol: "leaf", value: Binding(get: { natureLevel },
+                                                                 set: { natureLevel = $0; sound.setMeditationLevel($0) }))
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                ForEach(SoundPreset.all) { p in
+                    let on = sound.isPlaying && lastPreset == p.name
+                    Button { sound.setMeditationPreset(p) } label: {
+                        Label(p.name, systemImage: p.symbol)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(on ? Color.breatheTint.opacity(0.35) : Color.secondary.opacity(0.14)))
+                            .overlay(Capsule().strokeBorder(on ? Color.breatheTint.opacity(0.7) : .clear, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 260)
+    }
+
     /// A small labelled volume slider for a guided session. Each one is remembered for next time.
     private func levelSlider(_ name: String, symbol: String, value: Binding<Double>) -> some View {
         HStack(spacing: 8) {
             Image(systemName: symbol).font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 14)
-            Text(name).font(.caption).foregroundStyle(.secondary).frame(width: 44, alignment: .leading)
+            Text(name).font(.caption).foregroundStyle(.secondary).frame(width: 46, alignment: .leading)
             Slider(value: value, in: 0...1).controlSize(.small)
         }
         .padding(.horizontal, 6)
