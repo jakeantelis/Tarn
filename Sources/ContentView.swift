@@ -678,7 +678,7 @@ struct SettingsTab: View {
                         .font(.callout.weight(.medium))
                     Text("A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm place to focus, and to breathe.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    Text("Free and open source, made by Antelis Labs. No account and no tracking. The recorded sounds are public domain (CC0) from BigSoundBank.")
+                    Text("Free and open source, made by Antelis Labs. No account and no tracking. The recorded sounds are public domain (CC0) from BigSoundBank. Updates use Sparkle (MIT).")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 6) {
                         Button("About Tarn") { AboutPanel.show() }.buttonStyle(CapsuleButtonStyle(small: true))

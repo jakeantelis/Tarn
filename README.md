@@ -6,7 +6,7 @@ A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a 
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
-Free and open source. No account, no tracking, and it only goes online when you press Check for updates. Made by [Antelis Labs](https://antelislabs.com).
+Free and open source. No account, no tracking, and the only thing it ever asks the internet is whether there is a newer Tarn. Made by [Antelis Labs](https://antelislabs.com).
 
 <p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
 
@@ -28,7 +28,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Sounds.** Recorded ambient loops (ocean, forest, birds and stream) with presets, a mixer and a fade out timer. Each sound drifts slightly over time and fades in and out gently, so it suits a whole day. Focus is silent until you turn sounds on.
 
-**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except when you press Check for updates. It never speaks, and it never fills your screen unless you ask.
+**Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except checking GitHub for updates, which sends no personal information. It only speaks in a guided meditation you choose, and it never fills your screen unless you ask.
 
 ### A closer look
 
@@ -59,7 +59,7 @@ Works on any Mac with macOS 14 Sonoma or newer, Apple silicon or Intel. To check
 
 Keep Tarn in Applications, because it will not keep working from the disk image. If macOS asks whether to open an app from the internet, choose Open. If the flower is hidden by a crowded menu bar or the notch, turn on "Show Tarn in the Dock" in Settings.
 
-**Updates.** Open Settings, General and press Check for updates. Tarn never checks by itself.
+**Updates.** Tarn asks once whether to check for updates automatically, about once a week. Checks go to GitHub and send no personal information. You can also press Check for updates in Settings, General, and choose there whether updates download and install by themselves. Every update is signed, and Tarn checks the signature before installing it.
 
 ## Command line
 In the app, open Settings, General and press Install tarnctl (no password needed). From a source checkout, `Tools/install-cli.sh` does the same.
@@ -85,6 +85,8 @@ It talks to the app through `tarn://` links, so Shortcuts and Raycast can use th
 Every ambient sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
 
 The guided meditation voices are credited in [SOURCES.md](SOURCES.md). See License below for their terms.
+
+Updates use [Sparkle](https://sparkle-project.org) (MIT license). Its license is included in the app as `Sparkle-LICENSE.txt`.
 
 ## More from Antelis Labs
 See [antelislabs.com](https://antelislabs.com) for everything else.

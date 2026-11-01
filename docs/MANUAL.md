@@ -91,7 +91,7 @@ Everything in Settings is optional. Breaks do not take over your screen unless y
 
 ## Requirements and caveats
 - macOS 14 (Sonoma) or later, on Apple silicon and Intel. Built and tested on macOS 27; older versions are expected to work but have not been tested on hardware.
-- Tarn needs no special permissions. It does not use the microphone, camera or location. It uses the network only when you press Check for updates in Settings, General, which asks GitHub for the newest version and sends nothing about you.
+- Tarn needs no special permissions. It does not use the microphone, camera or location. It uses the network only to check GitHub for updates. That check sends no personal information and no profile of your Mac, and it runs by itself only if you said yes.
 - Hide apps uses the same hide as the Cmd+H shortcut. It never quits an app and never closes a document.
 - The Focus Shortcut hooks run the Shortcuts you name, so they can do anything a Shortcut can. Leave them blank if you do not use them.
 - The optional round reminder asks macOS for permission to show a quiet banner. Nothing is sent anywhere.
@@ -105,4 +105,6 @@ Click Help along the bottom of the Tarn window to open the searchable FAQ (also 
 
 ## Updates
 
-Open Settings, General, Updates and press Check for updates. Tarn never checks by itself. If a newer version exists, press Download, then drag the new Tarn over the old one in Applications.
+The second time you open Tarn, it asks once whether to check for updates automatically. If you say yes, it checks GitHub about once a week. If you say no, it only checks when you press Check for updates in Settings, General. Either way, a check sends no personal information.
+
+When a newer version exists, Tarn shows what is new and installs it when you choose. In Settings, General you can change your answer, and turn on Download and install updates automatically if you would rather not be asked. Every update is signed with Tarn's own key, and Tarn checks that signature before it installs anything.
