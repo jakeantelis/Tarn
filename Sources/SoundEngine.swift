@@ -64,6 +64,9 @@ final class SoundEngine: ObservableObject {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: file.processingFormat)
         player.volume = 0
+        // Start each layer at a random point in its loop, so layers of the same length never repeat in step.
+        let offset = AVAudioFramePosition(Double.random(in: 0.1...0.9) * Double(file.length))
+        player.scheduleSegment(file, startingFrame: offset, frameCount: AVAudioFrameCount(file.length - offset), at: nil)
         player.scheduleBuffer(buf, at: nil, options: .loops)
         players[s] = player
         if engine.isRunning { player.play() }
@@ -82,7 +85,7 @@ final class SoundEngine: ObservableObject {
         guard minutes > 0 else { return }
         let w = DispatchWorkItem { [weak self] in
             self?.sleepMinutes = 0
-            self?.fadeOut()
+            self?.fadeOut(over: SoundEngine.endFade)
         }
         sleepWork = w
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(minutes) * 60, execute: w)
@@ -113,8 +116,55 @@ final class SoundEngine: ObservableObject {
 
     private func applyGains() {
         if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
-        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain : 0 }
+        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * drift(s) : 0 }
         startFade()
+    }
+
+    // MARK: Natural variation
+
+    /// Each layer swells and settles by up to 15 percent over a few minutes, on its own slow cycle, and birds
+    /// wander gently between left and right. Over a long day the blend never sounds quite the same twice.
+    private var driftTimer: Timer?
+    private let driftStart = Date()
+    private let driftShape: [Soundscape: (period: Double, phase: Double)] = {
+        var d: [Soundscape: (Double, Double)] = [:]
+        for s in Soundscape.allCases { d[s] = (Double.random(in: 180...420), Double.random(in: 0...(2 * .pi))) }
+        return d
+    }()
+    private let birdPan = (period: Double.random(in: 90...160), phase: Double.random(in: 0...(2 * .pi)))
+
+    private func drift(_ s: Soundscape) -> Float {
+        guard let shape = driftShape[s] else { return 1 }
+        let t = Date().timeIntervalSince(driftStart)
+        return Float(1 + 0.15 * sin(2 * .pi * t / shape.period + shape.phase))
+    }
+
+    private func startDrift() {
+        guard driftTimer == nil else { return }
+        let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isPlaying, self.slowFadeTimer == nil else { return }
+                let t = Date().timeIntervalSince(self.driftStart)
+                self.players[.birds]?.pan = Float(0.35 * sin(2 * .pi * t / self.birdPan.period + self.birdPan.phase))
+                self.applyGains()
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        driftTimer = t
+    }
+
+    // MARK: Gentle fades
+
+    /// Gentle fades are on unless turned off in Settings; off still ramps briefly so sound never clicks.
+    static var gentle: Bool { UserDefaults.standard.object(forKey: "gentleFades") as? Bool ?? true }
+    nonisolated static let pauseFadeSeconds: Double = 4
+    static var pauseFade: Double { gentle ? pauseFadeSeconds : 0.3 }
+    static var endFade: Double { gentle ? slowFadeSeconds : 3 }
+
+    /// Turning sound off by hand eases it out along the same soft curve as the end of a meditation.
+    func pause() {
+        autoPlaying = false
+        if isPlaying, slowFadeTimer == nil { fadeOut(over: Self.pauseFade) } else { stop() }
     }
 
     /// How long the gentle fade at the end of a meditation or the sleep timer takes.
@@ -171,17 +221,17 @@ final class SoundEngine: ObservableObject {
         slowFadeTimer = t
     }
 
-    /// Ends a slow fade early. The level returns to normal the next time sound plays.
+    /// Ends a slow fade early. The level returns to normal, or to the soft level under a meditation.
     private func cancelSlowFade() {
         guard let t = slowFadeTimer else { return }
         t.invalidate(); slowFadeTimer = nil
-        gain = 1
+        gain = underMeditation ? Float(Self.meditationLevel) : 1
     }
 
     /// Sets each loop straight to its level, for the slow fade, which does its own easing.
     private func setVolumesNow() {
         for (s, p) in players {
-            let v = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain : 0
+            let v = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * drift(s) : 0
             targets[s] = v
             p.volume = v
         }
@@ -216,10 +266,10 @@ final class SoundEngine: ObservableObject {
             return
         }
         startedForMeditation = false
-        guard lingerMinutes > 0 else { fadeOut(); return }
+        guard lingerMinutes > 0 else { fadeOut(over: Self.endFade); return }
         let w = DispatchWorkItem { [weak self] in
             self?.lingerWork = nil
-            self?.fadeOut()
+            self?.fadeOut(over: SoundEngine.endFade)
         }
         lingerWork = w
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(lingerMinutes) * 60, execute: w)
@@ -240,7 +290,10 @@ final class SoundEngine: ObservableObject {
         for (s, p) in players {
             let target = targets[s] ?? 0
             let diff = target - p.volume
-            if abs(diff) < 0.004 { p.volume = target } else { p.volume += diff * 0.035; moving = true }
+            // Rising sound comes in at a steady, gentle pace; falling sound eases away.
+            if abs(diff) < 0.004 { p.volume = target }
+            else if diff > 0 { p.volume += min(diff, 0.012); moving = true }
+            else { p.volume += diff * 0.035; moving = true }
         }
         if !moving { fadeTimer?.invalidate(); fadeTimer = nil }
     }
@@ -290,7 +343,10 @@ final class SoundEngine: ObservableObject {
         }
     }
 
-    func toggle() { autoPlaying = false; isPlaying ? stop() : play() }
+    /// Pausing eases out over a few seconds along a soft curve, so it never cuts off.
+    func toggle() {
+        if isPlaying, slowFadeTimer == nil { pause() } else { autoPlaying = false; play() }
+    }
 
     func play() {
         // Pressing play during a slow fade, or while sound lingers after a meditation, brings it back at its normal level.
@@ -300,9 +356,11 @@ final class SoundEngine: ObservableObject {
         applyGainsAfter(playing: true)
         if !engine.isRunning { try? engine.start() }
         for p in players.values where !p.isPlaying { p.play() }
+        startDrift()
     }
 
     func stop() {
+        driftTimer?.invalidate(); driftTimer = nil
         lingerWork?.cancel(); lingerWork = nil
         if slowFadeTimer != nil { cancelSlowFade() }
         sleepWork?.cancel()

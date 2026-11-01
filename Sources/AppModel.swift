@@ -95,7 +95,7 @@ final class AppModel {
             if let preset { sound.applyPreset(preset) }
             switch value("state") ?? (preset == nil ? "toggle" : "none") {
             case "on": if preset == nil { sound.play() }
-            case "off": sound.stop()
+            case "off": sound.pause()
             case "toggle": sound.toggle()
             default: break
             }

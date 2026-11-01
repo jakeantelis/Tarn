@@ -200,7 +200,7 @@ struct OverlayView: View {
                         Button(p.name) { sound.applyPreset(p) }
                     }
                     Divider()
-                    Button("Sound off") { sound.stop() }
+                    Button("Sound off") { sound.pause() }
                 } label: {
                     Label("Sounds", systemImage: "music.note")
                 }

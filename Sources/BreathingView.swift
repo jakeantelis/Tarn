@@ -175,7 +175,7 @@ struct BreathingView: View {
                 ForEach(SoundPreset.all) { p in
                     Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
                 }
-                Button("Sound off") { sound.stop() }
+                Button("Sound off") { sound.pause() }
                 if let onMix { Button("Mix sounds…") { onMix() } }
             }
             Section("More") {
@@ -243,7 +243,7 @@ struct BreathingView: View {
                 Label("Guided meditation", systemImage: "waveform").frame(maxWidth: .infinity)
             }
             .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden)
-            .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath")
+            .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath. Best with headphones and your eyes closed.")
         }
     }
 
@@ -375,7 +375,7 @@ struct BreathingView: View {
                         } else {
                             meditation.togglePause()
                             soundWasOn = sound.isPlaying
-                            if soundWasOn { sound.stop() }
+                            if soundWasOn { sound.pause() }
                         }
                     } else if let p = pausedAt {
                         // Resume: the breath, the session clock and the sound all pick up where they stopped.
@@ -387,7 +387,7 @@ struct BreathingView: View {
                         // Pause: the sound stops too, so a paused session is really quiet.
                         pausedAt = Date().timeIntervalSince(start); pausedFrom = Date()
                         soundWasOn = sound.isPlaying
-                        if soundWasOn { sound.stop() }
+                        if soundWasOn { sound.pause() }
                     }
                 }
                 .help(compact ? "" : (isPaused ? "Click to resume" : "Click to pause"))
