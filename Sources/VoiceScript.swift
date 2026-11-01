@@ -43,7 +43,7 @@ public enum VoiceScript {
     /// Seconds of quiet between passages. Longer sessions leave more room.
     static func gap(total: Double) -> Double {
         let minutes = total / 60
-        return minutes <= 5 ? 32 : (minutes <= 10 ? 58 : 105)
+        return minutes <= 5 ? 32 : (minutes <= 10 ? 58 : 85)
     }
 
     /// When each passage is spoken in a session of `total` seconds.

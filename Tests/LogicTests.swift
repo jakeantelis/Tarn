@@ -35,6 +35,8 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
             check(zip(lines, lines.dropFirst()).allSatisfy { $0.at < $1.at }, "\(m) min: passages come in order")
             check(lines.contains { $0.passage == VoiceScript.middle.last! }, "\(m) min: includes the invitation to rest")
         }
+        let longest = Set(VoiceScript.timeline(total: 20 * 60).map(\.passage.id))
+        check(VoiceScript.all.allSatisfy { longest.contains($0.id) }, "20 min: speaks every passage")
 
         print("Move to Applications")
         check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")
