@@ -84,7 +84,7 @@ It talks to the app through `tarn://` links, so Shortcuts and Raycast can use th
 ## Sounds and credits
 Every ambient sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
 
-The guided meditation recordings in `Resources/Voice/` are not covered by the MIT license. They are all rights reserved and may be used only as part of Tarn. See [SOURCES.md](SOURCES.md).
+The guided meditation voices are credited in [SOURCES.md](SOURCES.md). See License below for their terms.
 
 ## More from Antelis Labs
 See [antelislabs.com](https://antelislabs.com) for everything else.
@@ -92,4 +92,4 @@ See [antelislabs.com](https://antelislabs.com) for everything else.
 [**Matcha**](https://github.com/jakeantelis/Matcha) keeps your Mac awake for builds, exports and long running tasks. Tiny app, command line tool and crash safe. It pairs well with Tarn: let Matcha hold the Mac awake while Tarn holds your focus.
 
 ## License
-MIT. See [LICENSE](LICENSE). The guided meditation recordings in `Resources/Voice/` are the exception: all rights reserved, for use in Tarn only.
+The guided meditation recordings are © 2026 Antelis Labs LLC and may not be reused or redistributed outside Tarn. Everything else in this project is MIT licensed. See [LICENSE](LICENSE).
