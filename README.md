@@ -20,7 +20,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath, with a small mixer for the voice, the nature sound and which sound plays. Best with headphones and your eyes closed. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. One switch in Settings hides it if you never use it.
 
-**Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
+**Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, or hover for a sound button and an X that closes it. Pick one of four sizes, or turn it off, in Settings, Focus.
 
 ![The floating circle in Focus and in Breathe](docs/images/floating-circle.png)
 

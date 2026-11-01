@@ -97,9 +97,12 @@ final class FloatingHover: ObservableObject {
 }
 
 /// Hosts the circle and reports the pointer entering and leaving, even while another app is in front.
+/// A missed exit (switching apps or Spaces, a drag, the window moving under the pointer) would leave the
+/// hover controls showing, so while the pointer is inside the circle its position is also checked twice a second.
 final class FloatingHostingView<Content: View>: NSHostingView<Content> {
     var onHover: ((Bool) -> Void)?
     private var area: NSTrackingArea?
+    private var check: Timer?
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -108,8 +111,25 @@ final class FloatingHostingView<Content: View>: NSHostingView<Content> {
         addTrackingArea(a)
         area = a
     }
-    override func mouseEntered(with event: NSEvent) { onHover?(true) }
-    override func mouseExited(with event: NSEvent) { onHover?(false) }
+    override func mouseEntered(with event: NSEvent) {
+        onHover?(true)
+        check?.invalidate()
+        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.confirmInside() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        check = t
+    }
+    override func mouseExited(with event: NSEvent) { left() }
+
+    private func confirmInside() {
+        guard let window, window.isVisible, window.frame.contains(NSEvent.mouseLocation) else { left(); return }
+    }
+
+    private func left() {
+        check?.invalidate(); check = nil
+        onHover?(false)
+    }
 }
 
 /// The picture inside the floating circle: frosted glass, a fine edge light, and a soft shadow.
@@ -160,18 +180,20 @@ struct FloatingCircleView: View {
         FloatingCircle.shared.refresh()
     }
 
-    /// A small close button that appears on hover. Hiding the circle is always one click away.
+    /// A small close button that appears on hover, like the sound button, and is gone when the pointer leaves.
     private var closeButton: some View {
         Button { Self.hide() } label: {
             Image(systemName: "xmark")
                 .font(.system(size: max(8, d * 0.075), weight: .bold))
-                .foregroundStyle(.white.opacity(hovering ? 0.95 : 0.5))
+                .foregroundStyle(.white.opacity(0.95))
                 .frame(width: max(22, d * 0.19), height: max(22, d * 0.19))
-                .background(Circle().fill(Color.black.opacity(hovering ? 0.55 : 0)))
-                .overlay(Circle().strokeBorder(Color.white.opacity(hovering ? 0.25 : 0), lineWidth: 0.5))
+                .background(Circle().fill(Color.black.opacity(0.55)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
+        .opacity(hovering ? 1 : 0)
+        .allowsHitTesting(hovering)
         .animation(.easeOut(duration: 0.2), value: hovering)
         .help("Hide the floating circle. Turn it back on in Settings, Focus.")
         .accessibilityLabel("Hide floating circle")

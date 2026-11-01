@@ -19,7 +19,7 @@ The picture changes to a gentle breathing guide and the window turns soft purple
 
 
 ## Floating circle
-A small frosted circle stays above your other windows. In Focus it shows the time, and in Breathe it shows the breathing picture. Click it to start or pause, hover for a sound button, and drag it anywhere. Close it with the X, or right click it for more. Change its size, or turn it off, in Settings, Focus, or from the three dots menu. It steps aside in full screen.
+A small frosted circle stays above your other windows. In Focus it shows the time, and in Breathe it shows the breathing picture. Click it to start or pause, hover for a sound button, and drag it anywhere. Hover to show the X that closes it, or right click it for more. Change its size, or turn it off, in Settings, Focus, or from the three dots menu. It steps aside in full screen.
 
 ## Breathe
 
