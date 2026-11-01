@@ -571,6 +571,9 @@ struct SettingsTab: View {
     @AppStorage("keepSoundAfterSession") private var keepSound = false
     @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("guideMe") private var guideMe = false
+    @AppStorage("meditationVoice") private var meditationVoice = "soft"
+    @AppStorage("meditationSounds") private var soundsUnderMeditation = true
+    @AppStorage("meditationLinger") private var lingerMinutes = 0
     @AppStorage("breathPattern") private var breathPattern = "settle"
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
@@ -861,6 +864,26 @@ struct SettingsTab: View {
                     Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off here, with the speaker button, or in the Options menu. Pick or mix sounds from Options on the Breathe screen.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
+            }
+            if Meditation.isAvailable {
+                GroupBox("Guided meditation") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if Meditation.voices.count > 1 {
+                            Picker("Voice", selection: Binding(get: { Meditation.voice(preferring: meditationVoice) }, set: { meditationVoice = $0 })) {
+                                ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
+                            }
+                        }
+                        Toggle("Play sounds under the voice", isOn: $soundsUnderMeditation)
+                        Picker("Sounds afterwards", selection: $lingerMinutes) {
+                            Text("Fade over 30 seconds").tag(0)
+                            Text("Stay 3 minutes").tag(3)
+                            Text("Stay 10 minutes").tag(10)
+                        }
+                        .disabled(!soundsUnderMeditation)
+                        Text("Start one from Options on the Breathe screen: 5, 10 or 20 minutes. A quiet voice guides you with long stretches of silence, and your sound mix plays softly underneath, or Ocean calm if you have none. Sound that started for the meditation drifts away afterwards. Sound you had on already goes back to its normal level.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }.padding(.vertical, 4)
+                }
             }
             GroupBox("Look and rhythm") {
                 VStack(alignment: .leading, spacing: 8) {

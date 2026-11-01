@@ -14,6 +14,8 @@ swiftc -O -parse-as-library -swift-version 5 -target arm64-apple-macos14.0 Sourc
 
 mkdir -p "$APP/Contents/Resources/Sounds"
 cp Resources/Sounds/*.{wav,caf,m4a} "$APP/Contents/Resources/Sounds/" 2>/dev/null || true
+mkdir -p "$APP/Contents/Resources/Voice"
+cp Resources/Voice/*.m4a "$APP/Contents/Resources/Voice/" 2>/dev/null || true
 cp Tools/tarnctl "$APP/Contents/Resources/tarnctl"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Info.plist "$APP/Contents/Info.plist"

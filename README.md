@@ -18,6 +18,8 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
+**Guided meditation.** In Breathe, open Options and choose 5, 10 or 20 minutes under Guided meditation. A recorded voice (Soft, Warm or Male) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer.
+
 **Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
 
 ![The floating circle in Focus and in Breathe](docs/images/floating-circle.png)
@@ -80,7 +82,9 @@ It talks to the app through `tarn://` links, so Shortcuts and Raycast can use th
 `./build.sh` builds `build/Tarn.app`. Add `run` to launch it. `Tools/run-tests.sh` runs the logic tests, and `Tools/release.sh` builds a universal app, signs it, notarizes it and makes the DMG.
 
 ## Sounds and credits
-Every sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
+Every ambient sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
+
+The guided meditation recordings in `Resources/Voice/` are not covered by the MIT license. They are all rights reserved and may be used only as part of Tarn. See [SOURCES.md](SOURCES.md).
 
 ## More from Antelis Labs
 See [antelislabs.com](https://antelislabs.com) for everything else.
@@ -88,4 +92,4 @@ See [antelislabs.com](https://antelislabs.com) for everything else.
 [**Matcha**](https://github.com/jakeantelis/Matcha) keeps your Mac awake for builds, exports and long running tasks. Tiny app, command line tool and crash safe. It pairs well with Tarn: let Matcha hold the Mac awake while Tarn holds your focus.
 
 ## License
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). The guided meditation recordings in `Resources/Voice/` are the exception: all rights reserved, for use in Tarn only.

@@ -49,7 +49,8 @@ final class AppModel {
     /// You chose a mode yourself. Breathe starts the soft sound; going back to Focus fades out what Breathe started.
     func userChose(_ mode: Mode) {
         if mode == .breathe { startBreatheSound() }
-        else if startedForBreathe {
+        else if Meditation.shared.isActive { Meditation.shared.end(completed: false) }
+        if mode != .breathe, startedForBreathe {
             startedForBreathe = false
             if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { sound.stop() }
         }

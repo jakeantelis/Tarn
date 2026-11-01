@@ -27,6 +27,15 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(settle.warped(300) > settle.warped(180), "Settle: warped time keeps increasing")
         check(abs(settle.warped(180 + 1e-6) - settle.warped(180 - 1e-6)) < 1e-3, "Settle: warp continuous at 3 minutes")
 
+        print("Guided meditation script")
+        for m in [5, 10, 20] {
+            let total = Double(m * 60), lines = VoiceScript.timeline(total: total)
+            check(lines.first?.at == -VoiceScript.leadIn && lines.first?.passage == VoiceScript.opening, "\(m) min: opens with the welcome in the lead-in")
+            check(lines.last?.at == total && lines.last?.passage == VoiceScript.ending, "\(m) min: ends with the ending at the close")
+            check(zip(lines, lines.dropFirst()).allSatisfy { $0.at < $1.at }, "\(m) min: passages come in order")
+            check(lines.contains { $0.passage == VoiceScript.middle.last! }, "\(m) min: includes the invitation to rest")
+        }
+
         print("Move to Applications")
         check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")
         check(MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Downloads/Tarn.app"), "offers from Downloads")

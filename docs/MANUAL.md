@@ -41,6 +41,15 @@ While you breathe and the mouse is still, the controls fade so only the picture 
 **What is a Session?**  
 Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 
+**How does guided meditation work?**  
+In Breathe, open Options and choose 5, 10 or 20 minutes under Guided meditation, and pick a voice there: Soft, Warm or Male. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
+
+**What happens to the sound in a guided meditation?**  
+Your sound mix plays softly underneath, or Ocean calm if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.
+
+**I cannot hear the voice.**  
+If the Mac is muted or the volume is almost all the way down, Tarn shows a quiet line: Volume is low. Turn it up to hear the voice.
+
 **What does Hide apps do?**  
 It hides other apps' windows so you can breathe. It never quits anything. Press Bring back, or start a focus round, and they return.
 
@@ -48,7 +57,7 @@ It hides other apps' windows so you can breathe. It never quits anything. Press 
 ## Sounds
 
 **How do I turn sounds on?**  
-In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings, under Breathe.
+In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you, with a slow 30 second fade. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings, under Breathe.
 
 
 ## Good to know

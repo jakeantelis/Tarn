@@ -70,14 +70,14 @@ final class SoundEngine: ObservableObject {
     @Published var sleepMinutes = 0
     private var sleepWork: DispatchWorkItem?
 
-    /// Fades the sounds out after the chosen time. 0 turns it off.
+    /// Fades the sounds out slowly after the chosen time. 0 turns it off.
     func setSleep(minutes: Int) {
         sleepMinutes = minutes
         sleepWork?.cancel()
         guard minutes > 0 else { return }
         let w = DispatchWorkItem { [weak self] in
-            self?.stop()
             self?.sleepMinutes = 0
+            self?.fadeOut()
         }
         sleepWork = w
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(minutes) * 60, execute: w)
@@ -108,8 +108,87 @@ final class SoundEngine: ObservableObject {
 
     private func applyGains() {
         if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
-        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor : 0 }
+        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain : 0 }
         startFade()
+    }
+
+    /// How long the gentle fade at the end of a meditation or the sleep timer takes.
+    nonisolated static let slowFadeSeconds: Double = 30
+
+    /// Quieter under a guided meditation, so the voice stays clear.
+    private var gain: Float = 1
+    private var startedForMeditation = false
+    private var slowFadeTimer: Timer?
+    private var lingerWork: DispatchWorkItem?
+
+    /// Lowers the sound along a soft curve over `seconds`, then stops. Feels like the sound drifting away.
+    func fadeOut(over seconds: Double = SoundEngine.slowFadeSeconds) {
+        guard isPlaying, slowFadeTimer == nil else { return }
+        let startGain = gain, steps = max(1, Int(seconds * 10))
+        var i = 0
+        let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.slowFadeTimer != nil else { return }
+                i += 1
+                let f = Double(min(i, steps)) / Double(steps)
+                self.gain = startGain * Float((1 + cos(f * .pi)) / 2)
+                self.setVolumesNow()
+                guard i >= steps else { return }
+                self.cancelSlowFade()
+                self.stop()
+            }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        slowFadeTimer = t
+    }
+
+    /// Ends a slow fade early. The level returns to normal the next time sound plays.
+    private func cancelSlowFade() {
+        guard let t = slowFadeTimer else { return }
+        t.invalidate(); slowFadeTimer = nil
+        gain = 1
+    }
+
+    /// Sets each loop straight to its level, for the slow fade, which does its own easing.
+    private func setVolumesNow() {
+        for (s, p) in players {
+            let v = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain : 0
+            targets[s] = v
+            p.volume = v
+        }
+    }
+
+    /// Plays sound softly under a guided meditation. Uses the person's own mix, or Ocean calm if they have none.
+    /// `startedForBreathe` counts sound Breathe turned on by itself, which a session already fades away when it ends.
+    func beginMeditation(startedForBreathe: Bool) {
+        lingerWork?.cancel(); lingerWork = nil
+        cancelSlowFade()
+        gain = 0.45
+        if isPlaying { startedForMeditation = startedForBreathe; applyGains(); return }
+        if !Soundscape.allCases.contains(where: { (levels[$0] ?? 0) > 0 }), let ocean = SoundPreset.all.first {
+            for s in Soundscape.allCases { setLevel(ocean.mix[s] ?? 0, for: s, enforceCap: false) }
+        }
+        startedForMeditation = true
+        play()
+    }
+
+    /// After a meditation, sound that started for it stays on, still soft, for `lingerMinutes`, then drifts away
+    /// with the slow fade. Sound the person had on already, or chose to keep, returns to its normal level.
+    func endMeditation(lingerMinutes: Int, keep: Bool = false) {
+        guard startedForMeditation, !keep, isPlaying else {
+            startedForMeditation = false
+            gain = 1
+            applyGains()
+            return
+        }
+        startedForMeditation = false
+        guard lingerMinutes > 0 else { fadeOut(); return }
+        let w = DispatchWorkItem { [weak self] in
+            self?.lingerWork = nil
+            self?.fadeOut()
+        }
+        lingerWork = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(lingerMinutes) * 60, execute: w)
     }
 
     /// Eases recorded loops toward their target volume, so sound fades in and out instead of clicking.
@@ -180,6 +259,9 @@ final class SoundEngine: ObservableObject {
     func toggle() { autoPlaying = false; isPlaying ? stop() : play() }
 
     func play() {
+        // Pressing play during a slow fade, or while sound lingers after a meditation, brings it back at its normal level.
+        cancelSlowFade()
+        if lingerWork != nil { lingerWork?.cancel(); lingerWork = nil; gain = 1 }
         build()
         applyGainsAfter(playing: true)
         if !engine.isRunning { try? engine.start() }
@@ -187,6 +269,8 @@ final class SoundEngine: ObservableObject {
     }
 
     func stop() {
+        lingerWork?.cancel(); lingerWork = nil
+        if slowFadeTimer != nil { cancelSlowFade() }
         sleepWork?.cancel()
         sleepWork = nil
         sleepMinutes = 0
