@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Tarn</title>
+    <link>https://github.com/jakeantelis/Tarn</link>
+    <description>Updates for Tarn, a calm Mac menu bar app for focus and breathing.</description>
+    <language>en</language>
+    <item>
+      <title>Tarn 0.2.1</title>
+      <pubDate>Sat, 31 Oct 2026 18:27:20 +0000</pubDate>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<p>A polish pass on the floating circle.</p><ul><li>The ring now sits at the edge of the circle, with no dark band around it</li><li>The close button is a quiet small X until you hover, then it becomes a clear button</li><li>A little more room around the time at the small size, and a larger breathing picture</li></ul>]]></description>
+      <enclosure url="https://github.com/jakeantelis/Tarn/releases/download/v0.2.1/Tarn.zip" sparkle:edSignature="EPVGhLDG2bb7t2DblwlcE5HjZ5NPlcSCrqHPnmCc7dxQa3VWt+TEWVZCx4wNigZ9QAeUdmIRRQV+4tn6MdwHAw==" length="5714382" type="application/octet-stream"/>
+    </item>
+  </channel>
+</rss>
