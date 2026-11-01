@@ -111,12 +111,13 @@ final class OverlayWindow: NSWindow {
 
 struct OverlayView: View {
     @ObservedObject private var sound = AppModel.shared.sound
+    @ObservedObject private var meditation = Meditation.shared
     let onClose: () -> Void
     @AppStorage("breathPattern") private var patternID = "settle"
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @MainActor private var start: Date { BreatheOverlay.shared.startDate }
-    private var pattern: BreathPattern { BreathPattern.all.first { $0.id == patternID } ?? .settle }
+    private var pattern: BreathPattern { meditation.isActive ? .settle : (BreathPattern.all.first { $0.id == patternID } ?? .settle) }
 
     var body: some View {
         ZStack {
@@ -128,8 +129,10 @@ struct OverlayView: View {
             // The picture scales with the screen, so it is generous on a big display and still fits a small one.
             let side = max(320, min(geo.size.height * 0.56, geo.size.width * 0.6, 760))
             TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
-                let t = ctx.date.timeIntervalSince(start)
-                let s = pattern.state(at: t)
+                // In a guided session the picture follows the voice, holding still through the lead-in.
+                let guided = meditation.isActive
+                let t = guided ? meditation.elapsed(at: ctx.date) : ctx.date.timeIntervalSince(start)
+                let s = guided && t < 0 ? (label: "Get comfortable", scale: 0.0) : pattern.state(at: max(0, t))
                 VStack(spacing: 6) {
                     ZStack {
                         // Soft ripples drift outward from the picture, timed to the breath.
@@ -161,7 +164,16 @@ struct OverlayView: View {
                         .id(s.label)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.9), value: s.label)
-                    if guideMe {
+                    if guided {
+                        Text(meditation.caption)
+                            .font(.system(size: 17, weight: .light, design: .serif).italic())
+                            .foregroundStyle(.white.opacity(0.55))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 560, minHeight: 48)
+                            .id(meditation.caption)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 1.2), value: meditation.caption)
+                    } else if guideMe {
                         Text(Guidance.line(at: t))
                             .font(.system(size: 17, weight: .light, design: .serif).italic())
                             .foregroundStyle(.white.opacity(0.55))
@@ -188,7 +200,7 @@ struct OverlayView: View {
                         Button(p.name) { sound.applyPreset(p) }
                     }
                     Divider()
-                    Button("Sound off") { sound.stop() }
+                    Button("Sound off") { sound.pause() }
                 } label: {
                     Label("Sounds", systemImage: "music.note")
                 }

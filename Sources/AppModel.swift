@@ -40,7 +40,7 @@ final class AppModel {
     /// Breathing sessions start a soft sound unless it is switched off in Settings. A mix already playing is left alone.
     func startBreatheSound() {
         guard UserDefaults.standard.object(forKey: "breatheSound") as? Bool ?? true, !sound.isPlaying else { return }
-        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
+        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? SoundPreset.natureCalm.name
         if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p); startedForBreathe = true }
     }
 
@@ -49,7 +49,8 @@ final class AppModel {
     /// You chose a mode yourself. Breathe starts the soft sound; going back to Focus fades out what Breathe started.
     func userChose(_ mode: Mode) {
         if mode == .breathe { startBreatheSound() }
-        else if startedForBreathe {
+        else if Meditation.shared.isActive { Meditation.shared.end(completed: false) }
+        if mode != .breathe, startedForBreathe {
             startedForBreathe = false
             if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { sound.stop() }
         }
@@ -94,7 +95,7 @@ final class AppModel {
             if let preset { sound.applyPreset(preset) }
             switch value("state") ?? (preset == nil ? "toggle" : "none") {
             case "on": if preset == nil { sound.play() }
-            case "off": sound.stop()
+            case "off": sound.pause()
             case "toggle": sound.toggle()
             default: break
             }

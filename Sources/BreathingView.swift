@@ -75,6 +75,16 @@ struct BreathingView: View {
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
     @ObservedObject private var sound = AppModel.shared.sound
+    @ObservedObject private var meditation = Meditation.shared
+    @AppStorage("meditationVoice") private var voiceSetting = "soft"
+    @AppStorage("meditationNatureLevel") private var natureLevel = 0.45
+    /// The length of the last guided meditation, marked in the menus so it is quick to choose again.
+    @AppStorage("meditationMinutes") private var lastLength = 0
+    private var markedLength: Int { meditation.minutes ?? lastLength }
+    @AppStorage("lastPreset") private var lastPreset = ""
+    @State private var mixerShown = false
+    /// Guided meditation is offered in Options unless it is switched off in Settings.
+    @AppStorage("offerMeditation") private var offerMeditation = true
     @AppStorage("allowScreenTakeover") private var allowTakeover = true
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
     @AppStorage("breathPattern") private var patternID = "settle"
@@ -91,6 +101,14 @@ struct BreathingView: View {
     @State private var pausedFrom: Date? = nil
     @State private var soundWasOn = false
 
+    /// A guided session always uses Settle, which slows the breath the way the voice does.
+    private var activePattern: BreathPattern { meditation.isActive ? .settle : pattern }
+    private var isPaused: Bool { meditation.isActive ? meditation.isPaused : pausedAt != nil }
+    private var menuTitle: String {
+        if let m = meditation.minutes { return "Guided, \(m) min" }
+        return coachMinutes == 0 ? "Options" : "\(coachMinutes) min session"
+    }
+
     var body: some View {
         content
             .background(compact ? nil : RoundedRectangle(cornerRadius: 34)
@@ -100,17 +118,40 @@ struct BreathingView: View {
                 .padding(-8))
             .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in checkCoach() }
             .onAppear { if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
+            // When a guided session ends the breath carries on from the start of your own rhythm.
+            .onChange(of: meditation.isActive) { _, on in if !on { start = Date(); pausedAt = nil; pausedFrom = nil } }
     }
 
     /// One quiet menu for the things you set once: session length, the look, and background sound.
     private var optionsMenu: some View {
         Menu {
-            Section("Session") {
+            Section(offerMeditation && Meditation.isAvailable ? "Session, no voice" : "Session") {
                 ForEach([0, 1, 3, 5, 10, 20], id: \.self) { m in
                     Button { setCoach(m) } label: {
                         let name = m == 0 ? "No timer" : "\(m) minutes"
-                        if coachMinutes == m { Label(name, systemImage: "checkmark") } else { Text(name) }
+                        if coachMinutes == m && !meditation.isActive { Label(name, systemImage: "checkmark") } else { Text(name) }
                     }
+                }
+            }
+            if Meditation.isAvailable && (offerMeditation || meditation.isActive) {
+                Section("Guided meditation, with a voice") {
+                    let voice = Meditation.voice(preferring: voiceSetting)
+                    ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
+                        Button { beginGuided(m) } label: {
+                            let name = "\(m) minutes"
+                            if markedLength == m { Label(name, systemImage: "checkmark") } else { Text(name) }
+                        }
+                    }
+                    if Meditation.voices.count > 1 {
+                        Menu("Voice: \(Meditation.label(voice))") {
+                            ForEach(Meditation.voices, id: \.self) { v in
+                                Button { voiceSetting = v } label: {
+                                    if voice == v { Label(Meditation.label(v), systemImage: "checkmark") } else { Text(Meditation.label(v)) }
+                                }
+                            }
+                        }
+                    }
+                    if meditation.isActive { Button("End meditation") { endGuided() } }
                 }
             }
             Section("Rhythm") {
@@ -120,6 +161,7 @@ struct BreathingView: View {
                     } label: {
                         if patternID == pt.id { Label(pt.name, systemImage: "checkmark") } else { Text(pt.name) }
                     }
+                    .disabled(meditation.isActive)
                 }
             }
             Section("Look") {
@@ -133,7 +175,7 @@ struct BreathingView: View {
                 ForEach(SoundPreset.all) { p in
                     Button { sound.applyPreset(p) } label: { Label(p.name, systemImage: p.symbol) }
                 }
-                Button("Sound off") { sound.stop() }
+                Button("Sound off") { sound.pause() }
                 if let onMix { Button("Mix sounds…") { onMix() } }
             }
             Section("More") {
@@ -148,7 +190,7 @@ struct BreathingView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "slider.horizontal.3")
-                Text(coachMinutes == 0 ? "Options" : "\(coachMinutes) min session")
+                Text(menuTitle)
                 if sound.isPlaying { Image(systemName: "speaker.wave.2.fill").font(.system(size: 9)) }
                 Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
             }
@@ -157,10 +199,111 @@ struct BreathingView: View {
             .background(Capsule().fill(Color.secondary.opacity(0.18)))
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .help("Session length, rhythm, look, sound and screen")
+        .help("Session length, guided meditation, rhythm, look, sound and screen")
+    }
+
+    /// Easy to find on the Breathe screen itself: pick a length to start a guided meditation, or end the one playing.
+    @ViewBuilder private var guidedButton: some View {
+        if meditation.isActive {
+            HStack(spacing: 8) {
+                Button { mixerShown.toggle() } label: {
+                    Image(systemName: sound.isPlaying ? "speaker.wave.2.fill" : "speaker.fill")
+                        .font(.system(size: 11))
+                        .frame(width: 28, height: 22)
+                }
+                .buttonStyle(CapsuleButtonStyle(small: true))
+                .help("Voice and nature sound")
+                .accessibilityLabel("Voice and nature sound")
+                .popover(isPresented: $mixerShown, arrowEdge: .top) { mixer }
+                Button { endGuided() } label: {
+                    Label("End meditation", systemImage: "stop.circle").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CapsuleButtonStyle(small: true))
+            }
+        } else {
+            let voice = Meditation.voice(preferring: voiceSetting)
+            Menu {
+                Section("Guided meditation, with a voice") {
+                    ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
+                        Button { beginGuided(m) } label: {
+                            if markedLength == m { Label("\(m) minutes", systemImage: "checkmark") } else { Text("\(m) minutes") }
+                        }
+                    }
+                }
+                if Meditation.voices.count > 1 {
+                    Section("Voice") {
+                        ForEach(Meditation.voices, id: \.self) { v in
+                            Button { voiceSetting = v } label: {
+                                if voice == v { Label(Meditation.label(v), systemImage: "checkmark") } else { Text(Meditation.label(v)) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Guided meditation", systemImage: "waveform").frame(maxWidth: .infinity)
+            }
+            .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden)
+            .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath. Best with headphones and your eyes closed.")
+        }
+    }
+
+    /// The meditation mixer: how loud the voice is, how loud the nature sound under it is, and which sound.
+    /// Every change applies at once and is remembered. Clicking outside closes it.
+    var mixer: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            levelSlider("Voice", symbol: "waveform", value: $meditation.voiceLevel)
+            levelSlider("Nature", symbol: "leaf", value: Binding(get: { natureLevel },
+                                                                 set: { natureLevel = $0; sound.setMeditationLevel($0) }))
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                ForEach(SoundPreset.all) { p in
+                    let on = sound.isPlaying && lastPreset == p.name
+                    Button { sound.setMeditationPreset(p) } label: {
+                        Label(p.name, systemImage: p.symbol)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(on ? Color.breatheTint.opacity(0.35) : Color.secondary.opacity(0.14)))
+                            .overlay(Capsule().strokeBorder(on ? Color.breatheTint.opacity(0.7) : .clear, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 260)
+    }
+
+    /// A small labelled volume slider for a guided session. Each one is remembered for next time.
+    private func levelSlider(_ name: String, symbol: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).font(.system(size: 10)).foregroundStyle(.secondary).frame(width: 14)
+            Text(name).font(.caption).foregroundStyle(.secondary).frame(width: 46, alignment: .leading)
+            Slider(value: value, in: 0...1).controlSize(.small)
+        }
+        .padding(.horizontal, 6)
+        .help("\(name) volume during a guided meditation")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name) volume")
+    }
+
+    /// A guided session: the voice track, Settle, and soft sound underneath. Any timed session stops first.
+    private func beginGuided(_ minutes: Int) {
+        coachMinutes = 0; coachStart = nil; coachDone = false
+        pausedAt = nil; pausedFrom = nil; soundWasOn = false
+        meditation.begin(minutes: minutes)
+        burst += 1
+    }
+
+    private func endGuided() {
+        if meditation.isPaused, soundWasOn { soundWasOn = false; sound.play() }
+        meditation.end(completed: false)
+        start = Date()
     }
 
     private func setCoach(_ minutes: Int) {
+        if meditation.isActive { endGuided() }
         coachMinutes = minutes
         coachDone = false
         start = Date(); pausedAt = nil
@@ -202,9 +345,13 @@ struct BreathingView: View {
                 .fadesWithChrome(chrome)
             }
 
-            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || pausedAt != nil || still)) { ctx in
-                let t = still ? 2.0 : (pausedAt ?? ctx.date.timeIntervalSince(start))
-                let s = pattern.state(at: t)
+            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || isPaused || still)) { ctx in
+                let guided = meditation.isActive && !compact && !still
+                let t = still ? 2.0 : (guided ? meditation.elapsed(at: ctx.date) : (pausedAt ?? ctx.date.timeIntervalSince(start)))
+                // A guided session opens with a few quiet seconds while the welcome is spoken.
+                let settling = guided && t < 0
+                let st = activePattern.state(at: max(0, t))
+                let s = settling ? (label: "Get comfortable", scale: 0.0) : st
                 VStack(spacing: 8) {
                 ZStack {
                     RippleBurst(color: Color.breatheTint, trigger: burst).padding(10)
@@ -220,7 +367,17 @@ struct BreathingView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }
-                    if let p = pausedAt {
+                    if meditation.isActive {
+                        // The voice, the breath and the clock hold together, and the sound with them.
+                        if meditation.isPaused {
+                            meditation.togglePause()
+                            if soundWasOn { soundWasOn = false; sound.play() }
+                        } else {
+                            meditation.togglePause()
+                            soundWasOn = sound.isPlaying
+                            if soundWasOn { sound.pause() }
+                        }
+                    } else if let p = pausedAt {
                         // Resume: the breath, the session clock and the sound all pick up where they stopped.
                         start = Date().addingTimeInterval(-p)
                         if let at = pausedFrom, coachStart != nil { coachStart = coachStart?.addingTimeInterval(Date().timeIntervalSince(at)) }
@@ -230,22 +387,32 @@ struct BreathingView: View {
                         // Pause: the sound stops too, so a paused session is really quiet.
                         pausedAt = Date().timeIntervalSince(start); pausedFrom = Date()
                         soundWasOn = sound.isPlaying
-                        if soundWasOn { sound.stop() }
+                        if soundWasOn { sound.pause() }
                     }
                 }
-                .help(compact ? "" : (pausedAt == nil ? "Click to pause" : "Click to resume"))
+                .help(compact ? "" : (isPaused ? "Click to resume" : "Click to pause"))
 
                 // The cue sits under the picture, not on top of it, so it is always easy to read.
                 // A soft, lowercase cue that fades from one word to the next.
-                Text((still ? "when you are ready" : (pausedAt != nil ? "Paused. Tap to resume" : s.label)).lowercased())
+                Text((still ? "when you are ready" : (isPaused ? "Paused. Tap to resume" : s.label)).lowercased())
                     .font(.system(size: compact ? 17 : 21, weight: .light, design: .serif))
                     .tracking(1.6)
                     .foregroundStyle(.primary.opacity(0.72))
                     .frame(height: 28)
-                    .id(still ? "still" : (pausedAt != nil ? "paused" : s.label))
+                    .id(still ? "still" : (isPaused ? "paused" : s.label))
                     .transition(.opacity)
                     .animation(.easeInOut(duration: 0.9), value: s.label)
-                if let cs = coachStart, coachMinutes > 0 {
+                if guided {
+                    let left = max(0, Int((meditation.total - max(0, t)).rounded(.up)))
+                    Text(String(format: "%d:%02d left", left / 60, left % 60))
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        .opacity(settling ? 0 : 1)
+                    if meditation.volumeLow {
+                        Label("Volume is low. Turn it up to hear the voice.", systemImage: "speaker.wave.1")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .transition(.opacity)
+                    }
+                } else if let cs = coachStart, coachMinutes > 0 {
                     let left = max(0, Double(coachMinutes * 60) - ctx.date.timeIntervalSince(cs))
                     Text(String(format: "%d:%02d left", Int(left) / 60, Int(left) % 60))
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
@@ -253,10 +420,21 @@ struct BreathingView: View {
                         Text("Sound is on. Change it in Options, or turn it off in Settings.")
                             .font(.caption2).foregroundStyle(.secondary.opacity(0.8)).multilineTextAlignment(.center)
                     }
-                } else if coachDone {
+                } else if coachDone || (meditation.justFinished && !compact) {
                     Text("Well done. Take a moment before you go.").font(.caption).foregroundStyle(.secondary)
                 }
-                if guideMe && !compact {
+                if !compact && (guided || meditation.justFinished) {
+                    // In a guided session the line under the picture is what the voice just said.
+                    Text(meditation.caption)
+                        .font(.system(.caption, design: .serif).italic())
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(minHeight: 44)
+                        .id(meditation.caption)
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 1.2), value: meditation.caption)
+                } else if guideMe && !compact {
                     Text(Guidance.line(at: t))
                         .font(.system(.caption, design: .serif).italic())
                         .foregroundStyle(.secondary)
@@ -277,6 +455,9 @@ struct BreathingView: View {
                     .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))
                     .help("Full screen, your sound mix and Hide apps in one go. Esc or a click brings you back.")
                     .fadesWithChrome(chrome)
+                }
+                if Meditation.isAvailable && offerMeditation {
+                    guidedButton.fadesWithChrome(chrome)
                 }
             }
         }

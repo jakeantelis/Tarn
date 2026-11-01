@@ -18,13 +18,15 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
+**Guided meditation, when you want it.** Breathe stays quiet unless you ask for a voice. In Breathe, click Guided meditation and choose 5, 10 or 20 minutes. A recorded voice (Soft, Warm or Grounded) guides you with long stretches of silence, the words being spoken appear under the picture, and your sound mix plays softly underneath, with a small mixer for the voice, the nature sound and which sound plays. Best with headphones and your eyes closed. Afterwards the sound drifts away over 30 seconds, or stays on for a few minutes if you prefer. One switch in Settings hides it if you never use it.
+
 **Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
 
 ![The floating circle in Focus and in Breathe](docs/images/floating-circle.png)
 
 **Calm mode.** One button for full screen, your last sound mix and Hide other apps, which only hides and never quits anything. Click anywhere or press Esc to return, and the sound fades out as your cue to get back. One switch in Settings turns full screen and hiding off completely.
 
-**Sounds.** Recorded ambient loops (ocean, forest, birds and stream) with presets, a mixer and a fade out timer. Focus is silent until you turn sounds on.
+**Sounds.** Recorded ambient loops (ocean, forest, birds and stream) with presets, a mixer and a fade out timer. Each sound drifts slightly over time and fades in and out gently, so it suits a whole day. Focus is silent until you turn sounds on.
 
 **Built to stay out of the way.** Lives in the menu bar as a small flower. No account, no tracking, and no network use except when you press Check for updates. It never speaks, and it never fills your screen unless you ask.
 
@@ -80,7 +82,9 @@ It talks to the app through `tarn://` links, so Shortcuts and Raycast can use th
 `./build.sh` builds `build/Tarn.app`. Add `run` to launch it. `Tools/run-tests.sh` runs the logic tests, and `Tools/release.sh` builds a universal app, signs it, notarizes it and makes the DMG.
 
 ## Sounds and credits
-Every sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
+Every ambient sound is CC0 or self made. See [SOURCES.md](SOURCES.md) for the source, license and link of each file. The recorded loops come from BigSoundBank.
+
+The guided meditation voices are credited in [SOURCES.md](SOURCES.md). See License below for their terms.
 
 ## More from Antelis Labs
 See [antelislabs.com](https://antelislabs.com) for everything else.
@@ -88,4 +92,4 @@ See [antelislabs.com](https://antelislabs.com) for everything else.
 [**Matcha**](https://github.com/jakeantelis/Matcha) keeps your Mac awake for builds, exports and long running tasks. Tiny app, command line tool and crash safe. It pairs well with Tarn: let Matcha hold the Mac awake while Tarn holds your focus.
 
 ## License
-MIT. See [LICENSE](LICENSE).
+The guided meditation recordings are © 2026 Antelis Labs LLC and may not be reused or redistributed outside Tarn. Everything else in this project is MIT licensed. See [LICENSE](LICENSE).

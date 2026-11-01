@@ -570,7 +570,12 @@ struct SettingsTab: View {
     @AppStorage("eveningWarmth") private var eveningWarmth = false
     @AppStorage("keepSoundAfterSession") private var keepSound = false
     @AppStorage("breatheSound") private var breatheSound = true
+    @AppStorage("gentleFades") private var gentleFades = true
     @AppStorage("guideMe") private var guideMe = false
+    @AppStorage("meditationVoice") private var meditationVoice = "soft"
+    @AppStorage("offerMeditation") private var offerMeditation = true
+    @AppStorage("meditationSounds") private var soundsUnderMeditation = true
+    @AppStorage("meditationLinger") private var lingerMinutes = 0
     @AppStorage("breathPattern") private var breathPattern = "settle"
     @AppStorage("hideOthersWhenBreathing") private var hideOthers = true
     @AppStorage("soundEnabled") private var soundEnabled = false
@@ -858,9 +863,34 @@ struct SettingsTab: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Toggle("Play a soft sound when I breathe", isOn: $breatheSound)
                     Toggle("Keep the sound playing when a session or Calm ends", isOn: $keepSound)
-                    Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off here, with the speaker button, or in the Options menu. Pick or mix sounds from Options on the Breathe screen.")
+                    Toggle("Gentle fades", isOn: $gentleFades)
+                    Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off here, with the speaker button, or in the Options menu. Pick or mix sounds from Options on the Breathe screen. Gentle fades ease sound out over a few seconds when you pause it, and over 30 seconds after a meditation or the sleep timer. Off, sound stops almost at once. Each sound also drifts a little louder and softer over a few minutes, and birds move gently left and right, so a long day never sounds the same twice.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
+            }
+            if Meditation.isAvailable {
+                GroupBox("Guided meditation") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Offer guided meditation", isOn: $offerMeditation)
+                        Group {
+                        if Meditation.voices.count > 1 {
+                            Picker("Voice", selection: Binding(get: { Meditation.voice(preferring: meditationVoice) }, set: { meditationVoice = $0 })) {
+                                ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
+                            }
+                        }
+                        Toggle("Play sounds under the voice", isOn: $soundsUnderMeditation)
+                        Picker("Sounds afterwards", selection: $lingerMinutes) {
+                            Text("Fade over 30 seconds").tag(0)
+                            Text("Stay 3 minutes").tag(3)
+                            Text("Stay 10 minutes").tag(10)
+                        }
+                        .disabled(!soundsUnderMeditation)
+                        }
+                        .disabled(!offerMeditation)
+                        Text("The voice only plays when you choose a guided meditation. Breathe and its sessions stay quiet otherwise. Start one with the Guided meditation button on the Breathe screen, or from Options: 5, 10 or 20 minutes. A quiet voice guides you with long stretches of silence, and your sound mix plays softly underneath, or Nature calm if you have none. Sound that started for the meditation drifts away afterwards. Sound you had on already goes back to its normal level. Switch it off to hide the button and the menu items. Best with headphones and your eyes closed.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }.padding(.vertical, 4)
+                }
             }
             GroupBox("Look and rhythm") {
                 VStack(alignment: .leading, spacing: 8) {
