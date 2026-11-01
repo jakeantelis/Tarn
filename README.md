@@ -18,7 +18,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 
-**Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, hover for a sound button, or close it with the X. Pick one of four sizes, or turn it off, in Settings, Focus.
+**Floating circle.** A small frosted circle stays above your other windows and shows the Focus timer, or the breathing picture in Breathe. Drag it anywhere, click it to start or pause, or hover for a sound button and an X that closes it. Pick one of four sizes, or turn it off, in Settings, Focus.
 
 ![The floating circle in Focus and in Breathe](docs/images/floating-circle.png)
 
