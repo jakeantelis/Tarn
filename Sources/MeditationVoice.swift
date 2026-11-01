@@ -68,26 +68,31 @@ final class Meditation: ObservableObject {
 
     // MARK: Session
 
-    /// Starts the track. Its first seconds are the welcome, spoken during the lead-in. Sound plays softly
+    /// A few seconds of quiet before the welcome: 4 with nature sound underneath, so it settles in first, else 1.
+    static func preroll(soundsUnder: Bool) -> Double { soundsUnder ? 4 : 1 }
+
+    /// Starts the track after the preroll. Its first seconds are the welcome, spoken during the lead-in. Sound plays softly
     /// underneath unless that is turned off in Settings.
     func begin(minutes m: Int) {
         if isActive { end(completed: false) }
         let d = UserDefaults.standard
         let voice = Self.voice(preferring: d.string(forKey: "meditationVoice") ?? "soft")
         guard let url = Self.url(voice: voice, minutes: m), let p = try? AVAudioPlayer(contentsOf: url) else { return }
+        let soundsUnder = d.object(forKey: "meditationSounds") as? Bool ?? true
+        let preroll = Self.preroll(soundsUnder: soundsUnder)
         p.volume = Float(voiceLevel)
         p.prepareToPlay()
-        p.play()
+        p.play(atTime: p.deviceCurrentTime + preroll)
         player = p
         minutes = m
         d.set(m, forKey: "meditationMinutes")   // the menus mark the last length chosen
-        start = Date().addingTimeInterval(VoiceScript.leadIn)
+        // The breath, the captions and the time left all count from the same moment the voice does.
+        start = Date().addingTimeInterval(preroll + VoiceScript.leadIn)
         pausedFrom = nil; isPaused = false; justFinished = false
         script = VoiceScript.timeline(total: Double(m * 60))
         nextLine = 0
         caption = ""
-        AppModel.shared.sound.beginMeditation(startedForBreathe: AppModel.shared.startedForBreathe,
-                                              start: d.object(forKey: "meditationSounds") as? Bool ?? true)
+        AppModel.shared.sound.beginMeditation(startedForBreathe: AppModel.shared.startedForBreathe, start: soundsUnder)
         ticker?.invalidate()
         let t = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in Task { @MainActor in self?.tick() } }
         RunLoop.main.add(t, forMode: .common)
@@ -101,10 +106,18 @@ final class Meditation: ObservableObject {
         if let at = pausedFrom {
             start = start.addingTimeInterval(Date().timeIntervalSince(at))
             pausedFrom = nil; isPaused = false
-            player?.play()
+            // Resumed before the voice began: wait out the rest of the preroll, so the voice stays in step.
+            let wait = -VoiceScript.leadIn - elapsed()
+            if let p = player {
+                if wait > 0 { p.play(atTime: p.deviceCurrentTime + wait) } else { p.play() }
+            }
         } else {
             pausedFrom = Date(); isPaused = true
-            player?.pause()
+            if elapsed() < -VoiceScript.leadIn {
+                player?.stop(); player?.currentTime = 0   // not started yet; stop clears the scheduled start
+            } else {
+                player?.pause()
+            }
         }
     }
 

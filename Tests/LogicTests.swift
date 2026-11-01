@@ -35,6 +35,7 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
             check(zip(lines, lines.dropFirst()).allSatisfy { $0.at < $1.at }, "\(m) min: passages come in order")
             check(lines.contains { $0.passage == VoiceScript.middle.last! }, "\(m) min: includes the invitation to rest")
         }
+        check(Meditation.preroll(soundsUnder: true) == 4 && Meditation.preroll(soundsUnder: false) == 1, "nature plays a few seconds before the welcome")
         let longest = Set(VoiceScript.timeline(total: 20 * 60).map(\.passage.id))
         check(VoiceScript.all.allSatisfy { longest.contains($0.id) }, "20 min: speaks every passage")
 
