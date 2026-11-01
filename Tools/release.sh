@@ -37,6 +37,8 @@ if [[ -f Resources/AppIcon.icns ]]; then
 fi
 mkdir -p "$APP/Contents/Resources/Sounds"
 for f in Resources/Sounds/*.(wav|caf|m4a)(N); do cp "$f" "$APP/Contents/Resources/Sounds/"; done
+mkdir -p "$APP/Contents/Resources/Voice"
+for f in Resources/Voice/*.m4a(N); do cp "$f" "$APP/Contents/Resources/Voice/"; done
 cp Tools/tarnctl "$APP/Contents/Resources/tarnctl"
 chmod +x "$APP/Contents/Resources/tarnctl"
 date "+%Y-%m-%d %H:%M:%S" > "$APP/Contents/Resources/BUILD_STAMP"
