@@ -1097,7 +1097,7 @@ enum Tips {
         "Rhythm in the Breathe Options menu changes the pace of your breath.",
         "Name a Shortcut in Settings to switch on Do Not Disturb while you focus.",
         "Breathe sessions end with the sound fading out. That is your cue to get back.",
-        "Tarn never speaks and never collects anything. Tips can be switched off in Settings.",
+        "Tarn only speaks in a guided meditation you choose, and never collects anything. Tips can be switched off in Settings.",
     ]
     static var current: String {
         let n = Int(Date().timeIntervalSinceReferenceDate / 3600)

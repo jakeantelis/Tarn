@@ -157,13 +157,20 @@ if [[ "${1:-}" == "--publish" ]]; then
         exit 1
     fi
     spctl -a -vv "$APP"
+    # Only this version's section of RELEASE_NOTES.md, not the whole history.
+    NOTES="$DIST/release-notes-$VERSION.md"
+    awk -v v="$VERSION" '$0 ~ "^#+ Tarn " v "$" {on=1; next} on && /^#/ {exit} on' RELEASE_NOTES.md > "$NOTES"
+    if [[ ! -s "$NOTES" ]]; then
+        echo "ERROR: RELEASE_NOTES.md has no section headed Tarn $VERSION" >&2
+        exit 1
+    fi
     gh release create "v$VERSION" \
         "$DIST/Tarn.zip" \
         "$DIST/Tarn.zip.sha256" \
         "$DIST/Tarn.dmg" \
         "$DIST/Tarn.dmg.sha256" \
         --title "Tarn $VERSION" \
-        --notes-file RELEASE_NOTES.md
+        --notes-file "$NOTES"
 
     # The update feed: sign the zip that was just published, add it to appcast.xml, commit and push.
     # This runs only after the release exists, so the feed never points at a missing download.

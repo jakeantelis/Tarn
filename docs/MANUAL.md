@@ -36,10 +36,10 @@ It covers every screen with a calm background, including desktop icons. Click an
 One button for full screen, your last sound mix and Hide apps. When you leave, the sound fades out as a quiet cue that it is time to get back, unless you choose to keep it playing in Settings. Add two Shortcuts in Settings if you also want Do Not Disturb.
 
 **Where did the controls go?**  
-While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, the look and the sound, including a full sound mixer.
+While you breathe and the mouse is still, the controls fade so only the picture and the word remain. Move the mouse and they come back. The Options menu holds the session length, guided meditation, the rhythm, the look and the sound, including a full sound mixer.
 
 **What is a Session?**  
-Choose the Session length under the pattern buttons: 1, 3, 5, 10 or 20 minutes, or Open to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
+Open Options and choose a length under "Session, no voice": 1, 3, 5, 10 or 20 minutes, or No timer to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 
 **Is there always a voice?**  
 No. Breathe and its sessions are quiet. The voice only plays when you choose one: use the Guided meditation button under Calm mode on the Breathe screen, or Options, under "Guided meditation, with a voice". If you never use it, switch off "Offer guided meditation" in Settings, under Breathe, and the button and menu items go away.
@@ -63,10 +63,10 @@ It hides other apps' windows so you can breathe. It never quits anything. Press 
 ## Sounds
 
 **How do I turn sounds on?**  
-In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you, with a slow 30 second fade. Turning sound off eases it out over a few seconds, and turning it on brings it in gently. If you prefer sound to stop almost at once, switch off Gentle fades in Settings, under Breathe.
+In Focus, open the Sounds tab. In Breathe, open Options, then Sound or Mix sounds. Pick a preset or move a slider. Up to three sounds play at once. A fade out timer can stop them for you, with a slow 30 second fade. Turning sound off eases it out over a few seconds, and turning it on brings it in gently. If you prefer sound to stop almost at once, switch off Gentle fades in Settings, under Breathe. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings, under Breathe.
 
 **Why does the sound change a little over time?**  
-Each sound drifts slightly louder and softer over a few minutes, and the birds move gently from left to right. The loops also start at different points. Over a long day the mix never sounds quite the same twice. Focus is silent until you turn sounds on. Breathe plays a soft sound by default, and you can switch it off in Settings, under Breathe.
+Each sound drifts slightly louder and softer over a few minutes, and the birds move gently from left to right. The loops also start at different points. Over a long day the mix never sounds quite the same twice.
 
 
 ## Good to know
