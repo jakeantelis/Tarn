@@ -47,7 +47,7 @@ final class Meditation: ObservableObject {
         switch v {
         case "soft": return "Soft"
         case "warm": return "Warm"
-        default: return "Male"
+        default: return "Grounded"
         }
     }
 

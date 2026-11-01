@@ -24,7 +24,7 @@ The meditation script is our own writing (`Sources/VoiceScript.swift`, copied fr
 |-----------|------------------|----------|
 | Soft | AImee - ASMR and Meditation | zA6D7RyKdc2EClouEMkP |
 | Warm | Brittney - Relaxing, Calm and Meditative | pjcYQlDFKMbcOUp6F5GD |
-| Male | Milo - Calm, Soothing and Meditative | GUDYcgRAONiI1nXDcNQQ |
+| Grounded | Milo - Calm, Soothing and Meditative | GUDYcgRAONiI1nXDcNQQ |
 
 Every passage was checked with ElevenLabs speech to text against the script before the tracks were built. The tracks are made in the Tarn for iOS repository and copied here unchanged (mono AAC, about 10 MB in all).
 
