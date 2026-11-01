@@ -28,9 +28,9 @@ struct SoundPreset: Identifiable {
     let mix: [Soundscape: Double]
     var id: String { name }
 
-    /// A quiet forest bed, a gentle stream, and birds kept faint in the background so they never pull attention.
-    /// The starting mix for anyone who has not set their own, and what plays under a guided meditation when there is no mix yet.
-    static let natureCalm = SoundPreset(name: "Nature calm", symbol: "leaf", mix: [.forest: 0.55, .stream: 0.4, .birds: 0.15])
+    /// The starting mix: gentle ocean waves as the base, a soft forest underneath, and birds kept faint so they never
+    /// pull attention. Also what plays under a guided meditation when there is no mix yet. No stream: with ocean it sounds muddy.
+    static let natureCalm = SoundPreset(name: "Nature calm", symbol: "leaf", mix: [.ocean: 0.45, .forest: 0.4, .birds: 0.12])
 
     static let all = [
         natureCalm,
