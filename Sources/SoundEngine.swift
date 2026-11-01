@@ -28,7 +28,12 @@ struct SoundPreset: Identifiable {
     let mix: [Soundscape: Double]
     var id: String { name }
 
+    /// A gentle blend of forest, stream and birds. The starting mix for anyone who has not set their own,
+    /// and what plays under a guided meditation when there is no mix yet.
+    static let natureCalm = SoundPreset(name: "Nature calm", symbol: "leaf", mix: [.forest: 0.5, .stream: 0.35, .birds: 0.3])
+
     static let all = [
+        natureCalm,
         SoundPreset(name: "Ocean calm", symbol: "water.waves", mix: [.ocean: 0.7]),
         SoundPreset(name: "Forest morning", symbol: "tree", mix: [.forest: 0.55, .birds: 0.5, .stream: 0.3]),
         SoundPreset(name: "Dawn birds", symbol: "bird", mix: [.birds: 0.7, .forest: 0.25]),
@@ -41,7 +46,7 @@ final class SoundEngine: ObservableObject {
     @Published var isPlaying = false
     @Published var levels: [Soundscape: Double] = {
         var d: [Soundscape: Double] = [:]
-        for s in Soundscape.allCases { d[s] = UserDefaults.standard.object(forKey: "vol_\(s.rawValue)") as? Double ?? (s == .forest ? 0.6 : 0) }
+        for s in Soundscape.allCases { d[s] = UserDefaults.standard.object(forKey: "vol_\(s.rawValue)") as? Double ?? (SoundPreset.natureCalm.mix[s] ?? 0) }
         return d
     }()
 
@@ -182,7 +187,7 @@ final class SoundEngine: ObservableObject {
         }
     }
 
-    /// Plays sound softly under a guided meditation. Uses the person's own mix, or Ocean calm if they have none.
+    /// Plays sound softly under a guided meditation. Uses the person's own mix, or Nature calm if they have none.
     /// `startedForBreathe` counts sound Breathe turned on by itself, which a session already fades away when it ends.
     /// With `start` off nothing new begins, but sound already playing still steps back under the voice.
     func beginMeditation(startedForBreathe: Bool, start: Bool = true) {
@@ -193,8 +198,8 @@ final class SoundEngine: ObservableObject {
         startedForMeditation = false
         if isPlaying { startedForMeditation = startedForBreathe; applyGains(); return }
         guard start else { return }
-        if !Soundscape.allCases.contains(where: { (levels[$0] ?? 0) > 0 }), let ocean = SoundPreset.all.first {
-            for s in Soundscape.allCases { setLevel(ocean.mix[s] ?? 0, for: s, enforceCap: false) }
+        if !Soundscape.allCases.contains(where: { (levels[$0] ?? 0) > 0 }) {
+            for s in Soundscape.allCases { setLevel(SoundPreset.natureCalm.mix[s] ?? 0, for: s, enforceCap: false) }
         }
         startedForMeditation = true
         play()

@@ -40,7 +40,7 @@ final class AppModel {
     /// Breathing sessions start a soft sound unless it is switched off in Settings. A mix already playing is left alone.
     func startBreatheSound() {
         guard UserDefaults.standard.object(forKey: "breatheSound") as? Bool ?? true, !sound.isPlaying else { return }
-        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? "Ocean calm"
+        let name = UserDefaults.standard.string(forKey: "lastPreset") ?? SoundPreset.natureCalm.name
         if let p = SoundPreset.all.first(where: { $0.name == name }) ?? SoundPreset.all.first { sound.applyPreset(p); startedForBreathe = true }
     }
 

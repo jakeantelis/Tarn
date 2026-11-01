@@ -48,10 +48,10 @@ No. Breathe and its sessions are quiet. The voice only plays when you choose one
 In Breathe, click Guided meditation under Calm mode (or open Options) and choose 5, 10 or 20 minutes. Pick a voice in the same menu: Soft, Warm or Grounded. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
 
 **What happens to the sound in a guided meditation?**  
-Your sound mix plays softly underneath, or Ocean calm if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.
+Your sound mix plays softly underneath, or Nature calm (forest, stream and birds) if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.
 
 **Can I change how loud the voice and the sounds are?**  
-Yes. During a guided meditation, click the speaker button beside End meditation. Voice sets how loud the voice is. Nature sets the sound under it, and all the way left is silent. Pick Ocean calm, Forest morning, Dawn birds or Quiet brook to change the sound. Changes apply at once and Tarn remembers them. A sound you start here fades away afterwards like the rest. Click outside the panel to close it, and move the mouse if the controls have faded.
+Yes. During a guided meditation, click the speaker button beside End meditation. Voice sets how loud the voice is. Nature sets the sound under it, and all the way left is silent. Pick Nature calm, Ocean calm, Forest morning, Dawn birds or Quiet brook to change the sound. Changes apply at once and Tarn remembers them. A sound you start here fades away afterwards like the rest. Click outside the panel to close it, and move the mouse if the controls have faded.
 
 **I cannot hear the voice.**  
 If the Mac is muted or the volume is almost all the way down, Tarn shows a quiet line: Volume is low. Turn it up to hear the voice.

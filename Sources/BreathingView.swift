@@ -78,6 +78,9 @@ struct BreathingView: View {
     @ObservedObject private var meditation = Meditation.shared
     @AppStorage("meditationVoice") private var voiceSetting = "soft"
     @AppStorage("meditationNatureLevel") private var natureLevel = 0.45
+    /// The length of the last guided meditation, marked in the menus so it is quick to choose again.
+    @AppStorage("meditationMinutes") private var lastLength = 0
+    private var markedLength: Int { meditation.minutes ?? lastLength }
     @AppStorage("lastPreset") private var lastPreset = ""
     @State private var mixerShown = false
     /// Guided meditation is offered in Options unless it is switched off in Settings.
@@ -136,7 +139,7 @@ struct BreathingView: View {
                     ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
                         Button { beginGuided(m) } label: {
                             let name = "\(m) minutes"
-                            if meditation.minutes == m { Label(name, systemImage: "checkmark") } else { Text(name) }
+                            if markedLength == m { Label(name, systemImage: "checkmark") } else { Text(name) }
                         }
                     }
                     if Meditation.voices.count > 1 {
@@ -222,7 +225,9 @@ struct BreathingView: View {
             Menu {
                 Section("Guided meditation, with a voice") {
                     ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
-                        Button("\(m) minutes") { beginGuided(m) }
+                        Button { beginGuided(m) } label: {
+                            if markedLength == m { Label("\(m) minutes", systemImage: "checkmark") } else { Text("\(m) minutes") }
+                        }
                     }
                 }
                 if Meditation.voices.count > 1 {

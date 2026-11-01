@@ -80,6 +80,7 @@ final class Meditation: ObservableObject {
         p.play()
         player = p
         minutes = m
+        d.set(m, forKey: "meditationMinutes")   // the menus mark the last length chosen
         start = Date().addingTimeInterval(VoiceScript.leadIn)
         pausedFrom = nil; isPaused = false; justFinished = false
         script = VoiceScript.timeline(total: Double(m * 60))
