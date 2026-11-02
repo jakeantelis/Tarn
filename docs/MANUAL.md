@@ -9,13 +9,16 @@ A tarn is a small, still mountain lake. Tarn is a calm place to focus, and to br
 A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. Sounds are optional. It is free, with no account and no tracking.
 
 **How do I start a round?**  
-Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes.
+Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes, or Other for any length from 1 to 180. A length you choose with Other stays in the list.
 
 **What does the length pill mean?**  
 The small pill under the circle is the length of one focus round. Tap it to change it. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break.
 
 **What happens on a break?**  
 The picture changes to a gentle breathing guide and the window turns soft purple. When the break ends, the next round starts on its own unless you turn that off in Settings.
+
+**Can a round end without a break?**  
+Yes. In Settings, Focus, set After a round to Stop. When a round ends, Tarn counts it and waits on a fresh round, with no break. The line under the circle says Stops after this round.
 
 
 ## Floating circle

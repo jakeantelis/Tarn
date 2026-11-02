@@ -55,7 +55,7 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(UpdateChecker.isNewer("0.2.0-beta", than: "0.1.0"), "a pre-release suffix is ignored")
 
         print("Timer")
-        for k in ["mode", "focusMinutes", "soundEnabled"] { UserDefaults.standard.removeObject(forKey: k) }
+        for k in ["mode", "focusMinutes", "soundEnabled", "customFocusMinutes", "afterRound"] { UserDefaults.standard.removeObject(forKey: k) }
         let t = PomodoroTimer()
         check(t.duration(for: .work) == 1500 && t.duration(for: .shortBreak) == 300 && t.duration(for: .longBreak) == 900, "25 min: 25/5/15")
         check(t.roundsPerSet == 4, "25 min: 4 rounds per set")
@@ -63,6 +63,17 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(t.duration(for: .work) == 2700 && t.duration(for: .shortBreak) == 600 && t.roundsPerSet == 3, "45 min: 45/10, 3 rounds")
         t.setFocusMinutes(90)
         check(t.duration(for: .shortBreak) == 900 && t.duration(for: .longBreak) == 1800, "90 min: 15/30 breaks")
+        t.setFocusMinutes(500)
+        check(t.effectiveMinutes == 180, "custom length is clamped to 180")
+        t.setFocusMinutes(0)
+        check(t.effectiveMinutes == 1, "custom length is clamped to 1")
+        t.customMinutes = 37
+        check(t.lengthChoices == [15, 25, 37, 45, 60, 90], "a custom length shows among the presets, sorted")
+        t.setFocusMinutes(37)
+        check(t.duration(for: .shortBreak) == 600, "breaks still scale with a custom length")
+        t.afterRoundRaw = AfterRound.stop.rawValue
+        check(t.nextLine == "Stops after this round", "Stop mode says so on the Next line")
+        for k in ["focusMinutes", "customFocusMinutes", "afterRound"] { UserDefaults.standard.removeObject(forKey: k) }
         t.setFocusMinutes(15)
         check(t.duration(for: .shortBreak) == 300, "15 min: 5 min break")
         check(t.remaining == 900, "idle remaining follows length (\(t.remaining))")
@@ -223,6 +234,15 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
     waitUntil(3) { t2.phase == .shortBreak }
     wait(0.3)
     ok(t2.phase == .shortBreak && !t2.isRunning, "with auto start off the break waits for you")
+    UserDefaults.standard.set(AfterRound.stop.rawValue, forKey: "afterRound")
+    UserDefaults.standard.set(true, forKey: "autoStartNext")
+    let t3 = PomodoroTimer(), counted = stats.today.rounds
+    t3.startWork(minutes: 1)
+    waitUntil(3) { !t3.isRunning }
+    wait(0.3)
+    ok(t3.phase == .work && !t3.isRunning && t3.remaining == t3.duration(for: .work), "Stop: the round resets to a full focus round, no break")
+    ok(t3.completedRounds == 1 && stats.today.rounds == counted + 1, "Stop: the round is counted in stats")
+    UserDefaults.standard.removeObject(forKey: "afterRound")
     print(fails == 0 ? "\nALL PASSED" : "\n\(fails) FAILED")
     exit(fails == 0 ? 0 : 1)
 }
