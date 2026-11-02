@@ -1,4 +1,12 @@
-# Tarn 0.3.0
+# Tarn 0.3.1
+
+Updates that arrive on their own, if you want them.
+
+- Tarn now updates through Sparkle. It asks you once whether to check for updates automatically, then checks about once a week. You can also press Check for updates in Settings, General, and choose whether updates download and install by themselves
+- Checks go to GitHub and send no personal information, and every update is signed, with the signature checked before it is installed
+- If you are on 0.3.0 or older, download this version once by hand. After that, updates arrive through Tarn
+
+## Tarn 0.3.0
 
 Guided meditation, for when you want a voice.
 
