@@ -76,7 +76,7 @@ final class AppModel {
         switch url.host ?? "" {
         case "start", "work":
             timer.setMode(.pomodoro)
-            let m = value("minutes").flatMap(Int.init).flatMap { (1...240).contains($0) ? $0 : nil }
+            let m = value("minutes").flatMap(Int.init).flatMap { PomodoroTimer.focusRange.contains($0) ? $0 : nil }
             timer.startWork(minutes: m)
         case "pause": timer.pause()
         case "resume": timer.start()

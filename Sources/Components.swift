@@ -247,3 +247,26 @@ extension View {
         self.opacity(visible ? 1 : 0).allowsHitTesting(visible).animation(.easeInOut(duration: 1.2), value: visible)
     }
 }
+
+/// Asks for a focus length from 1 to 180 minutes. Returns nil if cancelled.
+@MainActor
+enum CustomLengthPrompt {
+    static func ask(current: Int) -> Int? {
+        let alert = NSAlert()
+        alert.messageText = "Focus length"
+        alert.informativeText = "Any length from 1 to 180 minutes."
+        alert.addButton(withTitle: "Set")
+        alert.addButton(withTitle: "Cancel")
+        let f = NumberFormatter()
+        f.minimum = 1; f.maximum = 180; f.allowsFloats = false
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 80, height: 24))
+        field.formatter = f
+        field.integerValue = current
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let m = Int(field.stringValue.trimmingCharacters(in: .whitespaces)) ?? current
+        return PomodoroTimer.clampMinutes(m)
+    }
+}

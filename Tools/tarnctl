@@ -7,7 +7,7 @@ usage() {
     cat <<'USAGE'
 usage: tarnctl <command>
 
-  start [minutes]     start a work round (default length, or 15, 25, 45, 60, 90 and more)
+  start [minutes]     start a work round (default length, or any length from 1 to 180)
   pause | resume      pause or resume the timer
   toggle              start or pause
   stop                reset the current round
@@ -30,7 +30,7 @@ cmd="${1:-status}"
 case "$cmd" in
     start|work)
         if [[ -n "${2:-}" ]]; then
-            [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 240 )) || { echo "minutes must be a number from 1 to 240" >&2; exit 2; }
+            [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 180 )) || { echo "minutes must be a number from 1 to 180" >&2; exit 2; }
             send "start?minutes=$2"
         else send "start"; fi ;;
     pause|resume|toggle|stop|skip|break|clear|restore|window|settings|calm) send "$cmd" ;;

@@ -27,6 +27,12 @@ enum BreakStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// What happens when a focus round ends.
+enum AfterRound: String, CaseIterable, Identifiable {
+    case takeBreak = "Take a break", stop = "Stop"
+    var id: String { rawValue }
+}
+
 /// When ambient sound plays during Pomodoro sessions. Both is soft during work and fuller on breaks.
 enum SoundScope: String, CaseIterable, Identifiable {
     case focus = "Focus", breaks = "Breaks", always = "Both"
@@ -44,10 +50,18 @@ final class PomodoroTimer: ObservableObject {
     /// Focus length in minutes. Breaks scale with it (see breakMinutes).
     @AppStorage("focusMinutes") var focusMinutes = 25
     static let focusChoices = [15, 25, 45, 60, 90]
+    static let focusRange = 1...180
+    static func clampMinutes(_ m: Int) -> Int { min(max(m, focusRange.lowerBound), focusRange.upperBound) }
+    /// A length picked with Other. It stays in the list once chosen. 0 means none.
+    @AppStorage("customFocusMinutes") var customMinutes = 0
+    /// The presets plus the custom length, sorted.
+    var lengthChoices: [Int] { Array(Set(Self.focusChoices + (customMinutes > 0 ? [customMinutes] : []))).sorted() }
     /// 60 in normal use. Tests set TARN_SECONDS_PER_MINUTE to a small number so a whole round can run in seconds.
     static let secondsPerMinute: Double = Double(ProcessInfo.processInfo.environment["TARN_SECONDS_PER_MINUTE"] ?? "") ?? 60
 
     @AppStorage("autoStartNext") var autoStartNext = true
+    @AppStorage("afterRound") var afterRoundRaw = AfterRound.takeBreak.rawValue
+    var afterRound: AfterRound { AfterRound(rawValue: afterRoundRaw) ?? .takeBreak }
     @AppStorage("breakStyle") var breakStyleRaw = BreakStyle.breathe.rawValue
     @AppStorage("fullScreenBreaks") var fullScreenBreaks = false
     @AppStorage("roundReminder") var roundReminder = false
@@ -63,7 +77,7 @@ final class PomodoroTimer: ObservableObject {
     private var focusActive = false
     /// A length asked for by a link or tarnctl. It applies to this session only and never overwrites the saved choice.
     private(set) var overrideMinutes: Int?
-    var effectiveMinutes: Int { overrideMinutes ?? focusMinutes }
+    var effectiveMinutes: Int { Self.clampMinutes(overrideMinutes ?? focusMinutes) }
 
     // Daily schedule: auto start the first round at a set time and stop at the end time.
     @AppStorage("scheduleEnabled") var scheduleEnabled = false
@@ -124,7 +138,7 @@ final class PomodoroTimer: ObservableObject {
     func setFocusMinutes(_ m: Int) {
         objectWillChange.send()
         overrideMinutes = nil
-        focusMinutes = m
+        focusMinutes = Self.clampMinutes(m)
         if !isRunning && phase == .work { remaining = duration(for: .work) }
     }
 
@@ -135,6 +149,11 @@ final class PomodoroTimer: ObservableObject {
         case ..<61: return (10, 25)
         default: return (15, 30)
         }
+    }
+
+    /// The line under the countdown while a round runs.
+    var nextLine: String {
+        afterRound == .stop && phase == .work ? "Stops after this round" : "Next: \(nextLabel)"
     }
 
     /// Describes the phase that follows the current one, for the "Next" line.
@@ -253,6 +272,11 @@ final class PomodoroTimer: ObservableObject {
         if remaining <= 0 {
             if phase == .work { StatsStore.shared.record(minutes: Int(duration(for: .work) / Self.secondsPerMinute)) }
             stopTicker()
+            if phase == .work, afterRound == .stop {
+                if roundReminder { Notifier.post("Round complete", "Take a slow breath. That is the end of this round.") }
+                finishWithoutBreak()
+                return
+            }
             if roundReminder, phase == .work { Notifier.post("Round complete", "Take a slow breath. Your break is starting.") }
             advance(autoStart: autoStartNext)
         }
@@ -273,6 +297,16 @@ final class PomodoroTimer: ObservableObject {
             ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Tarn")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if let data = try? JSONSerialization.data(withJSONObject: dict) { try? data.write(to: dir.appendingPathComponent("status.json")) }
+    }
+
+    /// Stop mode: count the round, then wait on a fresh focus round with no break.
+    private func finishWithoutBreak() {
+        lastEyeBlock = 0
+        completedRounds += 1
+        phase = .work
+        remaining = duration(for: .work)
+        writeStatus()
+        onStateChange?()
     }
 
     private func advance(autoStart: Bool, completed: Bool = true) {
