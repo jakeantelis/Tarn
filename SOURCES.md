@@ -30,5 +30,8 @@ The meditation script is our own writing (`Sources/VoiceScript.swift`, copied fr
 
 Every passage was checked with ElevenLabs speech to text against the script before the tracks were built. The tracks are made in the Tarn for iOS repository and copied here unchanged (mono AAC, about 10 MB in all).
 
+## Software
+Updates use Sparkle 2.10.1 (https://sparkle-project.org), MIT license. `Tools/fetch-sparkle.sh` downloads the official release at build time and checks its SHA-256. It is not stored in this repository. Its license ships inside the app as `Contents/Resources/Sparkle-LICENSE.txt`.
+
 ## Quotes
 Quotes shown in the app are from public domain translations. Epictetus (the first Focus line) is shown as widely attributed and is the owner's choice; check the exact wording against a translation (Long, Higginson or Carter) before a public release. The Seneca lines follow Gummere's translation of the Moral Letters (letters 1, 13 and 101).

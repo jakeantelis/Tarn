@@ -46,13 +46,14 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(!MoveToApplications.shouldOffer(path: "/Users/dev/Projects/Tarn/build/Tarn.app"), "never offers for a development build")
 
         print("Updates")
-        check(UpdateChecker.isNewer("v0.2.0", than: "0.1.0"), "0.2.0 is newer than 0.1.0")
-        check(UpdateChecker.isNewer("0.1.1", than: "0.1.0"), "0.1.1 is newer than 0.1.0")
-        check(UpdateChecker.isNewer("1.0", than: "0.9.9"), "1.0 is newer than 0.9.9")
-        check(!UpdateChecker.isNewer("0.1.0", than: "0.1.0"), "same version is not newer")
-        check(!UpdateChecker.isNewer("v0.1.0", than: "0.1"), "0.1.0 equals 0.1")
-        check(!UpdateChecker.isNewer("0.0.9", than: "0.1.0"), "older is not newer")
-        check(UpdateChecker.isNewer("0.2.0-beta", than: "0.1.0"), "a pre-release suffix is ignored")
+        let info = NSDictionary(contentsOfFile: "Resources/Info.plist") as? [String: Any] ?? [:]
+        check(info["SUFeedURL"] as? String == "https://raw.githubusercontent.com/jakeantelis/Tarn/main/appcast.xml", "feed is the appcast on GitHub")
+        check((info["SUPublicEDKey"] as? String)?.count == 44, "an EdDSA public key is set")
+        check(info["SUEnableAutomaticChecks"] == nil, "automatic checks are left for the person to choose")
+        check(info["SUEnableSystemProfiling"] as? Bool == false, "no system profile is sent")
+        check(info["SUScheduledCheckInterval"] as? Int == 604800, "checks at most once a week")
+        let feed = (try? String(contentsOfFile: "appcast.xml", encoding: .utf8)) ?? ""
+        check(feed.contains("sparkle:edSignature=") && feed.contains("https://github.com/jakeantelis/Tarn/releases/download/"), "appcast items are signed and point at GitHub releases")
 
         print("Timer")
         for k in ["mode", "focusMinutes", "soundEnabled"] { UserDefaults.standard.removeObject(forKey: k) }
