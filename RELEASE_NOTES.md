@@ -1,4 +1,13 @@
-# Tarn 0.3.1
+# Tarn 0.3.2
+
+More choice, and a gentler start.
+
+- Focus rounds can be any length from 1 to 180 minutes: choose Other in the length menu or in Settings, Focus. A new After a round setting lets a round simply stop, with no break
+- New Dock icons: choose Classic, Slate, Sage, Dusk, Sand or Night in Settings, General
+- Guided meditation now starts with a few quiet seconds of nature before the welcome is spoken
+- The Nature calm sound starts with the ocean
+
+## Tarn 0.3.1
 
 Updates that arrive on their own, if you want them.
 
