@@ -14,7 +14,7 @@ Free and open source. No account, no tracking, and it only goes online when you 
 
 ## What it does
 
-**Focus.** Pomodoro rounds of 15, 25, 45, 60 or 90 minutes with calm, timed breaks. A glowing circle narrows as time runs out, dots show your place in the set, and a break opens into a gentle breathing guide that waits until you are ready. Click the circle to start or pause. Choose from ten color themes, keep daily stats, and set a daily schedule so rounds and breaks run on their own between two times.
+**Focus.** Pomodoro rounds of 15, 25, 45, 60 or 90 minutes, or any length up to 180, with calm, timed breaks, or no break at all if you prefer. A glowing circle narrows as time runs out, dots show your place in the set, and a break opens into a gentle breathing guide that waits until you are ready. Click the circle to start or pause. Choose from ten color themes, keep daily stats, and set a daily schedule so rounds and breaks run on their own between two times.
 
 **Breathe.** A slow breathing picture, a flower or water, with four rhythms (Settle, Deep, Box and 4 7 8), optional written prompts and sessions from 1 to 20 minutes. It plays a soft sound by default, which one switch turns off. While you breathe the controls fade and the picture grows to fill the window.
 

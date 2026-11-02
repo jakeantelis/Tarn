@@ -326,8 +326,8 @@ struct TimerTab: View {
 
     /// The line under the countdown. It always says what a click will do when that matters.
     private var lensHint: String {
-        guard tapToStart else { return timer.isRunning ? "Next: \(timer.nextLabel)" : "Ready" }
-        if timer.isRunning { return hoveringLens ? "Click to pause" : "Next: \(timer.nextLabel)" }
+        guard tapToStart else { return timer.isRunning ? timer.nextLine : "Ready" }
+        if timer.isRunning { return hoveringLens ? "Click to pause" : timer.nextLine }
         return timer.remaining < timer.duration(for: timer.phase) ? "Paused. Click to resume" : "Click to start"
     }
 
@@ -409,11 +409,14 @@ struct TimerTab: View {
 
             if !timer.phase.isBreak {
                 Menu {
-                    ForEach(PomodoroTimer.focusChoices, id: \.self) { m in
+                    ForEach(timer.lengthChoices, id: \.self) { m in
                         Button { timer.setFocusMinutes(m) } label: {
-                            if timer.effectiveMinutes == m { Label("\(m) minutes", systemImage: "checkmark") } else { Text("\(m) minutes") }
+                            let name = m == 1 ? "1 minute" : "\(m) minutes"
+                            if timer.effectiveMinutes == m { Label(name, systemImage: "checkmark") } else { Text(name) }
                         }
                     }
+                    Divider()
+                    Button("Other…") { askCustomLength(timer) }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "hourglass")
@@ -720,14 +723,22 @@ struct SettingsTab: View {
         VStack(alignment: .leading, spacing: 12) {
             GroupBox("Rounds") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Picker("Focus length", selection: Binding(get: { timer.focusMinutes }, set: { timer.setFocusMinutes($0) })) {
-                        ForEach(PomodoroTimer.focusChoices, id: \.self) { Text("\($0) min").tag($0) }
+                    Picker("Focus length", selection: Binding(get: { timer.effectiveMinutes },
+                                                              set: { $0 == 0 ? askCustomLength(timer) : timer.setFocusMinutes($0) })) {
+                        ForEach(timer.lengthChoices, id: \.self) { Text("\($0) min").tag($0) }
+                        Divider()
+                        Text("Other…").tag(0)
                     }
                     Text("Breaks scale with the focus length.").font(.caption).foregroundStyle(.secondary)
+                    Picker("After a round", selection: bind({ timer.afterRound }, { timer.afterRoundRaw = $0.rawValue })) {
+                        ForEach(AfterRound.allCases) { Text($0.rawValue).tag($0) }
+                    }
                     Picker("Breaks", selection: bind({ timer.breakStyle }, { timer.breakStyleRaw = $0.rawValue })) {
                         ForEach(BreakStyle.allCases) { Text($0.rawValue).tag($0) }
                     }
-                    Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
+                    if timer.afterRound == .takeBreak {
+                        Toggle("Start next round automatically", isOn: bind({ timer.autoStartNext }, { timer.autoStartNext = $0 }))
+                    }
                     Toggle("Click the circle to start and pause", isOn: Binding(get: { UserDefaults.standard.object(forKey: "tapToStart") as? Bool ?? true }, set: { timer.objectWillChange.send(); UserDefaults.standard.set($0, forKey: "tapToStart") }))
                     Toggle("Gentle reminder when a round ends", isOn: bind({ timer.roundReminder }, { timer.roundReminder = $0; if $0 { Notifier.requestPermission() } }))
                 }.padding(.vertical, 4)
@@ -998,7 +1009,8 @@ enum HelpContent {
             ("I cannot find the menu bar icon.", "On some Macs the notch or a crowded menu bar hides it. Open Settings, General, and turn on Show Tarn in the Dock, then click the Dock icon to open a window. You can also run tarnctl window in Terminal."),
         ]),
         ("Focus", [
-            ("How do I start a round?", "Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes."),
+            ("How do I start a round?", "Click the big circle, or press Start. Tap the length pill under it to choose 15, 25, 45, 60 or 90 minutes, or Other for any length from 1 to 180."),
+            ("Can a round end without a break?", "Yes. In Settings, Focus, set After a round to Stop. Tarn counts the round and waits on a fresh one, with no break."),
             ("What does the length pill mean?", "The small pill under the circle is the length of one focus round. The dots inside the circle show your rounds: a filled dot is finished and a ring is the one you are on. After the last dot you get a longer break."),
             ("What happens on a break?", "The picture changes to a gentle breathing guide and the window turns soft purple. The break waits until you start it. When it ends, the next round starts on its own unless you turn that off in Settings, Focus."),
             ("Can Tarn run my day for me?", "Yes. In Settings, Focus, open Daily schedule. Turn it on, choose a start and end time and the days, or press Workday for 9 to 5 on weekdays. Tarn then alternates focus and breaks until the end time. It needs to be open, so turn on Open at login in General."),
@@ -1167,4 +1179,11 @@ struct FullWidthGroupBox: GroupBoxStyle {
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.10)))
         }
     }
+}
+
+/// Opens the Other… prompt and keeps the length it returns, so it stays in the list.
+@MainActor func askCustomLength(_ timer: PomodoroTimer) {
+    guard let m = CustomLengthPrompt.ask(current: timer.effectiveMinutes) else { return }
+    timer.customMinutes = PomodoroTimer.focusChoices.contains(m) ? timer.customMinutes : m
+    timer.setFocusMinutes(m)
 }
