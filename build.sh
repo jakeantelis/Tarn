@@ -19,6 +19,8 @@ Tools/embed-sparkle.sh "$SPARKLE" "$APP" -
 
 mkdir -p "$APP/Contents/Resources/Sounds"
 cp Resources/Sounds/*.{wav,caf,m4a} "$APP/Contents/Resources/Sounds/" 2>/dev/null || true
+mkdir -p "$APP/Contents/Resources/Icons"
+cp Resources/Icons/*.png "$APP/Contents/Resources/Icons/" 2>/dev/null || true
 mkdir -p "$APP/Contents/Resources/Voice"
 cp Resources/Voice/*.m4a "$APP/Contents/Resources/Voice/" 2>/dev/null || true
 cp Tools/tarnctl "$APP/Contents/Resources/tarnctl"
