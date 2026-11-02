@@ -6,6 +6,15 @@
     <description>Updates for Tarn, a calm Mac menu bar app for focus and breathing.</description>
     <language>en</language>
     <item>
+      <title>Tarn 0.3.2</title>
+      <pubDate>Mon, 02 Nov 2026 18:01:37 +0000</pubDate>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<p>More choice, and a gentler start.</p><ul><li>Focus rounds can be any length from 1 to 180 minutes: choose Other in the length menu or in Settings, Focus. A new After a round setting lets a round simply stop, with no break</li><li>New Dock icons: choose Classic, Slate, Sage, Dusk, Sand or Night in Settings, General</li><li>Guided meditation now starts with a few quiet seconds of nature before the welcome is spoken</li><li>The Nature calm sound starts with the ocean</li></ul>]]></description>
+      <enclosure url="https://github.com/jakeantelis/Tarn/releases/download/v0.3.2/Tarn.zip" sparkle:edSignature="IS6Oz/JdczAcHkkyGysiparPKAKKzrvYZuEApYinS29odzFfYLO2rAC7A9DDHk9N0BTIA49gOHiGOvLuFSmrDg==" length="14803852" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Tarn 0.3.1</title>
       <pubDate>Mon, 02 Nov 2026 17:47:45 +0000</pubDate>
       <sparkle:version>6</sparkle:version>
