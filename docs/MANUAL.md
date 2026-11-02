@@ -77,6 +77,9 @@ Each sound drifts slightly louder and softer over a few minutes, and the birds m
 **I cannot find the icon.**  
 On some Macs the notch or a crowded menu bar hides it. Open Settings, then Open in a window, or turn on Show Tarn in the Dock.
 
+**Can I change the Dock icon?**  
+Yes. Open Settings, General, and under Dock icon choose Classic, Slate, Sage, Dusk, Sand or Night. It shows in the Dock and the app switcher, so turn on Show Tarn in the Dock to see it. The icon in Finder stays the same.
+
 **Does Tarn collect anything?**  
 No. Everything stays on your Mac, including your stats.
 

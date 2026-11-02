@@ -563,6 +563,7 @@ struct SettingsTab: View {
     @AppStorage("breathStyle") private var breathStyle = BreathStyle.bloom.rawValue
     @AppStorage("focusPalette") private var paletteKey = "red"
     @AppStorage("showInDock") private var showInDock = false
+    @AppStorage("appIcon") private var appIcon = AppIcons.classicKey
     @AppStorage("allowLinks") private var allowLinks = true
     @AppStorage("showTips") private var showTips = false
     @ObservedObject private var updates = UpdateChecker.shared
@@ -658,6 +659,36 @@ struct SettingsTab: View {
                     }
                     Text("Try: tarnctl start 45 · tarnctl pause · tarnctl breathe · tarnctl calm · tarnctl status. Run tarnctl help for the full list. Turn off \u{201C}Allow tarnctl and tarn:// links\u{201D} below to block it.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Dock icon") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 10) {
+                        ForEach(AppIcons.all) { choice in
+                            Button {
+                                appIcon = choice.key
+                                AppIcons.apply()
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Group {
+                                        if let img = AppIcons.image(for: choice.key) {
+                                            Image(nsImage: img).resizable().scaledToFit()
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 9).fill(Color.secondary.opacity(0.3))
+                                        }
+                                    }
+                                    .frame(width: 40, height: 40)
+                                    .padding(2)
+                                    .overlay(RoundedRectangle(cornerRadius: 11).stroke(Color.primary.opacity(AppIcons.resolvedKey(appIcon) == choice.key ? 0.9 : 0), lineWidth: 2))
+                                    Text(choice.name).font(.caption2)
+                                        .foregroundStyle(AppIcons.resolvedKey(appIcon) == choice.key ? Color.primary : Color.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Text("Shows in the Dock and the app switcher. Turn on Show Tarn in the Dock below to see it.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }.padding(.vertical, 4)
             }
             GroupBox("Startup and windows") {

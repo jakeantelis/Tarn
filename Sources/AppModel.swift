@@ -119,6 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Opened from the disk image or Downloads? Offer to move into Applications first. If it moves, this copy quits.
         if MoveToApplications.offerIfNeeded() { return }
         WindowOpener.applyDockPolicy()
+        AppIcons.apply()
         Task { @MainActor in AppModel.shared.timer.writeStatus() }   // so tarnctl status works straight after launch
         Task { @MainActor in FloatingCircle.shared.refresh() }
         // Start the updater at launch, so the weekly check runs if the person allowed it.

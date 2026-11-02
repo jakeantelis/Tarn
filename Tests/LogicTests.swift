@@ -245,6 +245,8 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
     ok(t3.phase == .work && !t3.isRunning && t3.remaining == t3.duration(for: .work), "Stop: the round resets to a full focus round, no break")
     ok(t3.completedRounds == 1 && stats.today.rounds == counted + 1, "Stop: the round is counted in stats")
     UserDefaults.standard.removeObject(forKey: "afterRound")
+    ok(AppIcons.resolvedKey("sage") == "sage" && AppIcons.resolvedKey("nope") == "classic" && AppIcons.resolvedKey(nil) == "classic", "a saved Dock icon that is unknown falls back to Classic")
+    ok(AppIcons.all.dropFirst().allSatisfy { FileManager.default.fileExists(atPath: "Resources/Icons/\($0.key).png") }, "every Dock icon choice has its picture")
     print(fails == 0 ? "\nALL PASSED" : "\n\(fails) FAILED")
     exit(fails == 0 ? 0 : 1)
 }
