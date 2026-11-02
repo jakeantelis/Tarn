@@ -1,4 +1,12 @@
-# Tarn 0.2.1
+# Tarn 0.3.0
+
+Guided meditation, for when you want a voice.
+
+- New guided meditation in Breathe: choose 5, 10 or 20 minutes and a recorded voice (Soft, Warm or Grounded) guides you, with long stretches of silence. The words appear under the picture, and your sound mix plays softly underneath. A small mixer sets the voice and the nature sound, and one switch in Settings hides it if you never use it
+- Sounds drift slightly and fade in and out gently, so they suit a whole day, and the birds are quieter
+- The floating circle's close button shows only when you hover over it, and no longer gets stuck
+
+## Tarn 0.2.1
 
 A polish pass on the floating circle.
 
