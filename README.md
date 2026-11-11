@@ -1,12 +1,33 @@
-# Tarn
+<p align="center">
+  <img src="docs/images/icon.png" width="112" alt="Tarn app icon: a glowing flower on deep indigo">
+</p>
 
-A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm Mac menu bar app for focus and for breathing: work in focused rounds, then breathe like still water.
+<h1 align="center">Tarn</h1>
 
-**[Download Tarn for Mac](https://github.com/jakeantelis/Tarn/releases/latest/download/Tarn.dmg)**  Free. Needs macOS 14 or newer.
+<p align="center">
+  <a href="https://github.com/jakeantelis/Tarn/stargazers"><img src="https://img.shields.io/github/stars/jakeantelis/Tarn?style=flat&label=%E2%98%85&color=4a5a95" alt="GitHub stars"></a>
+  <a href="https://github.com/jakeantelis/Tarn/releases"><img src="https://img.shields.io/github/v/release/jakeantelis/Tarn?style=flat&color=4a5a95" alt="Latest release"></a>
+  <a href="https://github.com/jakeantelis/Tarn/releases"><img src="https://img.shields.io/github/downloads/jakeantelis/Tarn/total?style=flat&label=downloads&color=4a5a95" alt="Total downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/jakeantelis/Tarn?style=flat&color=4a5a95" alt="License"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-4a5a95?style=flat" alt="Requires macOS 14 or newer">
+  <img src="https://img.shields.io/badge/Apple%20silicon%20%7C%20Intel-4a5a95?style=flat" alt="Universal: Apple silicon and Intel">
+</p>
+
+<p align="center">
+  <strong>A calm Mac menu bar app for focus and for breathing.</strong><br>
+  Work in focused rounds, then breathe like still water. Free and open source. No account, no tracking.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jakeantelis/Tarn/releases/latest/download/Tarn.dmg"><img src="docs/assets/download-button.svg" width="280" alt="Download Tarn for Mac"></a><br>
+  <sub>Free · macOS 14 Sonoma or newer · Apple silicon and Intel · <a href="https://github.com/jakeantelis/Tarn/releases">All releases</a></sub>
+</p>
+
+A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm Mac menu bar app for focus and for breathing.
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
-Free and open source. No account, no tracking, and the only thing it ever asks the internet is whether there is a newer Tarn. Made by [Antelis Labs](https://antelislabs.com).
+The only thing it ever asks the internet is whether there is a newer Tarn. Made by [Antelis Labs](https://antelislabs.com).
 
 <p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
 
