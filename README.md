@@ -20,7 +20,8 @@
 
 <p align="center">
   <a href="https://github.com/jakeantelis/Tarn/releases/latest/download/Tarn.dmg"><img src="docs/assets/download-button.svg" width="280" alt="Download Tarn for Mac"></a><br>
-  <sub>Free · macOS 14 Sonoma or newer · Apple silicon and Intel · <a href="https://github.com/jakeantelis/Tarn/releases">All releases</a></sub>
+  <sub>Free · macOS 14 Sonoma or newer · Apple silicon and Intel · <a href="https://github.com/jakeantelis/Tarn/releases">All releases</a></sub><br>
+  <sub>Also on iPhone: <a href="https://apps.apple.com/us/app/tarn-focus-breathe/id6829876417">Tarn: Focus &amp; Breathe on the App Store</a></sub>
 </p>
 
 A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a calm Mac menu bar app for focus and for breathing.
