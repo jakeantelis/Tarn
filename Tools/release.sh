@@ -18,7 +18,7 @@ if [[ "${1:-}" == "--publish" ]]; then
     fi
 fi
 
-DEV_ID="${TARN_DEV_ID:-D430FCAFBA0DBC0F48D765E55C07BF3BA1FCEF85}"
+DEV_ID="${TARN_DEV_ID:-D9004FA688DB0E7975031AEFC0B9C87684B2D05A}"   # Developer ID Application: Antelis Labs LLC (6G8C59T679)
 NOTARY_PROFILE="${TARN_NOTARY_PROFILE:-jake-antelis}"
 
 rm -rf "$APP" "$TMP"
