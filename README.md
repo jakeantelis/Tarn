@@ -28,7 +28,7 @@ A tarn is a small, still mountain lake, quiet enough to hold the sky. Tarn is a 
 
 ![Tarn: focus, a breathing break, breathe and sounds](docs/images/hero.png)
 
-The only thing it ever asks the internet is whether there is a newer Tarn. Made by [Antelis Labs](https://antelislabs.com).
+The only thing it ever asks the internet is whether there is a newer Tarn. Made by [AntelisLabs](https://antelislabs.com).
 
 <p align="center"><img src="docs/images/tour.gif" alt="A tour of Tarn: welcome, Focus, a break, Breathe, sounds, stats and settings" width="300"></p>
 
@@ -110,7 +110,7 @@ The guided meditation voices are credited in [SOURCES.md](SOURCES.md). See Licen
 
 Updates use [Sparkle](https://sparkle-project.org) (MIT license). Its license is included in the app as `Sparkle-LICENSE.txt`.
 
-## More from Antelis Labs
+## More from AntelisLabs
 See [antelislabs.com](https://antelislabs.com) for everything else.
 
 [**Matcha**](https://github.com/jakeantelis/Matcha) keeps your Mac awake for builds, exports and long running tasks. Tiny app, command line tool and crash safe. It pairs well with Tarn: let Matcha hold the Mac awake while Tarn holds your focus.
