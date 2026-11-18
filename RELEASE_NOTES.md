@@ -1,4 +1,11 @@
-# Tarn 0.3.2
+# Tarn 0.3.3
+
+Same Tarn, new name on the label.
+
+- Tarn is now signed and notarized under AntelisLabs (Antelis Labs LLC). When you first open it, macOS names Antelis Labs LLC as the developer
+- The About text reads AntelisLabs
+
+## Tarn 0.3.2
 
 More choice, and a gentler start.
 
