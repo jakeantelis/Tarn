@@ -123,7 +123,7 @@ except this one.
   is an app-specific one from appleid.apple.com -> Sign-In and Security ->
   App-Specific Passwords, not your ordinary Apple ID password:
 
-    xcrun notarytool store-credentials "$NOTARY_PROFILE" --apple-id "jantelis@gmail.com" --team-id "6G8C59T679"
+    xcrun notarytool store-credentials "$NOTARY_PROFILE" --apple-id "your-apple-id@example.com" --team-id "6G8C59T679"
 
   One profile covers CleanStage, Matcha and Tarn.
 
