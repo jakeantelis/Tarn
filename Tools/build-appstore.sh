@@ -36,6 +36,8 @@ cp Resources/Voice/*.m4a "$APP/Contents/Resources/Voice/" 2>/dev/null || true
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE" "$APP/Contents/Info.plist"
+# No network and no custom cryptography, so the export compliance question is answered in the plist.
+/usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$APP/Contents/Info.plist"
 # The Store listing is macOS version 1.0 (override with TARN_MAS_VERSION).
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${TARN_MAS_VERSION:-1.0}" "$APP/Contents/Info.plist"
 
