@@ -38,6 +38,7 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE" "$APP/Contents/Info.plist"
 # No network and no custom cryptography, so the export compliance question is answered in the plist.
 /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$APP/Contents/Info.plist"
+[[ -n "${TARN_MAS_BUILD:-}" ]] && /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $TARN_MAS_BUILD" "$APP/Contents/Info.plist"
 # The Store listing is macOS version 1.0 (override with TARN_MAS_VERSION).
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${TARN_MAS_VERSION:-1.0}" "$APP/Contents/Info.plist"
 
@@ -54,6 +55,8 @@ if [[ -n "${TARN_MAS_APP_ID:-}" ]]; then
     cp Resources/Tarn-AppStore.entitlements "$ENT"
     $PB -c "Add :com.apple.application-identifier string $TEAM.$BUNDLE" "$ENT"
     $PB -c "Add :com.apple.developer.team-identifier string $TEAM" "$ENT"
+    # A profile downloaded in a browser carries com.apple.quarantine, which the Store rejects (ITMS-91109).
+    xattr -cr "$APP"
     codesign --force --options runtime --timestamp --entitlements "$ENT" --sign "$TARN_MAS_APP_ID" "$APP"
     mkdir -p dist
     productbuild --component "$APP" /Applications --sign "$TARN_MAS_INSTALLER_ID" dist/Tarn-AppStore.pkg
