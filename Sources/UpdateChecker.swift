@@ -1,3 +1,4 @@
+#if !APPSTORE
 import Foundation
 import Sparkle
 
@@ -48,3 +49,19 @@ final class UpdateChecker: NSObject, ObservableObject, SPUStandardUserDriverDele
         true
     }
 }
+
+#else
+import Foundation
+
+/// App Store build: the Store delivers updates, so there is nothing to check and no network use.
+@MainActor
+final class UpdateChecker: NSObject, ObservableObject {
+    static let shared = UpdateChecker()
+    static let releasesPage = URL(string: "https://github.com/jakeantelis/Tarn/releases")!
+    static var currentVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0" }
+    @Published private(set) var canCheck = false
+    func check() {}
+    var automaticallyChecks: Bool { get { false } set {} }
+    var automaticallyInstalls: Bool { get { false } set {} }
+}
+#endif

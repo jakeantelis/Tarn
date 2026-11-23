@@ -15,6 +15,7 @@ enum MoveToApplications {
 
     /// Returns true when it took over (the app is about to quit and reopen from Applications).
     static func offerIfNeeded() -> Bool {
+        if Edition.isAppStore { return false }   // the Store installs into Applications itself
         let path = Bundle.main.bundlePath
         guard shouldOffer(path: path), !UserDefaults.standard.bool(forKey: askedKey) else { return false }
         UserDefaults.standard.set(true, forKey: askedKey)

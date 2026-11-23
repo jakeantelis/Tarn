@@ -615,6 +615,7 @@ struct SettingsTab: View {
 
     private var general: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if !Edition.isAppStore {
             GroupBox("Updates") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
@@ -661,6 +662,7 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                 }.padding(.vertical, 4)
             }
+            }
             GroupBox("Dock icon") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 10) {
@@ -694,7 +696,7 @@ struct SettingsTab: View {
             GroupBox("Startup and windows") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Open Tarn at login", isOn: Binding(get: { loginOn }, set: { setLogin($0) }))
-                    Toggle("Allow tarnctl and tarn:// links", isOn: $allowLinks)
+                    Toggle(Edition.isAppStore ? "Allow tarn:// links" : "Allow tarnctl and tarn:// links", isOn: $allowLinks)
                     Toggle("Show Tarn in the Dock", isOn: $showInDock)
                         .onChange(of: showInDock) { _, _ in WindowOpener.applyDockPolicy() }
                     Toggle("Show a short tip at the bottom of the window", isOn: $showTips)
@@ -1021,7 +1023,24 @@ struct FocusPalette {
 
 /// The same words as docs/MANUAL.md, so help is one click away inside the app.
 enum HelpContent {
-    static let sections: [(title: String, items: [(q: String, a: String)])] = [
+    static let sections = Edition.isAppStore ? storeSections : allSections
+
+    /// The same help with the answers that differ in the App Store build, and Terminal control left out.
+    private static var storeSections: [(title: String, items: [(q: String, a: String)])] {
+        allSections.map { section in
+            (title: section.title, items: section.items.compactMap { item -> (q: String, a: String)? in
+                switch item.q {
+                case "How do I update Tarn?": return (item.q, "Tarn updates through the Mac App Store. Open the App Store and look under Updates.")
+                case "How do I install or move Tarn?": return (item.q, "Install Tarn from the Mac App Store. It goes into your Applications folder by itself.")
+                case "Does Tarn collect anything?": return (item.q, "No. Everything stays on your Mac, including your stats. There is no account and no tracking. Tarn does not go online.")
+                case "Can I control it from Terminal?": return nil
+                default: return item
+                }
+            })
+        }
+    }
+
+    private static let allSections: [(title: String, items: [(q: String, a: String)])] = [
         ("Getting started", [
             ("What is Tarn?", "A calm Mac menu bar app. Focus runs timed work rounds with breaks. Breathe is a slow breathing animation. It is free, with no account and no tracking."),
             ("Where do I find things?", "Click the flower in the menu bar. The switch at the top moves between Focus and Breathe. Help, Settings and Quit are along the bottom. Settings has four sections: Focus, Breathe, General, and this Help."),

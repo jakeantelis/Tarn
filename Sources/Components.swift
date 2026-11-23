@@ -191,12 +191,24 @@ extension Color {
 func runShortcutNamed(_ name: String) {
     let n = name.trimmingCharacters(in: .whitespaces)
     guard !n.isEmpty else { return }
+    #if APPSTORE
+    // The sandbox does not let Tarn run /usr/bin/shortcuts, so ask Shortcuts to run it through its link, without bringing it forward.
+    var parts = URLComponents(string: "shortcuts://run-shortcut")!
+    parts.queryItems = [URLQueryItem(name: "name", value: n)]
+    if let url = parts.url {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = false
+        NSWorkspace.shared.open(url, configuration: config)
+    }
+    return
+    #else
     let task = Process()
     task.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
     task.arguments = ["run", n]
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     try? task.run()
+    #endif
 }
 
 /// A soft, silent banner. Only used if the user turned the reminder on.
