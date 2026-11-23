@@ -64,7 +64,7 @@ Free.
 Tarn has no account, no sign-in and no in-app purchases, so there is nothing to log in to. It is a menu bar app: after launch, click the flower icon in the menu bar. Focus runs a timer; Breathe plays a slow breathing animation; "Guided meditation" under Calm mode plays a spoken session. Notifications are optional and the app works with the permission declined. "Hide other apps while breathing" only hides windows with the standard NSRunningApplication.hide and restores them afterwards; it can be turned off in Settings > Breathe. The app makes no network connections. The open-source code is at github.com/jakeantelis/Tarn.
 
 ## Screenshots (Mac)
-Accepted sizes: 1280x800, 1440x900, 2560x1600, 2880x1800 (16:10), 1 to 10 images. Suggested set: Focus screen, Breathe full screen, Guided meditation, Settings, Stats. Capture from `build/Tarn-AppStore.app` (not yet captured; see handover).
+Accepted sizes: 1280x800, 1440x900, 2560x1600, 2880x1800 (16:10), 1 to 10 images. Suggested set: Focus screen, Breathe full screen, Guided meditation, Settings, Stats. Captured from the sandboxed build at 2560x1600 in `docs/appstore-screenshots/` (1-focus, 2-breathe, 3-settings, 4-general, 5-fullscreen). The focus shot shows a timer mid-round; retake after any UI change.
 
 ---
 
