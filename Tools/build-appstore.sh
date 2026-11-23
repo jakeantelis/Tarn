@@ -8,13 +8,15 @@
 #   Tools/build-appstore.sh            signed for the Store                        -> dist/Tarn-AppStore.pkg
 #
 # Upload the .pkg with Transporter. Needs the two Mac App Store certificates and a Mac App Store
-# provisioning profile for com.antelislabs.tarn, all made in the Apple developer account.
+# provisioning profile for com.antelislabs.tarn.ios, all made in the Apple developer account.
 set -euo pipefail
 setopt nullglob
 cd "$(dirname "$0")/.."
 
 TEAM=6G8C59T679
-BUNDLE=com.antelislabs.tarn
+# The Store edition shares the iPhone app's App Store Connect record (one listing, macOS platform added),
+# so it uses that record's bundle ID. The direct-download build keeps com.antelislabs.tarn.
+BUNDLE=com.antelislabs.tarn.ios
 APP=build/Tarn-AppStore.app
 TMP=build/appstore
 rm -rf "$APP" "$TMP"
@@ -33,6 +35,9 @@ cp Resources/Icons/*.png "$APP/Contents/Resources/Icons/" 2>/dev/null || true
 cp Resources/Voice/*.m4a "$APP/Contents/Resources/Voice/" 2>/dev/null || true
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE" "$APP/Contents/Info.plist"
+# The Store listing is macOS version 1.0 (override with TARN_MAS_VERSION).
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${TARN_MAS_VERSION:-1.0}" "$APP/Contents/Info.plist"
 
 # The Store updates the app, so the Sparkle keys come out of the copy of Info.plist.
 PB=/usr/libexec/PlistBuddy
