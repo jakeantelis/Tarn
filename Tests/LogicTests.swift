@@ -39,6 +39,41 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         let longest = Set(VoiceScript.timeline(total: 20 * 60).map(\.passage.id))
         check(VoiceScript.all.allSatisfy { longest.contains($0.id) }, "20 min: speaks every passage")
 
+        print("Breath cues")
+        let box = BreathPattern.box
+        let b0 = box.cueStep(at: 0.1)!, b1 = box.cueStep(at: 4.5)!, b2 = box.cueStep(at: 8.5)!
+        check(b0.kind == .inhale && b0.seconds == 4 && b1.kind == .hold && b2.kind == .exhale, "Box: inhale, hold, exhale in order")
+        check(BreathPattern.settle.cueStep(at: 4.2 + 0.0)?.kind != nil && BreathPattern.settle.cueStep(at: -1) == nil, "no cue before the session starts")
+        let settleP = BreathPattern.settle
+        let s0 = settleP.cueStep(at: 0.01)!
+        check(s0.kind == .inhale && s0.seconds > 3.5 && s0.seconds < 4.5, "Settle: first inhale lasts about 4 s of real time (\(s0.seconds))")
+        var seen = Set<Int>(), lastEnd = 0.0, contiguous = true
+        var tt = 0.0
+        while tt < 600 {
+            let c = settleP.cueStep(at: tt)!
+            if seen.insert(c.index).inserted { if abs((tt - c.elapsed) - lastEnd) > 0.2 && lastEnd > 0 { contiguous = false }; lastEnd = tt - c.elapsed + c.seconds }
+            tt += 0.05
+        }
+        check(contiguous, "Settle: each step starts where the last one ended, even as it stretches")
+        check(abs(settleP.unwarped(settleP.warped(250)) - 250) < 1e-6 && abs(settleP.unwarped(settleP.warped(40)) - 40) < 1e-6, "unwarped undoes warped")
+        for style in [BreathCueStyle.bell, .tone, .wash] {
+            for rising in [true, false] {
+                let x = BreathCues.samples(style: style, seconds: rising ? 3.5 : 4.5, rising: rising)
+                let peak = x.map(abs).max() ?? 0
+                let want = Int(44_100 * max(rising ? 3.5 : 4.5, style == .bell ? 3.6 : 0))
+                check(x.count == want, "\(style.label) \(rising ? "in" : "out"): lasts the breath (\(x.count) samples)")
+                check(peak > 0.02 && peak < 0.9, "\(style.label) \(rising ? "in" : "out"): audible and never loud (peak \(peak))")
+                check(abs(x.last ?? 1) < 0.01 && x.allSatisfy { $0.isFinite }, "\(style.label) \(rising ? "in" : "out"): ends silent, no bad samples")
+            }
+        }
+        check(BreathCues.samples(style: .off, seconds: 4, rising: true).isEmpty, "Off makes no sound")
+        check(BreathCues.samples(style: .tone, seconds: 99, rising: true).count == 44_100 * 30, "a breath is capped at 30 s")
+        UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "meditationCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")
+        check(BreathCueStyle.breathing == .bell && BreathCueStyle.meditating == .off && BreathCueStyle.volume == 0.6, "defaults: Bell, Off while guided, volume 0.6")
+        UserDefaults.standard.set("nonsense", forKey: "breathCues"); UserDefaults.standard.set(9.0, forKey: "breathCueVolume")
+        check(BreathCueStyle.breathing == .bell && BreathCueStyle.volume == 1, "an unknown style falls back, volume stays in range")
+        UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")
+
         print("Move to Applications")
         check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")
         check(MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Downloads/Tarn.app"), "offers from Downloads")

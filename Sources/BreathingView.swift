@@ -117,6 +117,8 @@ struct BreathingView: View {
                                      startPoint: .top, endPoint: .bottom))
                 .padding(-8))
             .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in checkCoach() }
+            .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { now in cueTick(now) }
+            .onDisappear { AppModel.shared.cueStop(.screen) }
             .onAppear { if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
             // When a guided session ends the breath carries on from the start of your own rhythm.
             .onChange(of: meditation.isActive) { _, on in if !on { start = Date(); pausedAt = nil; pausedFrom = nil } }
@@ -312,6 +314,14 @@ struct BreathingView: View {
             burst += 1
             AppModel.shared.startBreatheSound()
         }
+    }
+
+    /// Breath cues for the Breathe screen: only while it is showing, not paused, and not just a quiet preview.
+    private func cueTick(_ now: Date) {
+        guard !compact, !still else { return }
+        let guided = meditation.isActive
+        let t = guided ? meditation.elapsed(at: now) : (pausedAt ?? now.timeIntervalSince(start))
+        AppModel.shared.cueTick(.screen, t: t, pattern: activePattern, guided: guided, running: active && !isPaused)
     }
 
     private func checkCoach() {

@@ -10,6 +10,7 @@ final class BreatheOverlay {
     private var windows: [NSWindow] = []
     private var hidden: [NSRunningApplication] = []
     private var monitor: Any?
+    private var cueTimer: Timer?
     /// One shared clock, so every screen shows the same breath.
     private(set) var startDate = Date()
     /// Set by Calm mode so the "calm ends" Shortcut runs when the overlay closes.
@@ -61,12 +62,29 @@ final class BreatheOverlay {
             if e.keyCode == 53 { self?.close("escape key"); return nil }   // Esc
             return e
         }
+        // One clock for the breath cues, however many screens are covered.
+        cueTimer?.invalidate()
+        cueTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.cueTick() }
+        }
+    }
+
+    private func cueTick() {
+        let meditation = Meditation.shared
+        let guided = meditation.isActive
+        let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
+        let pattern = guided ? BreathPattern.settle : (BreathPattern.all.first { $0.id == id } ?? .settle)
+        let t = guided ? meditation.elapsed() : Date().timeIntervalSince(startDate)
+        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: guided, running: isShowing && !(guided && meditation.isPaused))
     }
 
     func close(_ reason: String = "api") {
         Self.log.notice("full screen closed: \(reason, privacy: .public)")
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        cueTimer?.invalidate()
+        cueTimer = nil
+        AppModel.shared.cueStop(.fullScreen)
         let ws = windows
         windows = []
         NSAnimationContext.runAnimationGroup({ $0.duration = 0.4; ws.forEach { $0.animator().alphaValue = 0 } },

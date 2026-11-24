@@ -576,6 +576,9 @@ struct SettingsTab: View {
     @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("gentleFades") private var gentleFades = true
     @AppStorage("guideMe") private var guideMe = false
+    @AppStorage("breathCues") private var breathCues = BreathCueStyle.bell.rawValue
+    @AppStorage("breathCueVolume") private var cueVolume = BreathCueStyle.defaultVolume
+    @AppStorage("meditationCues") private var meditationCues = BreathCueStyle.off.rawValue
     @AppStorage("meditationVoice") private var meditationVoice = "soft"
     @AppStorage("offerMeditation") private var offerMeditation = true
     @AppStorage("meditationSounds") private var soundsUnderMeditation = true
@@ -588,6 +591,12 @@ struct SettingsTab: View {
     @AppStorage("floatingSize") private var floatingSize = 0
     @AppStorage("floatingOpacity") private var floatingOpacity = 0.9
     @AppStorage("floatingClickThrough") private var floatingClickThrough = false
+
+    /// Plays one breath in and out of a style, so it can be heard as it is picked.
+    private func previewCue(_ raw: String) {
+        guard let style = BreathCueStyle(rawValue: raw) else { return }
+        AppModel.shared.cues.preview(style, volume: BreathCueStyle.volume)
+    }
 
     private func bind<T>(_ get: @escaping () -> T, _ set: @escaping (T) -> Void) -> Binding<T> {
         Binding(get: get, set: { timer.objectWillChange.send(); set($0) })
@@ -912,6 +921,10 @@ struct SettingsTab: View {
                                 ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
                             }
                         }
+                        Picker("Breath cues", selection: $meditationCues) {
+                            ForEach(BreathCueStyle.allCases) { Text($0.label).tag($0.rawValue) }
+                        }
+                        .onChange(of: meditationCues) { _, v in previewCue(v) }
                         Toggle("Play sounds under the voice", isOn: $soundsUnderMeditation)
                         Picker("Sounds afterwards", selection: $lingerMinutes) {
                             Text("Fade over 30 seconds").tag(0)
@@ -936,6 +949,24 @@ struct SettingsTab: View {
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
                     Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
+                }.padding(.vertical, 4)
+            }
+            GroupBox("Breath cues") {
+                VStack(alignment: .leading, spacing: 8) {
+                    PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
+                        .onChange(of: breathCues) { _, v in previewCue(v) }
+                    if BreathCueStyle(rawValue: breathCues) != .off || BreathCueStyle(rawValue: meditationCues) != .off {
+                        HStack(spacing: 8) {
+                            Text("Cue volume")
+                            Slider(value: $cueVolume, in: BreathCueStyle.volumeRange) { editing in
+                                if !editing { previewCue(breathCues != BreathCueStyle.off.rawValue ? breathCues : meditationCues) }
+                            }
+                            .controlSize(.small)
+                            .accessibilityLabel("Cue volume")
+                        }
+                    }
+                    Text("Breath cues let you breathe with your eyes closed. Wash and Tone rise as you breathe in and fall as you breathe out, so they carry you through long, deep breaths. Bell rings as each breath begins and fades away as you breathe out. Holds stay silent. Cues play while the Breathe screen or full screen is showing.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
             GroupBox("Screen and apps") {

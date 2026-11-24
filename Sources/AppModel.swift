@@ -8,7 +8,10 @@ final class AppModel {
     static let shared = AppModel()
     let timer = PomodoroTimer()
     let sound = SoundEngine()
+    let cues = BreathCues()
     private var fullScreenForBreak = false
+    private var cueOwner: CueOwner?
+    private var lastCueStep: Int?
 
     private var soundWatch: AnyCancellable?
 
@@ -18,8 +21,33 @@ final class AppModel {
         soundWatch = sound.$isPlaying.sink { [weak self] playing in if !playing { self?.startedForBreathe = false } }
     }
 
+    enum CueOwner { case screen, fullScreen }
+
+    /// Called often while a breathing screen is up. Plays a cue when a new inhale or exhale begins.
+    /// `t` is seconds into the session. The full screen view wins over the Breathe screen, so a breath is never cued twice.
+    func cueTick(_ owner: CueOwner, t: Double, pattern: BreathPattern, guided: Bool, running: Bool) {
+        if owner == .screen, BreatheOverlay.shared.isShowing { return }
+        let style = guided ? BreathCueStyle.meditating : BreathCueStyle.breathing
+        guard running, style != .off, let step = pattern.cueStep(at: t) else { cueStop(owner); return }
+        if cueOwner != owner { cueOwner = owner; lastCueStep = nil }
+        guard step.index != lastCueStep else { return }
+        let first = lastCueStep == nil
+        lastCueStep = step.index
+        // Picking up in the middle of a breath (after a pause) waits for the next one instead of cutting in.
+        if first && step.elapsed > 0.5 { return }
+        cues.play(style, step: step.kind, seconds: step.seconds, volume: BreathCueStyle.volume)
+    }
+
+    func cueStop(_ owner: CueOwner) {
+        guard cueOwner == owner else { return }
+        cueOwner = nil
+        lastCueStep = nil
+        cues.stop()
+    }
+
     /// Brings every hidden app back and drops the overlay, so quitting Tarn never leaves your screen changed.
     func restoreScreen() {
+        cueStop(.fullScreen)
         BreatheOverlay.shared.close("quit")
         ScreenClearer.shared.restore()
     }
