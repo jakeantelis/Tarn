@@ -76,22 +76,33 @@ extension BreathPattern {
     }
 }
 
+/// A finished cue sound, handed from the background thread that made it to the main actor that plays it.
+/// The buffer is never touched again on the thread that made it.
+private struct CueSound: @unchecked Sendable { let buffer: AVAudioPCMBuffer }
+
 @MainActor
 final class BreathCues {
     private let engine = AVAudioEngine()
     /// Two players take turns, so a bell's tail rings on while the next breath begins.
     private let players = [AVAudioPlayerNode(), AVAudioPlayerNode()]
     private var turn = 0
-    private static let rate = 44_100.0
-    private let format = AVAudioFormat(standardFormatWithSampleRate: BreathCues.rate, channels: 1)!
+    nonisolated private static let rate = 44_100.0
+    nonisolated private static var format: AVAudioFormat { AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1)! }
     private let bus = AVAudioMixerNode()
     private let reverb = AVAudioUnitReverb()
     private var wired = false
+    private var wanted = false
+    private var volume = BreathCueStyle.defaultVolume
+    /// Bumped on every stop, so a sound still being made for an old session is dropped, not played late.
+    private var generation = 0
+    private var observer: NSObjectProtocol?
 
     var isRunning: Bool { engine.isRunning }
 
     /// `volume` runs from 0 to 1 and sets how loud the cues sit under everything else.
     func start(volume: Double) {
+        wanted = true
+        self.volume = volume
         if !wired {
             wired = true
             engine.attach(bus)
@@ -100,61 +111,91 @@ final class BreathCues {
             reverb.wetDryMix = 32
             for p in players {
                 engine.attach(p)
-                engine.connect(p, to: bus, format: format)
+                engine.connect(p, to: bus, format: Self.format)
             }
             engine.connect(bus, to: reverb, format: nil)
             engine.connect(reverb, to: engine.mainMixerNode, format: nil)
+            // Headphones in or out, or another output device, stops the engine; start it again so the cues carry on.
+            observer = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.resume() }
+            }
         }
         engine.mainMixerNode.outputVolume = Float(min(1, max(0, volume)))
         if !engine.isRunning { try? engine.start() }
     }
 
     func stop() {
+        generation += 1
+        wanted = false
         guard wired else { return }
         players.forEach { $0.stop() }
         if engine.isRunning { engine.stop() }
+    }
+
+    /// Starts the engine again after the system stopped it, if cues are still wanted.
+    private func resume() {
+        guard wanted, !engine.isRunning else { return }
+        try? engine.start()
+    }
+
+    /// Makes the sound off the main thread (it takes tens of milliseconds, enough to stutter the breathing animation),
+    /// then plays it, unless the session was stopped meanwhile.
+    private func render(_ style: BreathCueStyle, _ parts: [(seconds: Double, rising: Bool)],
+                        play: @escaping @MainActor ([AVAudioPCMBuffer]) -> Void) {
+        let ticket = generation
+        let making = Task.detached(priority: .userInitiated) {
+            parts.compactMap { Self.buffer(style: style, seconds: $0.seconds, rising: $0.rising) }
+        }
+        Task { @MainActor [weak self] in
+            let sounds = await making.value
+            guard let self, ticket == self.generation, sounds.count == parts.count else { return }
+            self.start(volume: self.volume)
+            guard self.engine.isRunning else { return }
+            play(sounds.map(\.buffer))
+        }
     }
 
     /// One short breath in and out, so a style can be heard before choosing it.
     func preview(_ style: BreathCueStyle, volume: Double) {
         stop()
         guard style != .off else { return }
-        start(volume: volume)
-        guard engine.isRunning,
-              let inhale = Self.buffer(style: style, seconds: 3.5, rising: true, format: format),
-              let exhale = Self.buffer(style: style, seconds: 4.5, rising: false, format: format) else { return }
-        let p = players[0]
-        p.scheduleBuffer(inhale, at: nil, options: [])
-        p.scheduleBuffer(exhale, at: nil, options: [])
-        p.play()
+        wanted = true
+        self.volume = volume
+        render(style, [(3.5, true), (4.5, false)]) { [weak self] buffers in
+            guard let p = self?.players[0] else { return }
+            buffers.forEach { p.scheduleBuffer($0, at: nil, options: []) }
+            p.play()
+        }
     }
 
     /// Call when the breath moves to a new step. `seconds` is how long that step lasts. Holds make no sound.
     func play(_ style: BreathCueStyle, step: BreathPattern.Step, seconds: Double, volume: Double) {
         guard style != .off, step != .hold else { return }
-        start(volume: volume)
-        guard engine.isRunning,
-              let buffer = Self.buffer(style: style, seconds: seconds, rising: step == .inhale, format: format) else { return }
-        let p = players[turn]
-        turn = (turn + 1) % players.count
-        p.stop()
-        p.scheduleBuffer(buffer, at: nil, options: [])
-        p.play()
+        self.volume = volume
+        wanted = true
+        render(style, [(seconds, step == .inhale)]) { [weak self] buffers in
+            guard let self, let buffer = buffers.first else { return }
+            let p = self.players[self.turn]
+            self.turn = (self.turn + 1) % self.players.count
+            p.stop()
+            p.scheduleBuffer(buffer, at: nil, options: [])
+            p.play()
+        }
     }
 
-    private static func buffer(style: BreathCueStyle, seconds: Double, rising: Bool, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    nonisolated private static func buffer(style: BreathCueStyle, seconds: Double, rising: Bool) -> CueSound? {
         let samples = Self.samples(style: style, seconds: seconds, rising: rising)
         guard !samples.isEmpty,
               let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)),
               let out = buf.floatChannelData?[0] else { return nil }
         buf.frameLength = AVAudioFrameCount(samples.count)
         samples.withUnsafeBufferPointer { out.update(from: $0.baseAddress!, count: samples.count) }
-        return buf
+        return CueSound(buffer: buf)
     }
 
     // MARK: Sounds (mono, 44.1 kHz)
 
-    static func samples(style: BreathCueStyle, seconds: Double, rising: Bool) -> [Float] {
+    nonisolated static func samples(style: BreathCueStyle, seconds: Double, rising: Bool) -> [Float] {
         switch style {
         case .bell: bell(seconds: seconds, rising: rising)
         case .tone: tone(seconds: seconds, rising: rising)
@@ -166,8 +207,8 @@ final class BreathCues {
     /// A soft bell with a slow, gentle onset instead of a hard strike: E breathing in, C breathing out.
     /// Under the strike, the same notes keep ringing softly and follow the breath: they bloom as you breathe in
     /// and fade to nothing at the very end of the out-breath.
-    static func bell(seconds: Double, rising: Bool) -> [Float] {
-        let rate = Float(Self.rate)
+    nonisolated static func bell(seconds: Double, rising: Bool) -> [Float] {
+        let rate = Float(BreathCues.rate)
         let breath = Float(min(30, max(1, seconds)))
         let length = max(breath, 3.6)
         let f: Float = rising ? 329.63 : 261.63
@@ -191,7 +232,7 @@ final class BreathCues {
 
     /// How loud a whole-breath cue is at time `t` of a breath `length` seconds long.
     /// Breathing in it swells to the top of the breath; breathing out it starts full and drains away.
-    static func envelope(_ t: Float, length: Float, rising: Bool) -> Float {
+    nonisolated static func envelope(_ t: Float, length: Float, rising: Bool) -> Float {
         let edge = min(0.5, length * 0.15)
         if rising {
             return pow(sin(.pi / 2 * min(1, t / max(0.01, length - edge))), 2) * min(1, (length - t) / edge)
@@ -201,8 +242,8 @@ final class BreathCues {
 
     /// A soft, warm pad: pure notes, each a pair slightly out of tune so they shimmer gently, with no buzz.
     /// Breathing in it opens on a bright, lifting chord; breathing out it settles onto a lower, resting one.
-    static func tone(seconds: Double, rising: Bool) -> [Float] {
-        let rate = Float(Self.rate)
+    nonisolated static func tone(seconds: Double, rising: Bool) -> [Float] {
+        let rate = Float(BreathCues.rate)
         let length = Float(min(30, max(1, seconds)))
         let n = Int(rate * length)
         // In: F, C, A (F major). Out: D, A, F (D minor), a step lower and calmer.
@@ -229,8 +270,8 @@ final class BreathCues {
 
     /// Soft pink noise through a moving low-pass filter: it brightens and swells on the way in,
     /// and darkens and drains away on the way out, filling the whole step.
-    static func wash(seconds: Double, rising: Bool) -> [Float] {
-        let rate = Float(Self.rate)
+    nonisolated static func wash(seconds: Double, rising: Bool) -> [Float] {
+        let rate = Float(BreathCues.rate)
         let length = Float(min(30, max(1, seconds)))
         let n = Int(rate * length)
         var b0: Float = 0, b1: Float = 0, b2: Float = 0, lp: Float = 0

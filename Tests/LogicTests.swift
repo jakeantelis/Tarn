@@ -66,6 +66,20 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
                 check(abs(x.last ?? 1) < 0.01 && x.allSatisfy { $0.isFinite }, "\(style.label) \(rising ? "in" : "out"): ends silent, no bad samples")
             }
         }
+        func rms(_ x: [Float], _ a: Double, _ b: Double) -> Float {
+            let seg = x[Int(a * 44_100)..<Int(b * 44_100)]
+            return (seg.map { $0 * $0 }.reduce(0, +) / Float(seg.count)).squareRoot()
+        }
+        for style in [BreathCueStyle.tone, .wash] {
+            let inn = BreathCues.samples(style: style, seconds: 6, rising: true), out = BreathCues.samples(style: style, seconds: 8, rising: false)
+            check(rms(inn, 4.5, 5.5) > 1.5 * rms(inn, 0, 1), "\(style.label): swells through the in-breath")
+            check(rms(out, 7, 7.9) < 0.3 * rms(out, 0.5, 1.5), "\(style.label): drains away through the out-breath")
+        }
+        let click = { (x: [Float]) in zip(x, x.dropFirst()).map { abs($1 - $0) }.max() ?? 1 }
+        check(click(BreathCues.samples(style: .bell, seconds: 6, rising: true)) < 0.1 && click(BreathCues.samples(style: .tone, seconds: 6, rising: false)) < 0.1, "no clicks between samples")
+        let bellIn = BreathCues.samples(style: .bell, seconds: 4, rising: true), bellOut = BreathCues.samples(style: .bell, seconds: 4, rising: false)
+        func crossings(_ x: [Float]) -> Int { zip(x[2000..<22_000], x[2001..<22_001]).filter { ($0 < 0) != ($1 < 0) }.count }
+        check(crossings(bellIn) > crossings(bellOut), "Bell: higher breathing in than out")
         check(BreathCues.samples(style: .off, seconds: 4, rising: true).isEmpty, "Off makes no sound")
         check(BreathCues.samples(style: .tone, seconds: 99, rising: true).count == 44_100 * 30, "a breath is capped at 30 s")
         UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "meditationCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")
