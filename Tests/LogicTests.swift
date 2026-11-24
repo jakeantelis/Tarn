@@ -80,6 +80,9 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         let bellIn = BreathCues.samples(style: .bell, seconds: 4, rising: true), bellOut = BreathCues.samples(style: .bell, seconds: 4, rising: false)
         func crossings(_ x: [Float]) -> Int { zip(x[2000..<22_000], x[2001..<22_001]).filter { ($0 < 0) != ($1 < 0) }.count }
         check(crossings(bellIn) > crossings(bellOut), "Bell: higher breathing in than out")
+        check(BreathCues.samples(style: .wash, seconds: 3, rising: true) == BreathCues.samples(style: .wash, seconds: 3, rising: true), "Wash is the same every time")
+        check(BreathCueStyle.bell.hint(guided: false)?.hasPrefix("Eyes closed?") == true && BreathCueStyle.off.hint(guided: true) == nil && BreathCueStyle.off.hint(guided: false) != nil, "hints follow the style, and a guided session is quiet when Off")
+        check(BreathCueStyle.allCases.allSatisfy { !$0.detail.isEmpty }, "every style has a description")
         check(BreathCues.samples(style: .off, seconds: 4, rising: true).isEmpty, "Off makes no sound")
         check(BreathCues.samples(style: .tone, seconds: 99, rising: true).count == 44_100 * 30, "a breath is capped at 30 s")
         UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "meditationCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")

@@ -77,6 +77,13 @@ struct BreathingView: View {
     @ObservedObject private var sound = AppModel.shared.sound
     @ObservedObject private var meditation = Meditation.shared
     @AppStorage("meditationVoice") private var voiceSetting = "soft"
+    @AppStorage("breathCues") private var breathCues = BreathCueStyle.bell.rawValue
+    @AppStorage("meditationCues") private var meditationCues = BreathCueStyle.off.rawValue
+    @AppStorage("breathCueVolume") private var cueVolume = BreathCueStyle.defaultVolume
+    @State private var cuePickerShown = false
+    /// Under a guided meditation the speaker edits the guided cue, otherwise the Breathe one.
+    private var cueStyle: BreathCueStyle { BreathCueStyle(rawValue: meditation.isActive ? meditationCues : breathCues) ?? .off }
+    private var cueBinding: Binding<String> { meditation.isActive ? $meditationCues : $breathCues }
     @AppStorage("meditationNatureLevel") private var natureLevel = 0.45
     /// The length of the last guided meditation, marked in the menus so it is quick to choose again.
     @AppStorage("meditationMinutes") private var lastLength = 0
@@ -351,6 +358,19 @@ struct BreathingView: View {
                         .help("Full screen. Esc or a click brings you back.")
                         .accessibilityLabel("Full screen")
                     }
+                    Button { cuePickerShown.toggle() } label: {
+                        Image(systemName: cueStyle == .off ? "speaker.slash" : "speaker.wave.2")
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(7)
+                            .background(Circle().fill(Color.secondary.opacity(0.18)))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Breath sounds: hear each breath with your eyes closed")
+                    .accessibilityLabel("Breath sounds")
+                    .accessibilityValue(cueStyle.label)
+                    .popover(isPresented: $cuePickerShown, arrowEdge: .bottom) {
+                        BreathCueQuickPicker(selection: cueBinding, volume: $cueVolume)
+                    }
                 }
                 .fadesWithChrome(chrome)
             }
@@ -469,6 +489,11 @@ struct BreathingView: View {
                 if Meditation.isAvailable && offerMeditation {
                     guidedButton.fadesWithChrome(chrome)
                 }
+                if let hint = cueStyle.hint(guided: meditation.isActive) {
+                    Text(hint)
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .fadesWithChrome(chrome)
+                }
             }
         }
     }
@@ -551,5 +576,51 @@ struct FillCanvas: View {
             }
             g.stroke(vessel, with: .color(Color(red: 0.62, green: 0.84, blue: 0.84).opacity(0.45)), lineWidth: 1.5)
         }
+    }
+}
+
+/// The breath sounds, chosen right from the Breathe screen. Picking one, or letting go of the volume, plays a short breath.
+struct BreathCueQuickPicker: View {
+    @Binding var selection: String
+    @Binding var volume: Double
+    private var current: BreathCueStyle { BreathCueStyle(rawValue: selection) ?? .off }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Breath sounds").font(.headline).padding(.bottom, 6)
+            ForEach(BreathCueStyle.allCases) { style in
+                Button {
+                    selection = style.rawValue
+                    AppModel.shared.cues.preview(style, volume: volume)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(style.label).foregroundStyle(.primary)
+                            Text(style.detail).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 12)
+                        if style == current { Image(systemName: "checkmark").foregroundStyle(Color.breatheTint) }
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 5)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(style == current ? .isSelected : [])
+            }
+            if current != .off {
+                HStack(spacing: 8) {
+                    Image(systemName: "speaker.fill").foregroundStyle(.secondary).accessibilityHidden(true)
+                    Slider(value: $volume, in: BreathCueStyle.volumeRange) { editing in
+                        if !editing { AppModel.shared.cues.preview(current, volume: volume) }
+                    }
+                    .controlSize(.small)
+                    .accessibilityLabel("Breath sound volume")
+                    Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary).accessibilityHidden(true)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding(16)
+        .frame(width: 280)
     }
 }

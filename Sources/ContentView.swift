@@ -965,7 +965,7 @@ struct SettingsTab: View {
                             .accessibilityLabel("Cue volume")
                         }
                     }
-                    Text("Breath cues let you breathe with your eyes closed. Wash and Tone rise as you breathe in and fall as you breathe out, so they carry you through long, deep breaths. Bell rings as each breath begins and fades away as you breathe out. Holds stay silent. Cues play while the Breathe screen or full screen is showing.")
+                    Text("Breath cues mark each breath with sound, so you can breathe with your eyes closed. They play while the Breathe screen or full screen is showing. Holds stay silent.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }

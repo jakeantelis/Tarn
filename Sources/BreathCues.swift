@@ -18,6 +18,24 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .off: "Off"
         }
     }
+    /// One line under the Breathe screen telling you how each breath will be marked, so closing your eyes is obvious.
+    /// Under a guided meditation the voice already guides, so nothing is said unless cues were turned on there.
+    func hint(guided: Bool) -> String? {
+        switch self {
+        case .bell: "Eyes closed? A soft bell marks each breath."
+        case .tone: "Eyes closed? A warm tone rises and falls with each breath."
+        case .wash: "Eyes closed? A soft wash rises and falls with each breath."
+        case .off: guided ? nil : "Tap the speaker to hear each breath with your eyes closed."
+        }
+    }
+    var detail: String {
+        switch self {
+        case .bell: "A soft bell at each breath, fading as you breathe out"
+        case .tone: "A warm chord that rises and falls with you"
+        case .wash: "A quiet hush that swells and drains away"
+        case .off: "Just the picture, no sound"
+        }
+    }
     static let defaultVolume = 0.6
     static let volumeRange = 0.1...1.0
 
@@ -276,10 +294,13 @@ final class BreathCues {
         let n = Int(rate * length)
         var b0: Float = 0, b1: Float = 0, b2: Float = 0, lp: Float = 0
         var out = [Float](repeating: 0, count: n)
+        // Repeatable noise (xorshift), so every wash sounds alike and can be tested exactly.
+        var seed: UInt32 = rising ? 0x9E37_79B9 : 0x85EB_CA6B
         for i in 0..<n {
             let t = Float(i) / rate, x = t / length
             // Pink noise (Paul Kellet's economy filter).
-            let white = Float.random(in: -1...1)
+            seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5
+            let white = Float(seed) / Float(UInt32.max) * 2 - 1
             b0 = 0.99765 * b0 + white * 0.0990460
             b1 = 0.96300 * b1 + white * 0.2965164
             b2 = 0.57000 * b2 + white * 1.0526913
