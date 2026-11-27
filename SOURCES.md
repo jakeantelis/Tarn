@@ -20,7 +20,7 @@ The guided meditation recordings are © 2026 Antelis Labs LLC and may not be reu
 
 Files: `Resources/Voice/meditation-{soft,warm,male}-{5,10,20}.m4a` (nine tracks).
 
-The meditation script is our own writing (`Sources/VoiceScript.swift`). The narration recordings, including the spoken breath cues in `Resources/Voice/Breath`, were made for Tarn under a commercial license and are © 2026 Antelis Labs LLC; they may not be reused or redistributed outside Tarn.
+The meditation script is our own writing (`Sources/VoiceScript.swift`). The narration recordings were made for Tarn under a commercial license and are © 2026 Antelis Labs LLC; they may not be reused or redistributed outside Tarn.
 
 ## Software
 Updates use Sparkle 2.10.1 (https://sparkle-project.org), MIT license. `Tools/fetch-sparkle.sh` downloads the official release at build time and checks its SHA-256. It is not stored in this repository. Its license ships inside the app as `Contents/Resources/Sparkle-LICENSE.txt`.

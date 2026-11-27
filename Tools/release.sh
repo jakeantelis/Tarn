@@ -55,9 +55,6 @@ mkdir -p "$APP/Contents/Resources/Icons"
 for f in Resources/Icons/*.png(N); do cp "$f" "$APP/Contents/Resources/Icons/"; done
 mkdir -p "$APP/Contents/Resources/Voice"
 for f in Resources/Voice/*.m4a(N); do cp "$f" "$APP/Contents/Resources/Voice/"; done
-# The spoken breath cue (Voice): short clips per voice, plus an intro for each rhythm.
-mkdir -p "$APP/Contents/Resources/Voice/Breath"
-for f in Resources/Voice/Breath/*.m4a(N); do cp "$f" "$APP/Contents/Resources/Voice/Breath/"; done
 cp Tools/tarnctl "$APP/Contents/Resources/tarnctl"
 chmod +x "$APP/Contents/Resources/tarnctl"
 date "+%Y-%m-%d %H:%M:%S" > "$APP/Contents/Resources/BUILD_STAMP"

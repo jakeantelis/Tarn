@@ -12,7 +12,6 @@ final class AppModel {
     private var fullScreenForBreak = false
     private var cueOwner: CueOwner?
     private var lastCueStep: Int?
-    private var introSaid = false
 
     private var soundWatch: AnyCancellable?
 
@@ -29,12 +28,6 @@ final class AppModel {
     func cueTick(_ owner: CueOwner, t: Double, pattern: BreathPattern, guided: Bool, running: Bool) {
         if owner == .screen, BreatheOverlay.shared.isShowing { return }
         let style = guided ? BreathCueStyle.meditating : BreathCueStyle.breathing
-        // Before the first breath, the spoken cue names the exercise once.
-        if running, style == .voice, !guided, t < 0 {
-            if cueOwner != owner { cueOwner = owner; lastCueStep = nil; introSaid = false }
-            if !introSaid { introSaid = true; cues.speakIntro(pattern, volume: BreathCueStyle.volume) }
-            return
-        }
         guard running, style != .off, let step = pattern.cueStep(at: t) else { cueStop(owner); return }
         if cueOwner != owner { cueOwner = owner; lastCueStep = nil }
         guard step.index != lastCueStep else { return }
@@ -49,7 +42,6 @@ final class AppModel {
         guard cueOwner == owner else { return }
         cueOwner = nil
         lastCueStep = nil
-        introSaid = false
         cues.stop()
     }
 
