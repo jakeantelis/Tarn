@@ -91,13 +91,15 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(BreathCueStyle.breathing == .bell && BreathCueStyle.volume == 1, "an unknown style falls back, volume stays in range")
         UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")
 
-        print("Breath cues: Voice")
-        check(BreathCueStyle.allCases == [.bell, .tone, .wash, .voice, .off], "Voice sits before Off")
-        check(BreathCues.samples(style: .voice, seconds: 4, rising: true).isEmpty, "the voice is recorded, not made in code")
-        check(BreathCueStyle.voice.hint(guided: false) == "Eyes closed? A calm voice tells you when to breathe in and out.", "Voice hint")
-        check(!BreathCueStyle.guidedCases.contains(.voice) && BreathCueStyle.guided(.voice) == .off && BreathCueStyle.guided(.bell) == .bell, "no spoken cue under a guided meditation")
-        UserDefaults.standard.set("voice", forKey: "meditationCues")
-        check(BreathCueStyle.meditating == .off, "a stored Voice under guided meditation plays as Off")
+        print("Breath cues: Spoken")
+        check(BreathCueStyle.allCases == [.bell, .tone, .wash, .spoken, .off] && BreathCueStyle.spoken.rawValue == "spoken"
+              && BreathCueStyle.spoken.label == "Spoken", "Spoken sits before Off")
+        check(BreathCues.samples(style: .spoken, seconds: 4, rising: true).isEmpty, "the voice is recorded, not made in code")
+        check(BreathCueStyle.spoken.hint(guided: false) == "Eyes closed? A calm voice tells you when to breathe in and out."
+              && BreathCueStyle.spoken.detail == "A calm voice says breathe in, hold, and breathe out", "Spoken hint and description")
+        check(!BreathCueStyle.guidedCases.contains(.spoken), "Spoken is not offered under a guided meditation")
+        UserDefaults.standard.set("spoken", forKey: "meditationCues")
+        check(BreathCueStyle.meditating == .off, "a stored Spoken under guided meditation plays as Off")
         UserDefaults.standard.removeObject(forKey: "meditationCues")
         for p in BreathPattern.all {
             let holds = [1, 3].filter { p.steps[$0] > 0 }
@@ -126,9 +128,31 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         } else {
             check(false, "Resources/Voice/Breath/lengths.json is readable")
         }
-        UserDefaults.standard.set("voice", forKey: "breathCues")
+        UserDefaults.standard.set("spoken", forKey: "breathCues")
         check(BreathVoice.leadIn(.box) == 0, "no intro wait when the clips are not in the bundle (test binary)")
         UserDefaults.standard.removeObject(forKey: "breathCues")
+        check(BreatheSettings.introOn, "the intro is on by default")
+
+        print("Breathe settings upgrade")
+        // Someone on the iPhone's 1.2.1 who used guided meditation with a Wash cue opens on Guided, with their cue kept.
+        let gu = BreatheSettings.upgrades(from: ["guidedMeditation": true, "breathCues": "tone", "meditationCues": "wash", "meditationVoice": "warm"])
+        check(gu["breatheMode"] as? String == "guided" && gu["breathCues"] == nil && gu["meditationCues"] == nil
+              && gu["meditationVoice"] == nil && gu["breatheSettingsVersion"] as? Int == 2, "a guided user opens on Guided, valid choices and the voice stay")
+        check(BreatheSettings.upgrades(from: ["guidedMeditation": false, "breathCues": "bell"])["breatheMode"] as? String == "breathe", "a Breathe user stays on Breathe")
+        check(BreatheSettings.upgrades(from: [:])["breatheMode"] as? String == "breathe", "a fresh install (and Mac 1.0) starts on Breathe")
+        let odd = BreatheSettings.upgrades(from: ["breathCues": "voice", "meditationCues": "spoken"])
+        check(odd["breathCues"] as? String == "bell" && odd["meditationCues"] as? String == "off", "odd values are repaired")
+        check(BreatheSettings.breathCue("chime") == .bell && BreatheSettings.breathCue(nil) == .bell && BreatheSettings.breathCue("off") == .off
+              && BreatheSettings.meditationCue("spoken") == .off && BreatheSettings.meditationCue("bell") == .bell, "unknown never means silence")
+        check(BreatheSettings.upgrades(from: ["breatheSettingsVersion": 2, "breathCues": "chime"]).isEmpty
+              && BreatheSettings.upgrades(from: ["breatheMode": "guided", "guidedMeditation": false])["breatheMode"] == nil, "the upgrade runs once and keeps a chosen mode")
+        let suite = UserDefaults(suiteName: "tarn-upgrade-test")!
+        suite.removePersistentDomain(forName: "tarn-upgrade-test")
+        suite.set("voice", forKey: "breathCues")
+        BreatheSettings.upgrade(suite)
+        check(suite.string(forKey: "breathCues") == "bell" && suite.string(forKey: "breatheMode") == "breathe"
+              && suite.integer(forKey: "breatheSettingsVersion") == 2, "the upgrade writes its values")
+        suite.removePersistentDomain(forName: "tarn-upgrade-test")
 
         print("Move to Applications")
         check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")

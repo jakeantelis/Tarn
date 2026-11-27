@@ -7,16 +7,16 @@ import AVFoundation
 /// through the in-breath and fades away over exactly the out-breath, so the sound shows how long to breathe.
 /// All three last the whole breath and sit in a soft hall reverb. Holds stay silent.
 /// The sounds are made in code, so there is nothing to license. They match Tarn on iPhone.
-/// Voice: the meditation voice says "Breathe in", "Hold", "Breathe out" at each step (see BreathVoice).
+/// Spoken: the meditation voice says "Breathe in", "Hold", "Breathe out" at each step (see BreathVoice).
 enum BreathCueStyle: String, CaseIterable, Identifiable {
-    case bell, tone, wash, voice, off
+    case bell, tone, wash, spoken, off
     var id: String { rawValue }
     var label: String {
         switch self {
         case .bell: "Bell"
         case .tone: "Tone"
         case .wash: "Wash"
-        case .voice: "Voice"
+        case .spoken: "Spoken"
         case .off: "Off"
         }
     }
@@ -27,7 +27,7 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "Eyes closed? A soft bell marks each breath."
         case .tone: "Eyes closed? A warm tone rises and falls with each breath."
         case .wash: "Eyes closed? A soft wash rises and falls with each breath."
-        case .voice: "Eyes closed? A calm voice tells you when to breathe in and out."
+        case .spoken: "Eyes closed? A calm voice tells you when to breathe in and out."
         case .off: guided ? nil : "Tap the speaker to hear each breath with your eyes closed."
         }
     }
@@ -36,25 +36,19 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "A soft bell at each breath, fading as you breathe out"
         case .tone: "A warm chord that rises and falls with you"
         case .wash: "A quiet hush that swells and drains away"
-        case .voice: "A calm voice says breathe in, hold, and breathe out"
+        case .spoken: "A calm voice says breathe in, hold, and breathe out"
         case .off: "Just the picture, no sound"
         }
     }
     static let defaultVolume = 0.6
     static let volumeRange = 0.1...1.0
 
-    /// Reads a saved choice. Anything unknown means the default for that setting.
-    static func saved(_ key: String, default fallback: BreathCueStyle) -> BreathCueStyle {
-        UserDefaults.standard.string(forKey: key).flatMap(BreathCueStyle.init(rawValue:)) ?? fallback
-    }
     /// The Breathe screen's cue, Bell unless you chose another.
-    static var breathing: BreathCueStyle { saved("breathCues", default: .bell) }
+    static var breathing: BreathCueStyle { BreatheSettings.breathCue(UserDefaults.standard.string(forKey: BreatheSettings.breathCues)) }
     /// The cue during a guided meditation, off unless you turn it on (the voice already guides you).
-    /// Never the spoken cue: a second voice would talk over the meditation.
-    static var meditating: BreathCueStyle { guided(saved("meditationCues", default: .off)) }
-    static func guided(_ s: BreathCueStyle) -> BreathCueStyle { s == .voice ? .off : s }
-    /// The choices offered under a guided meditation.
-    static var guidedCases: [BreathCueStyle] { allCases.filter { $0 != .voice } }
+    static var meditating: BreathCueStyle { BreatheSettings.meditationCue(UserDefaults.standard.string(forKey: BreatheSettings.meditationCues)) }
+    /// The choices offered under a guided meditation: never Spoken, a second voice would talk over the meditation.
+    static var guidedCases: [BreathCueStyle] { allCases.filter { $0 != .spoken } }
     static var volume: Double {
         let v = UserDefaults.standard.object(forKey: "breathCueVolume") as? Double ?? defaultVolume
         return min(volumeRange.upperBound, max(volumeRange.lowerBound, v))
@@ -99,6 +93,67 @@ extension BreathPattern {
             start += d
         }
         return nil
+    }
+}
+
+/// The Breathe screen's two modes, chosen with the switch at the top. Matches Tarn on iPhone.
+enum BreatheMode: String, CaseIterable, Identifiable {
+    /// A rhythm, paced by the picture and, if chosen, a sound or the spoken cue.
+    case breathe
+    /// A recorded guided meditation.
+    case guided
+    var id: String { rawValue }
+    var label: String { self == .breathe ? "Breathe" : "Guided" }
+}
+
+/// Settings keys shared by the Breathe screen and Settings, and the one-time upgrade from earlier versions.
+enum BreatheSettings {
+    static let mode = "breatheMode"
+    static let breathCues = "breathCues"
+    static let meditationCues = "meditationCues"
+    /// One voice for both the guided meditation and the spoken cue. Kept under its 1.0 name so nothing moves.
+    static let voice = "meditationVoice"
+    /// Whether the spoken cue names the exercise before the first breath.
+    static let spokenIntro = "spokenIntro"
+    /// Set once the "Eyes closed?" tip has been seen.
+    static let eyesClosedTipSeen = "eyesClosedTipSeen"
+    /// The iPhone app's old switch; the Mac never wrote it, but reading it keeps the rule the same everywhere.
+    static let legacyGuided = "guidedMeditation"
+    static let version = "breatheSettingsVersion"
+    static let current = 2
+
+    /// The cue for the Breathe mode: anything unknown (from a newer or older version) plays Bell, never silence.
+    static func breathCue(_ raw: String?) -> BreathCueStyle {
+        raw.flatMap(BreathCueStyle.init(rawValue:)) ?? .bell
+    }
+
+    /// The cue under a guided meditation: never Spoken (the meditation already has a voice), unknown is Off.
+    static func meditationCue(_ raw: String?) -> BreathCueStyle {
+        let s = raw.flatMap(BreathCueStyle.init(rawValue:)) ?? .off
+        return s == .spoken ? .off : s
+    }
+
+    static var introOn: Bool { UserDefaults.standard.object(forKey: spokenIntro) as? Bool ?? true }
+
+    /// The values to write so settings saved by earlier versions read correctly in this one. Empty once done.
+    static func upgrades(from stored: [String: Any]) -> [String: Any] {
+        guard (stored[version] as? Int ?? 0) < current else { return [:] }
+        var out: [String: Any] = [version: current]
+        if stored[mode] == nil {
+            out[mode] = (stored[legacyGuided] as? Bool ?? false) ? BreatheMode.guided.rawValue : BreatheMode.breathe.rawValue
+        }
+        if let raw = stored[breathCues] as? String, breathCue(raw).rawValue != raw {
+            out[breathCues] = breathCue(raw).rawValue
+        }
+        if let raw = stored[meditationCues] as? String, meditationCue(raw).rawValue != raw {
+            out[meditationCues] = meditationCue(raw).rawValue
+        }
+        return out
+    }
+
+    /// Runs the upgrade on this Mac's settings. Called once at launch.
+    static func upgrade(_ d: UserDefaults = .standard) {
+        for (k, v) in upgrades(from: d.dictionaryRepresentation()) { d.set(v, forKey: k) }
     }
 }
 
@@ -152,9 +207,9 @@ enum BreathVoice {
     }
 
     /// How long to wait before the first breath of an unguided session: the intro and a moment of quiet,
-    /// or nothing when the spoken cue is not chosen. The intro does not count toward the session.
+    /// or nothing when the spoken cue or its intro is off. The intro does not count toward the session.
     static func leadIn(_ pattern: BreathPattern) -> Double {
-        guard BreathCueStyle.breathing == .voice, let url = url(voice: chosen, name: intro(pattern)),
+        guard BreathCueStyle.breathing == .spoken, BreatheSettings.introOn, let url = url(voice: chosen, name: intro(pattern)),
               let file = try? AVAudioFile(forReading: url) else { return 0 }
         return Double(file.length) / file.processingFormat.sampleRate + afterIntro
     }
@@ -254,7 +309,7 @@ final class BreathCues {
         guard style != .off else { return }
         wanted = true
         self.volume = volume
-        if style == .voice {
+        if style == .spoken {
             // "Breathe in", then "Breathe out" one short breath later.
             say("in-1")
             let ticket = generation
@@ -275,7 +330,7 @@ final class BreathCues {
     /// Call when the breath moves to a new step. `seconds` is how long that step lasts. Holds make no sound.
     func play(_ style: BreathCueStyle, step: BreathPattern.Step, seconds: Double, volume: Double) {
         self.volume = volume
-        if style == .voice {
+        if style == .spoken {
             // A quick step gets a short word or none, so the voice never crowds the breath. Takes rotate.
             guard let word = BreathVoice.word(for: step, seconds: seconds) else { return }
             wanted = true
@@ -301,6 +356,12 @@ final class BreathCues {
         self.volume = volume
         wanted = true
         say(BreathVoice.intro(pattern))
+    }
+
+    /// Silences the spoken cue at once (the intro, when skipped).
+    func stopVoice() {
+        generation += 1
+        voicePlayer.stop()
     }
 
     /// Plays one clip of the chosen voice, stopping the word before it. Clips are read off the main thread once
@@ -352,7 +413,7 @@ final class BreathCues {
         case .bell: bell(seconds: seconds, rising: rising)
         case .tone: tone(seconds: seconds, rising: rising)
         case .wash: wash(seconds: seconds, rising: rising)
-        case .voice, .off: []
+        case .spoken, .off: []
         }
     }
 

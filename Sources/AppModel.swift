@@ -17,6 +17,8 @@ final class AppModel {
     private var soundWatch: AnyCancellable?
 
     private init() {
+        // Settings saved by earlier versions read correctly here (unknown cues play Bell, Spoken never lands under a meditation).
+        BreatheSettings.upgrade()
         timer.onStateChange = { [weak self] in self?.timerChanged() }
         // Once the sound stops for any reason, it is no longer "Breathe's" sound, so Focus never stops a mix you started later.
         soundWatch = sound.$isPlaying.sink { [weak self] playing in if !playing { self?.startedForBreathe = false } }
@@ -30,7 +32,7 @@ final class AppModel {
         if owner == .screen, BreatheOverlay.shared.isShowing { return }
         let style = guided ? BreathCueStyle.meditating : BreathCueStyle.breathing
         // Before the first breath, the spoken cue names the exercise once.
-        if running, style == .voice, !guided, t < 0 {
+        if running, style == .spoken, !guided, t < 0 {
             if cueOwner != owner { cueOwner = owner; lastCueStep = nil; introSaid = false }
             if !introSaid { introSaid = true; cues.speakIntro(pattern, volume: BreathCueStyle.volume) }
             return

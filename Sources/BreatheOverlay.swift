@@ -26,7 +26,7 @@ final class BreatheOverlay {
         guard !isShowing else { Self.log.notice("full screen ignored: already showing"); return }
         // With the spoken cue, the first breath waits while the voice names the exercise.
         let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
-        let lead = Meditation.shared.isActive ? 0 : BreathVoice.leadIn(BreathPattern.all.first { $0.id == id } ?? .settle)
+        let lead = Self.guidedMode ? 0 : BreathVoice.leadIn(BreathPattern.all.first { $0.id == id } ?? .settle)
         startDate = Date().addingTimeInterval(lead)
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {
@@ -63,6 +63,7 @@ final class BreatheOverlay {
         }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
             if e.keyCode == 53 { self?.close("escape key"); return nil }   // Esc
+            if e.keyCode == 49, self?.skipIntro() == true { return nil }       // Space skips the spoken intro
             return e
         }
         // One clock for the breath cues, however many screens are covered.
@@ -72,13 +73,27 @@ final class BreatheOverlay {
         }
     }
 
+    /// In Guided (the switch on the Breathe screen) or during a meditation, the guided cue plays and there is no spoken intro.
+    static var guidedMode: Bool {
+        Meditation.shared.isActive
+            || (UserDefaults.standard.string(forKey: BreatheSettings.mode) == BreatheMode.guided.rawValue && Meditation.isAvailable)
+    }
+
     private func cueTick() {
         let meditation = Meditation.shared
         let guided = meditation.isActive
         let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
         let pattern = guided ? BreathPattern.settle : (BreathPattern.all.first { $0.id == id } ?? .settle)
         let t = guided ? meditation.elapsed() : Date().timeIntervalSince(startDate)
-        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: guided, running: isShowing && !(guided && meditation.isPaused))
+        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: Self.guidedMode, running: isShowing && !(guided && meditation.isPaused))
+    }
+
+    /// Cuts the spoken intro short; the first breath starts a moment later. False when no intro is playing.
+    @discardableResult func skipIntro() -> Bool {
+        guard isShowing, !Self.guidedMode, startDate.timeIntervalSinceNow > 0.7 else { return false }
+        AppModel.shared.cues.stopVoice()
+        startDate = Date().addingTimeInterval(0.6)
+        return true
     }
 
     func close(_ reason: String = "api") {
@@ -185,7 +200,12 @@ struct OverlayView: View {
                         .id(s.label)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.9), value: s.label)
-                    if guided {
+                    if !BreatheOverlay.guidedMode && t < -0.7 && BreathCueStyle.breathing == .spoken {
+                        Text("Intro · press Space to skip")
+                            .font(.system(size: 15, weight: .light))
+                            .foregroundStyle(.white.opacity(0.5))
+                            .frame(minHeight: 48)
+                    } else if guided {
                         Text(meditation.caption)
                             .font(.system(size: 17, weight: .light, design: .serif).italic())
                             .foregroundStyle(.white.opacity(0.55))

@@ -580,7 +580,7 @@ struct SettingsTab: View {
     @AppStorage("breathCueVolume") private var cueVolume = BreathCueStyle.defaultVolume
     @AppStorage("meditationCues") private var meditationCues = BreathCueStyle.off.rawValue
     @AppStorage("meditationVoice") private var meditationVoice = "soft"
-    @AppStorage("offerMeditation") private var offerMeditation = true
+    @AppStorage(BreatheSettings.spokenIntro) private var spokenIntro = true
     @AppStorage("meditationSounds") private var soundsUnderMeditation = true
     @AppStorage("meditationLinger") private var lingerMinutes = 0
     @AppStorage("breathPattern") private var breathPattern = "settle"
@@ -593,8 +593,7 @@ struct SettingsTab: View {
     @AppStorage("floatingClickThrough") private var floatingClickThrough = false
 
     /// Plays one breath in and out of a style, so it can be heard as it is picked.
-    private func previewCue(_ raw: String) {
-        guard let style = BreathCueStyle(rawValue: raw) else { return }
+    private func previewCue(_ style: BreathCueStyle) {
         AppModel.shared.cues.preview(style, volume: BreathCueStyle.volume)
     }
 
@@ -902,79 +901,82 @@ struct SettingsTab: View {
 
     private var breathe: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Sound") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Play a soft sound when I breathe", isOn: $breatheSound)
-                    Toggle("Keep the sound playing when a session or Calm ends", isOn: $keepSound)
-                    Toggle("Gentle fades", isOn: $gentleFades)
-                    Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off here, with the speaker button, or in the Options menu. Pick or mix sounds from Options on the Breathe screen. Gentle fades ease sound out over a few seconds when you pause it, and over 30 seconds after a meditation or the sleep timer. Off, sound stops almost at once. Each sound also drifts a little louder and softer over a few minutes, and birds move gently left and right, so a long day never sounds the same twice.")
-                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                }.padding(.vertical, 4)
-            }
-            if Meditation.isAvailable {
-                GroupBox("Guided meditation") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Offer guided meditation", isOn: $offerMeditation)
-                        Group {
-                        if Meditation.voices.count > 1 {
-                            Picker("Voice", selection: Binding(get: { Meditation.voice(preferring: meditationVoice) }, set: { meditationVoice = $0 })) {
-                                ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
-                            }
-                        }
-                        Picker("Breath cues", selection: Binding(get: { BreathCueStyle.guided(BreathCueStyle(rawValue: meditationCues) ?? .off).rawValue },
-                                                                 set: { meditationCues = $0 })) {
-                            // No spoken cue here: the meditation already has a voice.
-                            ForEach(BreathCueStyle.guidedCases) { Text($0.label).tag($0.rawValue) }
-                        }
-                        .onChange(of: meditationCues) { _, v in previewCue(v) }
-                        Toggle("Play sounds under the voice", isOn: $soundsUnderMeditation)
-                        Picker("Sounds afterwards", selection: $lingerMinutes) {
-                            Text("Fade over 30 seconds").tag(0)
-                            Text("Stay 3 minutes").tag(3)
-                            Text("Stay 10 minutes").tag(10)
-                        }
-                        .disabled(!soundsUnderMeditation)
-                        }
-                        .disabled(!offerMeditation)
-                        Text("The voice only plays when you choose a guided meditation. Breathe and its sessions stay quiet otherwise. Start one with the Guided meditation button on the Breathe screen, or from Options: 5, 10 or 20 minutes. A quiet voice guides you with long stretches of silence, and your sound mix plays softly underneath, or Nature calm if you have none. Sound that started for the meditation drifts away afterwards. Sound you had on already goes back to its normal level. Switch it off to hide the button and the menu items. Best with headphones and your eyes closed.")
-                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    }.padding(.vertical, 4)
-                }
-            }
-            GroupBox("Look and rhythm") {
+            GroupBox("Breathing") {
                 VStack(alignment: .leading, spacing: 8) {
-                    PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
                     Picker("Rhythm", selection: $breathPattern) {
                         ForEach(BreathPattern.all) { Text($0.name).tag($0.id) }
                     }
                     Text((BreathPattern.all.first { $0.id == breathPattern } ?? .settle).blurb)
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
-                    Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
-                }.padding(.vertical, 4)
-            }
-            GroupBox("Breath cues") {
-                VStack(alignment: .leading, spacing: 8) {
-                    PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
-                        .onChange(of: breathCues) { _, v in previewCue(v) }
-                    if breathCues == BreathCueStyle.voice.rawValue, BreathVoice.voices.count > 1 {
-                        Picker("Voice", selection: Binding(get: { BreathVoice.chosen }, set: { meditationVoice = $0 })) {
-                            ForEach(BreathVoice.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
-                        }
-                        .onChange(of: meditationVoice) { _, _ in if breathCues == BreathCueStyle.voice.rawValue { previewCue(breathCues) } }
-                        .help("The same voice as the guided meditation")
+                    HStack(spacing: 8) {
+                        Text("Look")
+                        PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
                     }
-                    if BreathCueStyle(rawValue: breathCues) != .off || BreathCueStyle(rawValue: meditationCues) != .off {
+                    HStack(spacing: 8) {
+                        Text("Breath sound")
+                        PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
+                            .onChange(of: breathCues) { _, v in previewCue(BreatheSettings.breathCue(v)) }
+                    }
+                    if breathCues == BreathCueStyle.spoken.rawValue {
+                        Toggle("Name the exercise first", isOn: $spokenIntro)
+                            .help("Before the first breath, the voice says which exercise it is. Click the picture to skip it.")
+                    }
+                    if BreatheSettings.breathCue(breathCues) != .off || BreatheSettings.meditationCue(meditationCues) != .off {
                         HStack(spacing: 8) {
-                            Text("Cue volume")
+                            Text("Breath sound volume")
                             Slider(value: $cueVolume, in: BreathCueStyle.volumeRange) { editing in
-                                if !editing { previewCue(breathCues != BreathCueStyle.off.rawValue ? breathCues : meditationCues) }
+                                if !editing {
+                                    let picked = BreatheSettings.breathCue(breathCues)
+                                    previewCue(picked != .off ? picked : BreatheSettings.meditationCue(meditationCues))
+                                }
                             }
                             .controlSize(.small)
-                            .accessibilityLabel("Cue volume")
+                            .accessibilityLabel("Breath sound volume")
                         }
                     }
-                    Text("Breath cues mark each breath with sound, so you can breathe with your eyes closed. Voice names the exercise, then says when to breathe in, hold and breathe out. Cues play while the Breathe screen or full screen is showing. Bell, Tone and Wash stay silent through holds.")
+                    Toggle("Nature sounds", isOn: $breatheSound)
+                    Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
+                    Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
+                    Text("A breath sound lets you breathe with your eyes closed. Spoken says when to breathe in, hold and breathe out, in the voice chosen below. Nature sounds play your Sounds mix softly.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }.padding(.vertical, 4)
+            }
+            if Meditation.isAvailable || !BreathVoice.voices.isEmpty {
+                GroupBox("Guided meditation") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        let voices = BreathVoice.voices.isEmpty ? Meditation.voices : BreathVoice.voices
+                        if voices.count > 1 {
+                            Picker("Voice", selection: Binding(get: { voices.contains(meditationVoice) ? meditationVoice : (voices.first ?? "soft") },
+                                                               set: { meditationVoice = $0 })) {
+                                ForEach(voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
+                            }
+                            .onChange(of: meditationVoice) { _, _ in if breathCues == BreathCueStyle.spoken.rawValue { previewCue(.spoken) } }
+                        }
+                        if Meditation.isAvailable {
+                            Toggle("Nature sounds underneath", isOn: $soundsUnderMeditation)
+                            Picker("Afterwards", selection: $lingerMinutes) {
+                                Text("Fade over 30 seconds").tag(0)
+                                Text("Stay 3 minutes").tag(3)
+                                Text("Stay 10 minutes").tag(10)
+                            }
+                            .disabled(!soundsUnderMeditation)
+                            Picker("Breath sound", selection: Binding(get: { BreatheSettings.meditationCue(meditationCues).rawValue },
+                                                                      set: { meditationCues = $0 })) {
+                                // No spoken cue here: the meditation already has a voice.
+                                ForEach(BreathCueStyle.guidedCases) { Text($0.label).tag($0.rawValue) }
+                            }
+                            .onChange(of: meditationCues) { _, v in previewCue(BreatheSettings.meditationCue(v)) }
+                        }
+                        Text("Choose Guided at the top of the Breathe screen for a recorded meditation of 5, 10 or 20 minutes. The voice here is also the one Spoken uses.")
+                            .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }.padding(.vertical, 4)
+                }
+            }
+            GroupBox("Sounds") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Keep the sound playing when a session or Calm ends", isOn: $keepSound)
+                    Toggle("Gentle fades", isOn: $gentleFades)
+                    Text("The sound starts when you open Breathe, begin a session or use Calm mode, and fades out when a session ends. Turn it off with Nature sounds above, the speaker button, or the Options menu. Pick or mix sounds from Options on the Breathe screen. Gentle fades ease sound out over a few seconds when you pause it, and over 30 seconds after a meditation or the sleep timer. Off, sound stops almost at once. Each sound also drifts a little louder and softer over a few minutes, and birds move gently left and right, so a long day never sounds the same twice.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }

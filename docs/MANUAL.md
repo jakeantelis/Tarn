@@ -45,10 +45,13 @@ While you breathe and the mouse is still, the controls fade so only the picture 
 Open Options and choose a length under "Session, no voice": 1, 3, 5, 10 or 20 minutes, or No timer to keep going. When it ends, any sound you have on fades out, which is your quiet cue that it is time to get back. You can keep it playing in Settings. It works as a simple meditation timer too.
 
 **Is there always a voice?**  
-No. Breathe and its sessions are quiet. The voice only plays when you choose one: use the Guided meditation button under Calm mode on the Breathe screen, or Options, under "Guided meditation, with a voice". If you never use it, switch off "Offer guided meditation" in Settings, under Breathe, and the button and menu items go away.
+No. The meditation voice only plays when you choose one: pick Guided at the top of the Breathe screen, then use the Guided meditation button or Options. On Breathe there is no meditation, and the only voice is the Spoken breath sound, if you choose it.
+
+**Can I breathe with my eyes closed?**  
+Yes. Click the round speaker button on the Breathe screen and choose a breath sound. Bell, Tone and Wash mark each breath in and out and stay quiet through holds. Spoken says "Breathe in", "Hold" and "Breathe out" in the voice chosen in Settings, under Guided meditation. With Spoken, the voice first names the exercise while the screen says "Get comfortable". Click the picture to skip it (in full screen, press Space), or turn off "Name the exercise first" in Settings. The same panel sets the volume and turns the nature sounds on or off.
 
 **How does guided meditation work?**  
-In Breathe, click Guided meditation under Calm mode (or open Options) and choose 5, 10 or 20 minutes. Pick a voice in the same menu: Soft, Warm or Grounded. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. It is best with headphones and your eyes closed. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
+In Breathe, pick Guided at the top, click Guided meditation (or open Options) and choose 5, 10 or 20 minutes. Pick a voice in the same menu: Soft, Warm or Grounded. It starts with a few quiet seconds to get comfortable while the welcome is spoken, then the picture begins with the Settle rhythm. The line under the picture shows what the voice is saying, with time left below. It is best with headphones and your eyes closed. Click the picture to pause the voice and the breath together, or choose End meditation in Options.
 
 **What happens to the sound in a guided meditation?**  
 Your sound mix plays softly underneath, or Nature calm (ocean waves over a soft forest with distant birdsong) if you have none. Turn that off in Settings, under Breathe. Sound that started for the meditation fades out slowly over 30 seconds when it ends. Under Sounds afterwards you can let it stay for 3 or 10 minutes first. Sound you had on already goes back to its normal level.
