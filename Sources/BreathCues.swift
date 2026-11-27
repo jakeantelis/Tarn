@@ -7,14 +7,16 @@ import AVFoundation
 /// through the in-breath and fades away over exactly the out-breath, so the sound shows how long to breathe.
 /// All three last the whole breath and sit in a soft hall reverb. Holds stay silent.
 /// The sounds are made in code, so there is nothing to license. They match Tarn on iPhone.
+/// Voice: the meditation voice says "Breathe in", "Hold", "Breathe out" at each step (see BreathVoice).
 enum BreathCueStyle: String, CaseIterable, Identifiable {
-    case bell, tone, wash, off
+    case bell, tone, wash, voice, off
     var id: String { rawValue }
     var label: String {
         switch self {
         case .bell: "Bell"
         case .tone: "Tone"
         case .wash: "Wash"
+        case .voice: "Voice"
         case .off: "Off"
         }
     }
@@ -25,6 +27,7 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "Eyes closed? A soft bell marks each breath."
         case .tone: "Eyes closed? A warm tone rises and falls with each breath."
         case .wash: "Eyes closed? A soft wash rises and falls with each breath."
+        case .voice: "Eyes closed? A calm voice tells you when to breathe in and out."
         case .off: guided ? nil : "Tap the speaker to hear each breath with your eyes closed."
         }
     }
@@ -33,6 +36,7 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "A soft bell at each breath, fading as you breathe out"
         case .tone: "A warm chord that rises and falls with you"
         case .wash: "A quiet hush that swells and drains away"
+        case .voice: "A calm voice says breathe in, hold, and breathe out"
         case .off: "Just the picture, no sound"
         }
     }
@@ -46,7 +50,11 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
     /// The Breathe screen's cue, Bell unless you chose another.
     static var breathing: BreathCueStyle { saved("breathCues", default: .bell) }
     /// The cue during a guided meditation, off unless you turn it on (the voice already guides you).
-    static var meditating: BreathCueStyle { saved("meditationCues", default: .off) }
+    /// Never the spoken cue: a second voice would talk over the meditation.
+    static var meditating: BreathCueStyle { guided(saved("meditationCues", default: .off)) }
+    static func guided(_ s: BreathCueStyle) -> BreathCueStyle { s == .voice ? .off : s }
+    /// The choices offered under a guided meditation.
+    static var guidedCases: [BreathCueStyle] { allCases.filter { $0 != .voice } }
     static var volume: Double {
         let v = UserDefaults.standard.object(forKey: "breathCueVolume") as? Double ?? defaultVolume
         return min(volumeRange.upperBound, max(volumeRange.lowerBound, v))
@@ -94,6 +102,64 @@ extension BreathPattern {
     }
 }
 
+/// The spoken breath cue: which recorded clip to play at each change of breath, and when. Matches Tarn on iPhone.
+/// The clips are short ("Breathe in", "Hold", "Breathe out", or "In" / "Out" when a step is quick) and start the
+/// moment the step starts, so the voice always matches the picture at any pace. Before the first breath, a one or two
+/// sentence intro names the exercise. Clips live in the app as `Voice/Breath/<voice>-<name>.m4a`.
+enum BreathVoice {
+    /// Every step word is recorded in this many takes, and they rotate, so a long session never repeats one sample.
+    static let takes = 3
+    /// Quiet after the intro before the first "Breathe in", so the session starts unhurried.
+    static let afterIntro = 1.2
+
+    /// The longest recorded words run about 1.2 s. A word is only spoken when it leaves at least a second
+    /// of quiet in the step, so the voice never crowds the breath or runs into the next word.
+    static let longWordNeeds = 2.6
+    static let shortWordNeeds = 1.4
+    static let holdNeeds = 1.8
+
+    /// The clip name (without voice or take) for a step that lasts `seconds`, or nil to stay quiet.
+    static func word(for step: BreathPattern.Step, seconds: Double) -> String? {
+        switch step {
+        case .inhale: seconds >= longWordNeeds ? "in" : (seconds >= shortWordNeeds ? "in-short" : nil)
+        case .exhale: seconds >= longWordNeeds ? "out" : (seconds >= shortWordNeeds ? "out-short" : nil)
+        case .hold: seconds >= holdNeeds ? "hold" : nil
+        }
+    }
+
+    /// The take for the `count`-th time a word is spoken (counting from 0): 1, 2, 3, 1, ...
+    static func take(_ count: Int) -> Int { count % takes + 1 }
+
+    /// The intro clip for a session with this rhythm.
+    static func intro(_ pattern: BreathPattern) -> String { "intro-" + pattern.id }
+
+    /// Every clip the app uses for one voice.
+    static var clipNames: [String] {
+        ["in", "out", "hold", "in-short", "out-short"].flatMap { w in (1...takes).map { "\(w)-\($0)" } }
+            + BreathPattern.all.map(intro)
+    }
+
+    static func url(voice: String, name: String) -> URL? {
+        Bundle.main.url(forResource: "\(voice)-\(name)", withExtension: "m4a", subdirectory: "Voice/Breath")
+    }
+
+    /// Voices with spoken cues in the app, in the order Settings lists them.
+    static let voices: [String] = ["soft", "warm", "male"].filter { url(voice: $0, name: "in-1") != nil }
+    /// The meditation voice if it has spoken cues, else the first one that does.
+    static var chosen: String {
+        let v = UserDefaults.standard.string(forKey: "meditationVoice") ?? "soft"
+        return voices.contains(v) ? v : (voices.first ?? "soft")
+    }
+
+    /// How long to wait before the first breath of an unguided session: the intro and a moment of quiet,
+    /// or nothing when the spoken cue is not chosen. The intro does not count toward the session.
+    static func leadIn(_ pattern: BreathPattern) -> Double {
+        guard BreathCueStyle.breathing == .voice, let url = url(voice: chosen, name: intro(pattern)),
+              let file = try? AVAudioFile(forReading: url) else { return 0 }
+        return Double(file.length) / file.processingFormat.sampleRate + afterIntro
+    }
+}
+
 /// A finished cue sound, handed from the background thread that made it to the main actor that plays it.
 /// The buffer is never touched again on the thread that made it.
 private struct CueSound: @unchecked Sendable { let buffer: AVAudioPCMBuffer }
@@ -114,6 +180,11 @@ final class BreathCues {
     /// Bumped on every stop, so a sound still being made for an old session is dropped, not played late.
     private var generation = 0
     private var observer: NSObjectProtocol?
+    /// The spoken cue plays dry: a hall would smear the words.
+    private let voicePlayer = AVAudioPlayerNode()
+    private var voice = ""
+    private var clips: [String: AVAudioPCMBuffer] = [:]
+    private var spoken: [String: Int] = [:]
 
     var isRunning: Bool { engine.isRunning }
 
@@ -131,6 +202,8 @@ final class BreathCues {
                 engine.attach(p)
                 engine.connect(p, to: bus, format: Self.format)
             }
+            engine.attach(voicePlayer)
+            engine.connect(voicePlayer, to: engine.mainMixerNode, format: Self.format)
             engine.connect(bus, to: reverb, format: nil)
             engine.connect(reverb, to: engine.mainMixerNode, format: nil)
             // Headphones in or out, or another output device, stops the engine; start it again so the cues carry on.
@@ -147,6 +220,8 @@ final class BreathCues {
         wanted = false
         guard wired else { return }
         players.forEach { $0.stop() }
+        voicePlayer.stop()
+        spoken = [:]
         if engine.isRunning { engine.stop() }
     }
 
@@ -179,6 +254,17 @@ final class BreathCues {
         guard style != .off else { return }
         wanted = true
         self.volume = volume
+        if style == .voice {
+            // "Breathe in", then "Breathe out" one short breath later.
+            say("in-1")
+            let ticket = generation
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(3.5))
+                guard let self, ticket == self.generation else { return }
+                self.say("out-1")
+            }
+            return
+        }
         render(style, [(3.5, true), (4.5, false)]) { [weak self] buffers in
             guard let p = self?.players[0] else { return }
             buffers.forEach { p.scheduleBuffer($0, at: nil, options: []) }
@@ -188,8 +274,17 @@ final class BreathCues {
 
     /// Call when the breath moves to a new step. `seconds` is how long that step lasts. Holds make no sound.
     func play(_ style: BreathCueStyle, step: BreathPattern.Step, seconds: Double, volume: Double) {
-        guard style != .off, step != .hold else { return }
         self.volume = volume
+        if style == .voice {
+            // A quick step gets a short word or none, so the voice never crowds the breath. Takes rotate.
+            guard let word = BreathVoice.word(for: step, seconds: seconds) else { return }
+            wanted = true
+            let n = spoken[word, default: 0]
+            spoken[word] = n + 1
+            say("\(word)-\(BreathVoice.take(n))")
+            return
+        }
+        guard style != .off, step != .hold else { return }
         wanted = true
         render(style, [(seconds, step == .inhale)]) { [weak self] buffers in
             guard let self, let buffer = buffers.first else { return }
@@ -199,6 +294,45 @@ final class BreathCues {
             p.scheduleBuffer(buffer, at: nil, options: [])
             p.play()
         }
+    }
+
+    /// Speaks the intro that names this rhythm, before the session's first breath.
+    func speakIntro(_ pattern: BreathPattern, volume: Double) {
+        self.volume = volume
+        wanted = true
+        say(BreathVoice.intro(pattern))
+    }
+
+    /// Plays one clip of the chosen voice, stopping the word before it. Clips are read off the main thread once
+    /// and kept (about 1 MB a voice), and a clip that finishes reading after Stop is dropped, not spoken late.
+    private func say(_ name: String) {
+        let v = BreathVoice.chosen
+        if v != voice { voice = v; clips = [:] }
+        if let buf = clips[name] { speak(buf); return }
+        let ticket = generation
+        let reading = Task.detached(priority: .userInitiated) { Self.clip(voice: v, name: name) }
+        Task { @MainActor [weak self] in
+            guard let sound = await reading.value, let self, self.voice == v else { return }
+            self.clips[name] = sound.buffer
+            if ticket == self.generation { self.speak(sound.buffer) }
+        }
+    }
+
+    private func speak(_ buffer: AVAudioPCMBuffer) {
+        start(volume: volume)
+        guard engine.isRunning else { return }
+        voicePlayer.stop()
+        voicePlayer.scheduleBuffer(buffer, at: nil, options: [])
+        voicePlayer.play()
+    }
+
+    /// The clips are 44.1 kHz mono, the same as the cue format, so they read straight in.
+    nonisolated private static func clip(voice: String, name: String) -> CueSound? {
+        guard let url = BreathVoice.url(voice: voice, name: name), let file = try? AVAudioFile(forReading: url),
+              file.processingFormat.sampleRate == rate, file.processingFormat.channelCount == 1,
+              let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buf)) != nil else { return nil }
+        return CueSound(buffer: buf)
     }
 
     nonisolated private static func buffer(style: BreathCueStyle, seconds: Double, rising: Bool) -> CueSound? {
@@ -218,7 +352,7 @@ final class BreathCues {
         case .bell: bell(seconds: seconds, rising: rising)
         case .tone: tone(seconds: seconds, rising: rising)
         case .wash: wash(seconds: seconds, rising: rising)
-        case .off: []
+        case .voice, .off: []
         }
     }
 

@@ -91,6 +91,45 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(BreathCueStyle.breathing == .bell && BreathCueStyle.volume == 1, "an unknown style falls back, volume stays in range")
         UserDefaults.standard.removeObject(forKey: "breathCues"); UserDefaults.standard.removeObject(forKey: "breathCueVolume")
 
+        print("Breath cues: Voice")
+        check(BreathCueStyle.allCases == [.bell, .tone, .wash, .voice, .off], "Voice sits before Off")
+        check(BreathCues.samples(style: .voice, seconds: 4, rising: true).isEmpty, "the voice is recorded, not made in code")
+        check(BreathCueStyle.voice.hint(guided: false) == "Eyes closed? A calm voice tells you when to breathe in and out.", "Voice hint")
+        check(!BreathCueStyle.guidedCases.contains(.voice) && BreathCueStyle.guided(.voice) == .off && BreathCueStyle.guided(.bell) == .bell, "no spoken cue under a guided meditation")
+        UserDefaults.standard.set("voice", forKey: "meditationCues")
+        check(BreathCueStyle.meditating == .off, "a stored Voice under guided meditation plays as Off")
+        UserDefaults.standard.removeObject(forKey: "meditationCues")
+        for p in BreathPattern.all {
+            let holds = [1, 3].filter { p.steps[$0] > 0 }
+            check(BreathVoice.word(for: .inhale, seconds: p.steps[0]) == "in" && BreathVoice.word(for: .exhale, seconds: p.steps[2]) == "out"
+                  && holds.allSatisfy { BreathVoice.word(for: .hold, seconds: p.steps[$0]) == "hold" }, "\(p.name): full words, and a word for every hold")
+        }
+        check(BreathVoice.word(for: .inhale, seconds: 2) == "in-short" && BreathVoice.word(for: .exhale, seconds: 1.5) == "out-short"
+              && BreathVoice.word(for: .inhale, seconds: 1) == nil && BreathVoice.word(for: .hold, seconds: 1.2) == nil, "quick steps get short words or quiet")
+        check((0..<7).map(BreathVoice.take) == [1, 2, 3, 1, 2, 3, 1], "takes rotate 1, 2, 3")
+        check(BreathVoice.intro(.box) == "intro-box" && BreathVoice.intro(.fourSevenEight) == "intro-478", "intro follows the rhythm")
+        // Measured clip lengths (from the iPhone app's build tool) tie the timing rule to the real recordings.
+        if let data = FileManager.default.contents(atPath: "Resources/Voice/Breath/lengths.json"),
+           let lengths = try? JSONDecoder().decode([String: Double].self, from: data) {
+            func longest(_ w: String) -> Double {
+                let takes = ["soft", "warm", "male"].flatMap { v in (1...BreathVoice.takes).compactMap { lengths["\(v)-\(w)-\($0)"] } }
+                return takes.count == 9 ? takes.max()! : .infinity
+            }
+            check(longest("in") + 1 <= BreathVoice.longWordNeeds && longest("out") + 1 <= BreathVoice.longWordNeeds
+                  && longest("hold") + 0.8 <= BreathVoice.holdNeeds
+                  && longest("in-short") + 0.6 <= BreathVoice.shortWordNeeds && longest("out-short") + 0.6 <= BreathVoice.shortWordNeeds,
+                  "every recorded word leaves quiet in the shortest step it is used for")
+            let missing = ["soft", "warm", "male"].flatMap { v in BreathVoice.clipNames.map { "\(v)-\($0)" } }
+                .filter { lengths[$0] == nil || !FileManager.default.fileExists(atPath: "Resources/Voice/Breath/\($0).m4a") }
+            check(missing.isEmpty, "every voice has every clip, intros included (missing: \(missing))")
+            check(BreathPattern.all.allSatisfy { p in ["soft", "warm", "male"].allSatisfy { (lengths["\($0)-\(BreathVoice.intro(p))"] ?? 99) < 10 } }, "intros stay short")
+        } else {
+            check(false, "Resources/Voice/Breath/lengths.json is readable")
+        }
+        UserDefaults.standard.set("voice", forKey: "breathCues")
+        check(BreathVoice.leadIn(.box) == 0, "no intro wait when the clips are not in the bundle (test binary)")
+        UserDefaults.standard.removeObject(forKey: "breathCues")
+
         print("Move to Applications")
         check(MoveToApplications.shouldOffer(path: "/Volumes/Tarn/Tarn.app"), "offers from a disk image")
         check(MoveToApplications.shouldOffer(path: NSHomeDirectory() + "/Downloads/Tarn.app"), "offers from Downloads")

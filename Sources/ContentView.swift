@@ -921,8 +921,10 @@ struct SettingsTab: View {
                                 ForEach(Meditation.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
                             }
                         }
-                        Picker("Breath cues", selection: $meditationCues) {
-                            ForEach(BreathCueStyle.allCases) { Text($0.label).tag($0.rawValue) }
+                        Picker("Breath cues", selection: Binding(get: { BreathCueStyle.guided(BreathCueStyle(rawValue: meditationCues) ?? .off).rawValue },
+                                                                 set: { meditationCues = $0 })) {
+                            // No spoken cue here: the meditation already has a voice.
+                            ForEach(BreathCueStyle.guidedCases) { Text($0.label).tag($0.rawValue) }
                         }
                         .onChange(of: meditationCues) { _, v in previewCue(v) }
                         Toggle("Play sounds under the voice", isOn: $soundsUnderMeditation)
@@ -955,6 +957,13 @@ struct SettingsTab: View {
                 VStack(alignment: .leading, spacing: 8) {
                     PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
                         .onChange(of: breathCues) { _, v in previewCue(v) }
+                    if breathCues == BreathCueStyle.voice.rawValue, BreathVoice.voices.count > 1 {
+                        Picker("Voice", selection: Binding(get: { BreathVoice.chosen }, set: { meditationVoice = $0 })) {
+                            ForEach(BreathVoice.voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
+                        }
+                        .onChange(of: meditationVoice) { _, _ in if breathCues == BreathCueStyle.voice.rawValue { previewCue(breathCues) } }
+                        .help("The same voice as the guided meditation")
+                    }
                     if BreathCueStyle(rawValue: breathCues) != .off || BreathCueStyle(rawValue: meditationCues) != .off {
                         HStack(spacing: 8) {
                             Text("Cue volume")
@@ -965,7 +974,7 @@ struct SettingsTab: View {
                             .accessibilityLabel("Cue volume")
                         }
                     }
-                    Text("Breath cues mark each breath with sound, so you can breathe with your eyes closed. They play while the Breathe screen or full screen is showing. Holds stay silent.")
+                    Text("Breath cues mark each breath with sound, so you can breathe with your eyes closed. Voice names the exercise, then says when to breathe in, hold and breathe out. Cues play while the Breathe screen or full screen is showing. Bell, Tone and Wash stay silent through holds.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }

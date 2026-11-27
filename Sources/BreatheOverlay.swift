@@ -24,7 +24,10 @@ final class BreatheOverlay {
     func show() {
         guard Self.allowed else { Self.log.notice("full screen refused: switched off in Settings"); return }
         guard !isShowing else { Self.log.notice("full screen ignored: already showing"); return }
-        startDate = Date()
+        // With the spoken cue, the first breath waits while the voice names the exercise.
+        let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
+        let lead = Meditation.shared.isActive ? 0 : BreathVoice.leadIn(BreathPattern.all.first { $0.id == id } ?? .settle)
+        startDate = Date().addingTimeInterval(lead)
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {
                 $0.activationPolicy == .regular && !$0.isHidden && $0 != NSRunningApplication.current
@@ -150,7 +153,7 @@ struct OverlayView: View {
                 // In a guided session the picture follows the voice, holding still through the lead-in.
                 let guided = meditation.isActive
                 let t = guided ? meditation.elapsed(at: ctx.date) : ctx.date.timeIntervalSince(start)
-                let s = guided && t < 0 ? (label: "Get comfortable", scale: 0.0) : pattern.state(at: max(0, t))
+                let s = t < 0 ? (label: "Get comfortable", scale: 0.0) : pattern.state(at: max(0, t))
                 VStack(spacing: 6) {
                     ZStack {
                         // Soft ripples drift outward from the picture, timed to the breath.

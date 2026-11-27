@@ -33,6 +33,9 @@ mkdir -p "$APP/Contents/Resources/Sounds" "$APP/Contents/Resources/Icons" "$APP/
 cp Resources/Sounds/*.{wav,caf,m4a} "$APP/Contents/Resources/Sounds/" 2>/dev/null || true
 cp Resources/Icons/*.png "$APP/Contents/Resources/Icons/" 2>/dev/null || true
 cp Resources/Voice/*.m4a "$APP/Contents/Resources/Voice/" 2>/dev/null || true
+# The spoken breath cue (Voice): short clips per voice, plus an intro for each rhythm.
+mkdir -p "$APP/Contents/Resources/Voice/Breath"
+cp Resources/Voice/Breath/*.m4a "$APP/Contents/Resources/Voice/Breath/"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE" "$APP/Contents/Info.plist"
