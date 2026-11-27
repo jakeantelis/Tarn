@@ -82,7 +82,11 @@ struct BreathingView: View {
     @AppStorage("breathCueVolume") private var cueVolume = BreathCueStyle.defaultVolume
     @State private var cuePickerShown = false
     /// Under a guided meditation the speaker edits the guided cue, otherwise the Breathe one.
-    private var cueStyle: BreathCueStyle { BreathCueStyle(rawValue: meditation.isActive ? meditationCues : breathCues) ?? .off }
+    private var cueStyle: BreathCueStyle {
+        let s = BreathCueStyle(rawValue: meditation.isActive ? meditationCues : breathCues) ?? .off
+        // The meditation already has a voice; a second one would talk over it.
+        return meditation.isActive ? BreathCueStyle.guided(s) : s
+    }
     private var cueBinding: Binding<String> { meditation.isActive ? $meditationCues : $breathCues }
     @AppStorage("meditationNatureLevel") private var natureLevel = 0.45
     /// The length of the last guided meditation, marked in the menus so it is quick to choose again.
@@ -126,9 +130,16 @@ struct BreathingView: View {
             .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in checkCoach() }
             .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { now in cueTick(now) }
             .onDisappear { AppModel.shared.cueStop(.screen) }
-            .onAppear { if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 } }
+            .onAppear {
+                if coachMinutes > 0 && coachStart == nil && !compact { coachMinutes = 0 }
+                // With the spoken cue, opening Breathe starts afresh: the breath waits while the voice names the exercise.
+                if !compact && !still && !meditation.isActive && coachStart == nil && pausedAt == nil {
+                    let lead = BreathVoice.leadIn(pattern)
+                    if lead > 0 { start = Date().addingTimeInterval(lead) }
+                }
+            }
             // When a guided session ends the breath carries on from the start of your own rhythm.
-            .onChange(of: meditation.isActive) { _, on in if !on { start = Date(); pausedAt = nil; pausedFrom = nil } }
+            .onChange(of: meditation.isActive) { _, on in if !on { start = freshStart(); pausedAt = nil; pausedFrom = nil } }
     }
 
     /// One quiet menu for the things you set once: session length, the look, and background sound.
@@ -166,7 +177,7 @@ struct BreathingView: View {
             Section("Rhythm") {
                 ForEach(BreathPattern.all) { pt in
                     Button {
-                        pattern = pt; start = Date()
+                        pattern = pt; start = freshStart(pt)
                     } label: {
                         if patternID == pt.id { Label(pt.name, systemImage: "checkmark") } else { Text(pt.name) }
                     }
@@ -308,15 +319,21 @@ struct BreathingView: View {
     private func endGuided() {
         if meditation.isPaused, soundWasOn { soundWasOn = false; sound.play() }
         meditation.end(completed: false)
-        start = Date()
+        start = freshStart()
+    }
+
+    /// When a new session's first breath begins: now, or after the spoken intro when the Voice cue is on.
+    private func freshStart(_ p: BreathPattern? = nil) -> Date {
+        Date().addingTimeInterval(BreathVoice.leadIn(p ?? pattern))
     }
 
     private func setCoach(_ minutes: Int) {
         if meditation.isActive { endGuided() }
         coachMinutes = minutes
         coachDone = false
-        start = Date(); pausedAt = nil
-        coachStart = minutes > 0 ? Date() : nil
+        start = freshStart(); pausedAt = nil
+        // The spoken intro does not count toward the session.
+        coachStart = minutes > 0 ? max(start, Date()) : nil
         if minutes > 0 {
             burst += 1
             AppModel.shared.startBreatheSound()
@@ -369,7 +386,7 @@ struct BreathingView: View {
                     .accessibilityLabel("Breath sounds")
                     .accessibilityValue(cueStyle.label)
                     .popover(isPresented: $cuePickerShown, arrowEdge: .bottom) {
-                        BreathCueQuickPicker(selection: cueBinding, volume: $cueVolume)
+                        BreathCueQuickPicker(selection: cueBinding, volume: $cueVolume, guided: meditation.isActive)
                     }
                 }
                 .fadesWithChrome(chrome)
@@ -378,8 +395,9 @@ struct BreathingView: View {
             TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !active || isPaused || still)) { ctx in
                 let guided = meditation.isActive && !compact && !still
                 let t = still ? 2.0 : (guided ? meditation.elapsed(at: ctx.date) : (pausedAt ?? ctx.date.timeIntervalSince(start)))
-                // A guided session opens with a few quiet seconds while the welcome is spoken.
-                let settling = guided && t < 0
+                // A guided session opens with a few quiet seconds while the welcome is spoken,
+                // and the spoken cue's intro gets the same quiet start.
+                let settling = !compact && !still && t < 0
                 let st = activePattern.state(at: max(0, t))
                 let s = settling ? (label: "Get comfortable", scale: 0.0) : st
                 VStack(spacing: 8) {
@@ -583,12 +601,14 @@ struct FillCanvas: View {
 struct BreathCueQuickPicker: View {
     @Binding var selection: String
     @Binding var volume: Double
+    /// Under a guided meditation the spoken cue is not offered.
+    var guided = false
     private var current: BreathCueStyle { BreathCueStyle(rawValue: selection) ?? .off }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Breath sounds").font(.headline).padding(.bottom, 6)
-            ForEach(BreathCueStyle.allCases) { style in
+            ForEach(guided ? BreathCueStyle.guidedCases : BreathCueStyle.allCases) { style in
                 Button {
                     selection = style.rawValue
                     AppModel.shared.cues.preview(style, volume: volume)
