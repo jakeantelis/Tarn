@@ -582,6 +582,7 @@ struct SettingsTab: View {
     @AppStorage("meditationVoice") private var meditationVoice = "soft"
     @AppStorage(BreatheSettings.spokenIntro) private var spokenIntro = true
     @AppStorage(BreatheSettings.spoken) private var spokenCues = false
+    @AppStorage(BreatheSettings.voiceVolume) private var voiceVolume = BreathVoice.defaultVolume
     @AppStorage("meditationSounds") private var soundsUnderMeditation = true
     @AppStorage("meditationLinger") private var lingerMinutes = 0
     @AppStorage("breathPattern") private var breathPattern = "settle"
@@ -942,17 +943,29 @@ struct SettingsTab: View {
                         PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
                             .onChange(of: breathCues) { _, v in previewCue(BreatheSettings.breathCue(v), spoken: spokenCues) }
                     }
-                    if spokenCues || BreatheSettings.breathCue(breathCues) != .off || BreatheSettings.meditationCue(meditationCues) != .off {
+                    // One slider per thing that plays: the voice and the sound each get their own when both are on.
+                    let anySound = BreatheSettings.breathCue(breathCues) != .off || BreatheSettings.meditationCue(meditationCues) != .off
+                    if spokenCues {
                         HStack(spacing: 8) {
-                            Text("Volume")
+                            Text(anySound ? "Voice volume" : "Volume")
+                            Slider(value: $voiceVolume, in: BreathCueStyle.volumeRange) { editing in
+                                if !editing { previewCue(BreatheSettings.breathCue(breathCues), spoken: true) }
+                            }
+                            .controlSize(.small)
+                            .accessibilityLabel("Voice volume")
+                        }
+                    }
+                    if anySound {
+                        HStack(spacing: 8) {
+                            Text(spokenCues ? "Sound volume" : "Volume")
                             Slider(value: $cueVolume, in: BreathCueStyle.volumeRange) { editing in
                                 if !editing {
                                     let picked = BreatheSettings.breathCue(breathCues)
-                                    previewCue(picked != .off || spokenCues ? picked : BreatheSettings.meditationCue(meditationCues), spoken: spokenCues)
+                                    previewCue(picked != .off ? picked : BreatheSettings.meditationCue(meditationCues), spoken: spokenCues)
                                 }
                             }
                             .controlSize(.small)
-                            .accessibilityLabel("Voice and breath sound volume")
+                            .accessibilityLabel(spokenCues ? "Sound volume" : "Breath sound volume")
                         }
                     }
                     Toggle("Nature sounds", isOn: $breatheSound)

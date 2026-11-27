@@ -136,6 +136,11 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(BreathVoice.leadIn(.box) == 0, "no intro wait when the clips are not in the bundle (test binary)")
         UserDefaults.standard.removeObject(forKey: "spokenCues")
         check(BreatheSettings.introOn, "the intro is on by default")
+        UserDefaults.standard.removeObject(forKey: "breathVoiceVolume")
+        check(BreatheSettings.voiceLevel == 0.85 && BreathCueStyle.volume == 0.6, "the voice sits above the sound by default (0.85 and 0.6)")
+        UserDefaults.standard.set(5.0, forKey: "breathVoiceVolume")
+        check(BreatheSettings.voiceLevel == 1, "the voice level stays in range")
+        UserDefaults.standard.removeObject(forKey: "breathVoiceVolume")
 
         print("Breathe settings upgrade")
         // Someone on the iPhone's 1.2.1 who used guided meditation with a Wash cue opens on Guided, with their cue kept.

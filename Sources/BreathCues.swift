@@ -134,6 +134,13 @@ enum BreatheSettings {
 
     static var spokenOn: Bool { UserDefaults.standard.bool(forKey: spoken) }
 
+    /// The voice's own level, separate from the breath sound's (`breathCueVolume`).
+    static let voiceVolume = "breathVoiceVolume"
+    static var voiceLevel: Double {
+        let v = UserDefaults.standard.object(forKey: voiceVolume) as? Double ?? BreathVoice.defaultVolume
+        return min(BreathCueStyle.volumeRange.upperBound, max(BreathCueStyle.volumeRange.lowerBound, v))
+    }
+
     static var introOn: Bool { UserDefaults.standard.object(forKey: spokenIntro) as? Bool ?? true }
 
     /// The values to write so settings saved by earlier versions read correctly in this one. Empty once done.
@@ -165,6 +172,8 @@ enum BreatheSettings {
 enum BreathVoice {
     /// Every step word is recorded in this many takes, and they rotate, so a long session never repeats one sample.
     static let takes = 3
+    /// The voice sits a little above the breath sound by default (0.85 against 0.6).
+    static let defaultVolume = 0.85
     /// Quiet after the intro before the first "Breathe in", so the session starts unhurried.
     static let afterIntro = 1.2
 
@@ -244,6 +253,8 @@ final class BreathCues {
     private var duckTask: Task<Void, Never>?
     /// Held by Pause: everything stops exactly where it is, mid-word or mid-bell, and carries on from there.
     private var held = false
+    /// The breath sound's own level; the dip under a word goes below it and comes back to it.
+    private var soundLevel: Float = 1
 
     func pause() {
         guard wanted, !held else { return }
@@ -282,7 +293,11 @@ final class BreathCues {
                 Task { @MainActor in self?.resume() }
             }
         }
-        engine.mainMixerNode.outputVolume = Float(min(1, max(0, volume)))
+        // The sound and the voice each have their own level, so the words can sit clearly above the sound.
+        engine.mainMixerNode.outputVolume = 1
+        soundLevel = Float(min(1, max(0, volume)))
+        if duckTask == nil { bus.outputVolume = soundLevel }   // a dip in progress brings it back itself
+        voicePlayer.volume = Float(BreatheSettings.voiceLevel)
         if !engine.isRunning { try? engine.start() }
     }
 
@@ -295,7 +310,7 @@ final class BreathCues {
         held = false
         said = [:]
         duckTask?.cancel(); duckTask = nil
-        bus.outputVolume = 1
+        bus.outputVolume = soundLevel
         if engine.isRunning { engine.stop() }
     }
 
@@ -416,12 +431,18 @@ final class BreathCues {
     private func duck(for seconds: Double) {
         duckTask?.cancel()
         duckTask = Task { @MainActor [weak self] in
-            for v in stride(from: 1.0, through: 0.4, by: -0.1) { self?.bus.outputVolume = Float(v); try? await Task.sleep(for: .milliseconds(25)) }
+            for v in stride(from: 1.0, through: 0.4, by: -0.1) {
+                guard let self else { return }
+                self.bus.outputVolume = self.soundLevel * Float(v); try? await Task.sleep(for: .milliseconds(25))
+            }
             try? await Task.sleep(for: .seconds(max(0, seconds - 0.15)))
             for v in stride(from: 0.4, through: 1.0, by: 0.05) {
                 guard !Task.isCancelled else { return }
-                self?.bus.outputVolume = Float(v); try? await Task.sleep(for: .milliseconds(50))
+                guard let self else { return }
+                self.bus.outputVolume = self.soundLevel * Float(v); try? await Task.sleep(for: .milliseconds(50))
             }
+            guard !Task.isCancelled else { return }
+            self?.duckTask = nil
         }
     }
 

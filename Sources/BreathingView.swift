@@ -689,6 +689,7 @@ struct BreathCueQuickPicker: View {
     var voice: Binding<Bool>? = nil
     /// Nature sound underneath: your sound mix, softly.
     @Binding var nature: Bool
+    @AppStorage(BreatheSettings.voiceVolume) private var voiceVolume = BreathVoice.defaultVolume
     private var current: BreathCueStyle { BreathCueStyle(rawValue: selection) ?? .off }
 
     var body: some View {
@@ -725,15 +726,22 @@ struct BreathCueQuickPicker: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(style == current ? .isSelected : [])
             }
-            if current != .off || voice?.wrappedValue == true {
-                HStack(spacing: 8) {
-                    Image(systemName: "speaker.fill").foregroundStyle(.secondary).accessibilityHidden(true)
-                    Slider(value: $volume, in: BreathCueStyle.volumeRange) { editing in
-                        if !editing { AppModel.shared.cues.preview(current, volume: volume, spoken: voice?.wrappedValue ?? false) }
+            // One slider per thing that plays: the voice and the sound each get their own when both are on.
+            let speaking = voice?.wrappedValue == true
+            if speaking || current != .off {
+                VStack(spacing: 6) {
+                    if speaking {
+                        LevelSlider(label: current != .off ? "Voice volume" : nil, value: $voiceVolume) {
+                            AppModel.shared.cues.preview(current, volume: volume, spoken: true)
+                        }
+                        .accessibilityLabel("Voice volume")
                     }
-                    .controlSize(.small)
-                    .accessibilityLabel("Breath sound volume")
-                    Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary).accessibilityHidden(true)
+                    if current != .off {
+                        LevelSlider(label: speaking ? "Sound volume" : nil, value: $volume) {
+                            AppModel.shared.cues.preview(current, volume: volume, spoken: speaking)
+                        }
+                        .accessibilityLabel(speaking ? "Sound volume" : "Breath sound volume")
+                    }
                 }
                 .padding(.top, 8)
             }
@@ -743,5 +751,23 @@ struct BreathCueQuickPicker: View {
         }
         .padding(16)
         .frame(width: 280)
+    }
+}
+
+/// A volume slider with an optional caption above it; plays a short preview when let go.
+struct LevelSlider: View {
+    var label: String?
+    @Binding var value: Double
+    var onRelease: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let label { Text(label).font(.caption).foregroundStyle(.secondary) }
+            HStack(spacing: 8) {
+                Image(systemName: "speaker.fill").foregroundStyle(.secondary).accessibilityHidden(true)
+                Slider(value: $value, in: BreathCueStyle.volumeRange) { editing in if !editing { onRelease() } }
+                    .controlSize(.small)
+                Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary).accessibilityHidden(true)
+            }
+        }
     }
 }
