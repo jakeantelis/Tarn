@@ -904,21 +904,14 @@ struct SettingsTab: View {
         VStack(alignment: .leading, spacing: 12) {
             GroupBox("Voice") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Speak each breath during \(BreatheMode.breathe.label.lowercased())", isOn: $spokenCues)
-                        .onChange(of: spokenCues) { _, on in if on { previewCue(BreatheSettings.breathCue(breathCues), spoken: true) } }
-                    Toggle("Name the exercise first", isOn: $spokenIntro)
-                        .disabled(!spokenCues)
-                        .help("Before the first breath, the voice says which exercise it is. Click the picture, or press Space in full screen, to skip it.")
                     let voices = BreathVoice.voices.isEmpty ? Meditation.voices : BreathVoice.voices
-                    if voices.count > 1 {
-                        Picker("Voice", selection: Binding(get: { voices.contains(meditationVoice) ? meditationVoice : (voices.first ?? "soft") },
-                                                           set: { meditationVoice = $0 })) {
-                            ForEach(voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
-                        }
-                        .fixedSize()
-                        .onChange(of: meditationVoice) { _, _ in if spokenCues { previewCue(.off, spoken: true) } }
+                    Picker("Voice", selection: Binding(get: { voices.contains(meditationVoice) ? meditationVoice : (voices.first ?? "soft") },
+                                                       set: { meditationVoice = $0 })) {
+                        ForEach(voices, id: \.self) { Text(Meditation.label($0)).tag($0) }
                     }
-                    Text("The voice says when to breathe in, hold and breathe out, so you can breathe with your eyes closed. A breath sound can play with it or on its own, and dips under each word. The same voice guides a \(BreatheMode.guided.label.lowercased()).")
+                    .fixedSize()
+                    .onChange(of: meditationVoice) { _, _ in if spokenCues { previewCue(.off, spoken: true) } }
+                    Text("Used for breathwork and meditation.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -928,12 +921,22 @@ struct SettingsTab: View {
                         ForEach(BreathPattern.all) { Text($0.name).tag($0.id) }
                     }
                     .fixedSize()
-                    Text((BreathPattern.all.first { $0.id == breathPattern } ?? .settle).blurb)
+                    let rhythm = BreathPattern.all.first { $0.id == breathPattern } ?? .settle
+                    Text(rhythm.blurb)
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    if rhythm.hasLongHolds {
+                        Text(BreathPattern.holdNote)
+                            .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                    }
                     HStack(spacing: 8) {
-                        Text("Look")
+                        Text("Breathing shape")
                         PillPicker(items: BreathStyle.allCases.map(\.rawValue), selection: $breathStyle) { $0 }
                     }
+                    Toggle("Speak each breath", isOn: $spokenCues)
+                        .onChange(of: spokenCues) { _, on in if on { previewCue(BreatheSettings.breathCue(breathCues), spoken: true) } }
+                    Toggle("Name the exercise first", isOn: $spokenIntro)
+                        .disabled(!spokenCues)
+                        .help("Before the first breath, the voice says which exercise it is. Click the picture, or press Space in full screen, to skip it.")
                     HStack(spacing: 8) {
                         Text("Breath sound")
                         PillPicker(items: BreathCueStyle.allCases.map(\.rawValue), selection: $breathCues) { BreathCueStyle(rawValue: $0)?.label ?? $0 }
@@ -941,7 +944,7 @@ struct SettingsTab: View {
                     }
                     if spokenCues || BreatheSettings.breathCue(breathCues) != .off || BreatheSettings.meditationCue(meditationCues) != .off {
                         HStack(spacing: 8) {
-                            Text("Breath sound volume")
+                            Text("Volume")
                             Slider(value: $cueVolume, in: BreathCueStyle.volumeRange) { editing in
                                 if !editing {
                                     let picked = BreatheSettings.breathCue(breathCues)
@@ -949,13 +952,13 @@ struct SettingsTab: View {
                                 }
                             }
                             .controlSize(.small)
-                            .accessibilityLabel("Breath sound volume")
+                            .accessibilityLabel("Voice and breath sound volume")
                         }
                     }
                     Toggle("Nature sounds", isOn: $breatheSound)
                     Toggle("Warmer colors in the evening", isOn: $eveningWarmth)
                     Toggle("Show gentle written prompts while I breathe", isOn: $guideMe)
-                    Text("A breath sound marks each breath in and out, on its own or with the voice. Nature sounds play your Sounds mix softly underneath. Bell, Tone and Wash stay quiet through holds.")
+                    Text("Voice and sounds let you breathe with your eyes closed.")
                         .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }.padding(.vertical, 4)
             }
@@ -970,13 +973,13 @@ struct SettingsTab: View {
                         }
                         .fixedSize()
                         .disabled(!soundsUnderMeditation)
-                        Picker("Breath sound", selection: Binding(get: { BreatheSettings.meditationCue(meditationCues).rawValue },
-                                                                  set: { meditationCues = $0 })) {
+                        Picker("Sound at each breath", selection: Binding(get: { BreatheSettings.meditationCue(meditationCues).rawValue },
+                                                                          set: { meditationCues = $0 })) {
                             ForEach(BreathCueStyle.allCases) { Text($0.label).tag($0.rawValue) }
                         }
                         .fixedSize()
                         .onChange(of: meditationCues) { _, v in previewCue(BreatheSettings.meditationCue(v)) }
-                        Text("Choose \(BreatheMode.guided.label) at the top of the Breathe screen for a recorded meditation of 5, 10 or 20 minutes, in the voice chosen above.")
+                        Text("Choose Meditation at the top of the Breathe screen for a recorded meditation of 5, 10 or 20 minutes.")
                             .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }.padding(.vertical, 4)
                 }

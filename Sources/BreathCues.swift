@@ -242,6 +242,20 @@ final class BreathCues {
     private var clips: [String: AVAudioPCMBuffer] = [:]
     private var said: [String: Int] = [:]
     private var duckTask: Task<Void, Never>?
+    /// Held by Pause: everything stops exactly where it is, mid-word or mid-bell, and carries on from there.
+    private var held = false
+
+    func pause() {
+        guard wanted, !held else { return }
+        held = true
+        if engine.isRunning { engine.pause() }
+    }
+
+    func unpause() {
+        guard held else { return }
+        held = false
+        if wanted { try? engine.start() }
+    }
 
     var isRunning: Bool { engine.isRunning }
 
@@ -278,6 +292,7 @@ final class BreathCues {
         guard wired else { return }
         players.forEach { $0.stop() }
         voicePlayer.stop()
+        held = false
         said = [:]
         duckTask?.cancel(); duckTask = nil
         bus.outputVolume = 1
@@ -286,7 +301,7 @@ final class BreathCues {
 
     /// Starts the engine again after the system stopped it, if cues are still wanted.
     private func resume() {
-        guard wanted, !engine.isRunning else { return }
+        guard wanted, !held, !engine.isRunning else { return }
         try? engine.start()
     }
 
@@ -315,16 +330,20 @@ final class BreathCues {
         wanted = true
         self.volume = volume
         if spoken {
-            say("in-1")
+            // A real stretch of a session, not one word: breathe in, breathe out, breathe in, about 8 seconds.
             let ticket = generation
             Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(3.5))
-                guard let self, ticket == self.generation else { return }
-                self.say("out-1")
+                var waited = 0.0
+                for line in [(at: 0.0, name: "in-1"), (at: 3.5, name: "out-1"), (at: 8.0, name: "in-2")] {
+                    try? await Task.sleep(for: .seconds(line.at - waited))
+                    waited = line.at
+                    guard let self, ticket == self.generation else { return }
+                    self.say(line.name)
+                }
             }
         }
         guard style != .off else { return }
-        render(style, [(3.5, true), (4.5, false)]) { [weak self] buffers in
+        render(style, spoken ? [(3.5, true), (4.5, false), (3.5, true)] : [(3.5, true), (4.5, false)]) { [weak self] buffers in
             guard let p = self?.players[0] else { return }
             buffers.forEach { p.scheduleBuffer($0, at: nil, options: []) }
             p.play()

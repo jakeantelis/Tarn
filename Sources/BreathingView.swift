@@ -17,7 +17,9 @@ struct BreathPattern: Identifiable, Hashable {
     static let deep = BreathPattern(id: "deep", name: "Deep", steps: [6, 2, 8, 0])
     static let box = BreathPattern(id: "box", name: "Box", steps: [4, 4, 4, 4])
     static let fourSevenEight = BreathPattern(id: "478", name: "4 7 8", steps: [4, 7, 8, 0])
-    static let all = [settle, deep, box, fourSevenEight]
+    static let equal = BreathPattern(id: "equal", name: "Equal", steps: [5, 0, 5, 0])
+    static let resonant = BreathPattern(id: "resonant", name: "Resonant", steps: [5.5, 0, 5.5, 0])
+    static let all = [settle, deep, box, fourSevenEight, equal, resonant]
 
     /// Warps elapsed time so the cycle stretches from 1x to 1.7x over three minutes, then holds there.
     func warped(_ t: Double) -> Double {
@@ -32,11 +34,17 @@ struct BreathPattern: Identifiable, Hashable {
         case "settle": return "Starts easy and slowly deepens over three minutes. A good everyday choice."
         case "deep": return "In for 6, a short pause, out for 8. A slow, full breath."
         case "box": return "In for 4, hold 4, out for 4, hold 4. Steady and even."
+        case "equal": return "In for 5, out for 5, no holds. Smooth and even."
+        case "resonant": return "In and out for about 5½ each, no holds. A slow, even rhythm."
         default: return "In for 4, hold for 7, out for 8. Good for winding down."
         }
     }
 
     var cycle: Double { steps.reduce(0, +) }
+
+    /// Holds of 4 seconds or more get a gentle note to check with a doctor first, if needed.
+    var hasLongHolds: Bool { steps[1] >= 4 || steps[3] >= 4 }
+    static let holdNote = "If you have a health condition, check with your doctor before breath-hold exercises."
 
     /// Returns label and circle scale (0...1) at time t into the cycle.
     func state(at t: Double) -> (label: String, scale: Double) {
@@ -71,7 +79,8 @@ struct BreathingView: View {
     var onMix: (() -> Void)? = nil
     @Environment(\.popoverActive) private var active
     @Environment(\.chromeVisible) private var chrome
-    @State private var blurbShown = false
+    /// One-time line under the Breathwork | Meditation switch, until it is used or a session begins.
+    @AppStorage("breatheModeTipSeen") private var modeTipSeen = false
     @AppStorage("guideMe") private var guideMe = false
     @ObservedObject private var cleared = ScreenClearer.shared
     @ObservedObject private var sound = AppModel.shared.sound
@@ -326,7 +335,7 @@ struct BreathingView: View {
     /// A guided session: the voice track, Settle, and soft sound underneath. Any timed session stops first.
     private func beginGuided(_ minutes: Int) {
         modeRaw = BreatheMode.guided.rawValue
-        tipSeen = true
+        tipSeen = true; modeTipSeen = true
         coachMinutes = 0; coachStart = nil; coachDone = false
         pausedAt = nil; pausedFrom = nil; soundWasOn = false
         meditation.begin(minutes: minutes)
@@ -352,7 +361,7 @@ struct BreathingView: View {
         // The spoken intro does not count toward the session.
         coachStart = minutes > 0 ? max(start, Date()) : nil
         if minutes > 0 {
-            tipSeen = true
+            tipSeen = true; modeTipSeen = true
             burst += 1
             AppModel.shared.startBreatheSound()
         }
@@ -363,7 +372,7 @@ struct BreathingView: View {
         guard !compact, !still else { return }
         let t = meditation.isActive ? meditation.elapsed(at: now) : (pausedAt ?? now.timeIntervalSince(start))
         // In Guided the guided cue plays, even before a meditation starts, so the speaker button means one thing.
-        AppModel.shared.cueTick(.screen, t: t, pattern: activePattern, guided: guidedMode, running: active && !isPaused)
+        AppModel.shared.cueTick(.screen, t: t, pattern: activePattern, guided: guidedMode, running: active, paused: isPaused)
     }
 
     private func checkCoach() {
@@ -375,6 +384,33 @@ struct BreathingView: View {
         // The ambient sound fading out is the signal that the session is over, unless the user keeps it on.
         if !UserDefaults.standard.bool(forKey: "keepSoundAfterSession") { AppModel.shared.sound.stop() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { coachDone = false }
+    }
+
+    /// Pause or resume. Breathwork: the clock, the picture, the voice and breath sound (they carry on mid-sound)
+    /// and the nature sound all hold. A meditation holds its voice and breath together.
+    private func togglePause() {
+                if meditation.isActive {
+                    // The voice, the breath and the clock hold together, and the sound with them.
+                    if meditation.isPaused {
+                        meditation.togglePause()
+                        if soundWasOn { soundWasOn = false; sound.play() }
+                    } else {
+                        meditation.togglePause()
+                        soundWasOn = sound.isPlaying
+                        if soundWasOn { sound.pause() }
+                    }
+                } else if let p = pausedAt {
+                    // Resume: the breath, the session clock and the sound all pick up where they stopped.
+                    start = Date().addingTimeInterval(-p)
+                    if let at = pausedFrom, coachStart != nil { coachStart = coachStart?.addingTimeInterval(Date().timeIntervalSince(at)) }
+                    pausedAt = nil; pausedFrom = nil
+                    if soundWasOn { soundWasOn = false; sound.play() }
+                } else {
+                    // Pause: the sound stops too, so a paused session is really quiet.
+                    pausedAt = Date().timeIntervalSince(start); pausedFrom = Date()
+                    soundWasOn = sound.isPlaying
+                    if soundWasOn { sound.pause() }
+                }
     }
 
     /// True while the spoken cue names the exercise before the first breath. A click on the picture skips it.
@@ -399,12 +435,19 @@ struct BreathingView: View {
                 .frame(maxWidth: 200)
                 .accessibilityLabel("Mode")
                 .onChange(of: modeRaw) { _, v in
+                    modeTipSeen = true
                     // Back to Breathe ends a meditation that is playing; the breath carries on from your own rhythm.
                     if v == BreatheMode.breathe.rawValue && meditation.isActive { endGuided() }
                     // Into Meditation during the spoken intro: the intro stops and the breath starts now.
                     if v == BreatheMode.guided.rawValue && start > Date() { AppModel.shared.cues.stopVoice(); start = Date() }
                 }
                 .fadesWithChrome(chrome)
+                if !modeTipSeen {
+                    Text("Breathwork guides each breath. Meditation is a calm voice talking you through 5 to 20 minutes.")
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .fadesWithChrome(chrome)
+                }
             }
             if !compact {
                 HStack(spacing: 8) {
@@ -419,6 +462,17 @@ struct BreathingView: View {
                         .buttonStyle(.plain)
                         .help("Full screen. Esc or a click brings you back.")
                         .accessibilityLabel("Full screen")
+                    }
+                    if !still {
+                        Button { togglePause() } label: {
+                            Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(7)
+                                .background(Circle().fill(Color.secondary.opacity(0.18)))
+                        }
+                        .buttonStyle(.plain)
+                        .help(isPaused ? "Resume" : "Pause. Clicking the picture does the same.")
+                        .accessibilityLabel(isPaused ? "Resume" : "Pause")
                     }
                     Button { cuePickerShown.toggle(); tipSeen = true } label: {
                         Image(systemName: cueStyle == .off && !speaking ? "speaker.slash" : "speaker.wave.2")
@@ -462,28 +516,7 @@ struct BreathingView: View {
                 .onTapGesture {
                     guard !compact else { return }
                     if t < 0 && speaking && pausedAt == nil { skipIntro(); return }
-                    if meditation.isActive {
-                        // The voice, the breath and the clock hold together, and the sound with them.
-                        if meditation.isPaused {
-                            meditation.togglePause()
-                            if soundWasOn { soundWasOn = false; sound.play() }
-                        } else {
-                            meditation.togglePause()
-                            soundWasOn = sound.isPlaying
-                            if soundWasOn { sound.pause() }
-                        }
-                    } else if let p = pausedAt {
-                        // Resume: the breath, the session clock and the sound all pick up where they stopped.
-                        start = Date().addingTimeInterval(-p)
-                        if let at = pausedFrom, coachStart != nil { coachStart = coachStart?.addingTimeInterval(Date().timeIntervalSince(at)) }
-                        pausedAt = nil; pausedFrom = nil
-                        if soundWasOn { soundWasOn = false; sound.play() }
-                    } else {
-                        // Pause: the sound stops too, so a paused session is really quiet.
-                        pausedAt = Date().timeIntervalSince(start); pausedFrom = Date()
-                        soundWasOn = sound.isPlaying
-                        if soundWasOn { sound.pause() }
-                    }
+                    togglePause()
                 }
                 .help(compact ? "" : (isPaused ? "Click to resume" : "Click to pause"))
 
@@ -547,7 +580,7 @@ struct BreathingView: View {
 
             if !compact {
                 if allowTakeover && !guidedMode {
-                    Button { tipSeen = true; AppModel.shared.calmMode() } label: {
+                    Button { tipSeen = true; modeTipSeen = true; AppModel.shared.calmMode() } label: {
                         Label("Calm mode", systemImage: "moon.stars").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(CapsuleButtonStyle(prominent: true, small: true))

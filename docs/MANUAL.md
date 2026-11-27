@@ -29,8 +29,11 @@ A small frosted circle stays above your other windows. In Focus it shows the tim
 **How do I use Breathe?**  
 Switch to Breathe. Breathe in as the picture opens and out as it closes. Click the picture to pause it.
 
-**What are Settle, Deep, Box and 4 7 8?**  
-Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8.
+**What are the rhythms?**  
+Settle starts easy and slowly deepens over three minutes. Deep is in for 6, hold 2, out for 8. Box is in 4, hold 4, out 4, hold 4. 4 7 8 is in for 4, hold 7, out for 8. Equal is in for 5, out for 5, with no holds. Resonant is in and out for about 5½ each, with no holds. If you have a health condition, check with your doctor before breath-hold exercises.
+
+**Can I pause?**  
+Yes. Click the pause button at the top of the Breathe screen, or click the picture. The clock, the picture, the voice and the breath sound hold exactly where they are, the nature sound pauses, and everything carries on from there when you resume. In full screen, click Pause or press Space.
 
 **What does Full screen do?**  
 It covers every screen with a calm background, including desktop icons. Click anywhere, press Esc, or use the Close button to go back. The sound buttons in the top right corner turn sound on or off and pick a mix.

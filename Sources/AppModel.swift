@@ -28,8 +28,14 @@ final class AppModel {
 
     /// Called often while a breathing screen is up. Plays a cue when a new inhale or exhale begins.
     /// `t` is seconds into the session. The full screen view wins over the Breathe screen, so a breath is never cued twice.
-    func cueTick(_ owner: CueOwner, t: Double, pattern: BreathPattern, guided: Bool, running: Bool) {
+    /// `paused` holds the cues where they are (mid-word or mid-bell); they carry on from there on resume.
+    func cueTick(_ owner: CueOwner, t: Double, pattern: BreathPattern, guided: Bool, running: Bool, paused: Bool = false) {
         if owner == .screen, BreatheOverlay.shared.isShowing { return }
+        if running && paused {
+            if cueOwner == owner { cues.pause() }
+            return
+        }
+        if running && cueOwner == owner { cues.unpause() }
         let style = guided ? BreathCueStyle.meditating : BreathCueStyle.breathing
         // The voice speaks during guided breathing only: a meditation already has one.
         let spoken = !guided && BreatheSettings.spokenOn

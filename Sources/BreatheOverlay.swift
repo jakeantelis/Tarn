@@ -90,7 +90,7 @@ final class BreatheOverlay: ObservableObject {
         let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
         let pattern = guided ? BreathPattern.settle : (BreathPattern.all.first { $0.id == id } ?? .settle)
         let t = guided ? meditation.elapsed() : elapsed()
-        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: Self.guidedMode, running: isShowing && !isPaused)
+        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: Self.guidedMode, running: isShowing, paused: isPaused)
     }
 
     /// Seconds since the first breath of guided breathing. Negative during the intro. Holds still while paused.
@@ -124,8 +124,7 @@ final class BreatheOverlay: ObservableObject {
             if soundWasOn { soundWasOn = false; sound.play() }
         } else {
             if meditation.isActive { meditation.togglePause() } else {
-                AppModel.shared.cues.stopVoice()
-                pausedFrom = Date()
+                pausedFrom = Date()   // the voice and breath sound hold mid-sound and carry on from there
             }
             soundWasOn = sound.isPlaying
             if soundWasOn { sound.pause() }

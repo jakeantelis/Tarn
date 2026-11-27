@@ -95,6 +95,11 @@ func check(_ ok: @autoclosure () -> Bool, _ msg: String) {
         check(BreathCueStyle.allCases == [.bell, .tone, .wash, .off], "the voice is its own switch, so the sounds stay four")
         check(BreathCueStyle.voiceHint == "Eyes closed? A calm voice tells you when to breathe in and out.", "Voice hint")
         check(BreatheMode.breathe.label == "Breathwork" && BreatheMode.guided.label == "Meditation", "mode names")
+        check(BreathPattern.all.map(\.id) == ["settle", "deep", "box", "478", "equal", "resonant"], "six rhythms, Equal and Resonant last")
+        check(BreathPattern.equal.steps == [5, 0, 5, 0] && BreathPattern.resonant.steps == [5.5, 0, 5.5, 0], "Equal and Resonant timings")
+        check(BreathPattern.all.filter(\.hasLongHolds).map(\.id) == ["box", "478"], "the doctor note shows for Box and 4 7 8 only")
+        check(BreathPattern.equal.blurb == "In for 5, out for 5, no holds. Smooth and even."
+              && BreathPattern.resonant.blurb == "In and out for about 5½ each, no holds. A slow, even rhythm.", "new rhythm blurbs")
         UserDefaults.standard.removeObject(forKey: "spokenCues")
         check(!BreatheSettings.spokenOn, "the voice is off until chosen")
         UserDefaults.standard.set("spoken", forKey: "meditationCues")
