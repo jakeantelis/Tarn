@@ -31,20 +31,22 @@ final class AppModel {
     func cueTick(_ owner: CueOwner, t: Double, pattern: BreathPattern, guided: Bool, running: Bool) {
         if owner == .screen, BreatheOverlay.shared.isShowing { return }
         let style = guided ? BreathCueStyle.meditating : BreathCueStyle.breathing
-        // Before the first breath, the spoken cue names the exercise once.
-        if running, style == .spoken, !guided, t < 0 {
+        // The voice speaks during guided breathing only: a meditation already has one.
+        let spoken = !guided && BreatheSettings.spokenOn
+        // Before the first breath, the voice names the exercise once.
+        if running, spoken, t < 0 {
             if cueOwner != owner { cueOwner = owner; lastCueStep = nil; introSaid = false }
             if !introSaid { introSaid = true; cues.speakIntro(pattern, volume: BreathCueStyle.volume) }
             return
         }
-        guard running, style != .off, let step = pattern.cueStep(at: t) else { cueStop(owner); return }
+        guard running, style != .off || spoken, let step = pattern.cueStep(at: t) else { cueStop(owner); return }
         if cueOwner != owner { cueOwner = owner; lastCueStep = nil }
         guard step.index != lastCueStep else { return }
         let first = lastCueStep == nil
         lastCueStep = step.index
         // Picking up in the middle of a breath (after a pause) waits for the next one instead of cutting in.
         if first && step.elapsed > 0.5 { return }
-        cues.play(style, step: step.kind, seconds: step.seconds, volume: BreathCueStyle.volume)
+        cues.play(style, step: step.kind, seconds: step.seconds, volume: BreathCueStyle.volume, spoken: spoken)
     }
 
     func cueStop(_ owner: CueOwner) {

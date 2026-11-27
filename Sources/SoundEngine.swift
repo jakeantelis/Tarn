@@ -114,9 +114,27 @@ final class SoundEngine: ObservableObject {
         applyGains()
     }
 
+    /// Below 1 while a spoken breath word plays, so the nature sound sits under the voice.
+    private var ducked: Float = 1
+    private var duckTask: Task<Void, Never>?
+
+    /// Lowers the sound under a spoken word of `seconds`, then lets it drift back. The normal fades keep it gentle.
+    func duck(for seconds: Double) {
+        guard isPlaying else { return }
+        ducked = 0.55
+        applyGains()
+        duckTask?.cancel()
+        duckTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(seconds + 0.2))
+            guard !Task.isCancelled, let self else { return }
+            self.ducked = 1
+            self.applyGains()
+        }
+    }
+
     private func applyGains() {
         if isPlaying { for s in Soundscape.allCases where (levels[s] ?? 0) > 0 { ensurePlayer(s) } }
-        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * drift(s) : 0 }
+        for s in players.keys { targets[s] = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * ducked * drift(s) : 0 }
         startFade()
     }
 
@@ -231,7 +249,7 @@ final class SoundEngine: ObservableObject {
     /// Sets each loop straight to its level, for the slow fade, which does its own easing.
     private func setVolumesNow() {
         for (s, p) in players {
-            let v = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * drift(s) : 0
+            let v = isPlaying ? Float(levels[s] ?? 0) * phaseFactor * gain * ducked * drift(s) : 0
             targets[s] = v
             p.volume = v
         }

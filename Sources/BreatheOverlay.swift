@@ -4,7 +4,7 @@ import os
 
 /// Full screen, distraction free breathing. Optionally hides other apps and restores them on exit.
 @MainActor
-final class BreatheOverlay {
+final class BreatheOverlay: ObservableObject {
     static let shared = BreatheOverlay()
     private static let log = Logger(subsystem: "com.antelislabs.tarn", category: "overlay")
     private var windows: [NSWindow] = []
@@ -13,6 +13,9 @@ final class BreatheOverlay {
     private var cueTimer: Timer?
     /// One shared clock, so every screen shows the same breath.
     private(set) var startDate = Date()
+    /// Set while guided breathing is paused in full screen; the breath, the voice and the sounds hold.
+    @Published private(set) var pausedFrom: Date?
+    private var soundWasOn = false
     /// Set by Calm mode so the "calm ends" Shortcut runs when the overlay closes.
     var calmActive = false
 
@@ -28,6 +31,8 @@ final class BreatheOverlay {
         let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
         let lead = Self.guidedMode ? 0 : BreathVoice.leadIn(BreathPattern.all.first { $0.id == id } ?? .settle)
         startDate = Date().addingTimeInterval(lead)
+        pausedFrom = nil
+        soundWasOn = false
         if UserDefaults.standard.object(forKey: "hideOthersWhenBreathing") as? Bool ?? true {
             hidden = NSWorkspace.shared.runningApplications.filter {
                 $0.activationPolicy == .regular && !$0.isHidden && $0 != NSRunningApplication.current
@@ -63,7 +68,7 @@ final class BreatheOverlay {
         }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
             if e.keyCode == 53 { self?.close("escape key"); return nil }   // Esc
-            if e.keyCode == 49, self?.skipIntro() == true { return nil }       // Space skips the spoken intro
+            if e.keyCode == 49 { self?.spaceKey(); return nil }                // Space skips the intro, or pauses
             return e
         }
         // One clock for the breath cues, however many screens are covered.
@@ -84,17 +89,51 @@ final class BreatheOverlay {
         let guided = meditation.isActive
         let id = UserDefaults.standard.string(forKey: "breathPattern") ?? "settle"
         let pattern = guided ? BreathPattern.settle : (BreathPattern.all.first { $0.id == id } ?? .settle)
-        let t = guided ? meditation.elapsed() : Date().timeIntervalSince(startDate)
-        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: Self.guidedMode, running: isShowing && !(guided && meditation.isPaused))
+        let t = guided ? meditation.elapsed() : elapsed()
+        AppModel.shared.cueTick(.fullScreen, t: t, pattern: pattern, guided: Self.guidedMode, running: isShowing && !isPaused)
+    }
+
+    /// Seconds since the first breath of guided breathing. Negative during the intro. Holds still while paused.
+    func elapsed(at date: Date = Date()) -> Double { (pausedFrom ?? date).timeIntervalSince(startDate) }
+
+    var isPaused: Bool { Meditation.shared.isActive ? Meditation.shared.isPaused : pausedFrom != nil }
+
+    /// True while the voice names the exercise before the first breath.
+    func introPlaying(at date: Date = Date()) -> Bool {
+        isShowing && !Self.guidedMode && BreatheSettings.spokenOn && pausedFrom == nil && elapsed(at: date) < -0.7
     }
 
     /// Cuts the spoken intro short; the first breath starts a moment later. False when no intro is playing.
     @discardableResult func skipIntro() -> Bool {
-        guard isShowing, !Self.guidedMode, startDate.timeIntervalSinceNow > 0.7 else { return false }
+        guard introPlaying() else { return false }
         AppModel.shared.cues.stopVoice()
         startDate = Date().addingTimeInterval(0.6)
         return true
     }
+
+    /// Pauses or resumes: the breath and its sounds, or the meditation's voice and breath together.
+    func togglePause() {
+        let meditation = Meditation.shared
+        let sound = AppModel.shared.sound
+        // A paused session is really quiet: the sound holds too, and comes back on resume.
+        if isPaused {
+            if meditation.isActive { meditation.togglePause() } else if let at = pausedFrom {
+                startDate = startDate.addingTimeInterval(Date().timeIntervalSince(at))
+                pausedFrom = nil
+            }
+            if soundWasOn { soundWasOn = false; sound.play() }
+        } else {
+            if meditation.isActive { meditation.togglePause() } else {
+                AppModel.shared.cues.stopVoice()
+                pausedFrom = Date()
+            }
+            soundWasOn = sound.isPlaying
+            if soundWasOn { sound.pause() }
+        }
+        objectWillChange.send()
+    }
+
+    private func spaceKey() { if !skipIntro() { togglePause() } }
 
     func close(_ reason: String = "api") {
         Self.log.notice("full screen closed: \(reason, privacy: .public)")
@@ -103,6 +142,9 @@ final class BreatheOverlay {
         cueTimer?.invalidate()
         cueTimer = nil
         AppModel.shared.cueStop(.fullScreen)
+        // Leaving while paused brings back the sound the pause held (a meditation stays paused on the Breathe screen).
+        if pausedFrom != nil, soundWasOn, !Meditation.shared.isActive { AppModel.shared.sound.play() }
+        pausedFrom = nil; soundWasOn = false
         let ws = windows
         windows = []
         NSAnimationContext.runAnimationGroup({ $0.duration = 0.4; ws.forEach { $0.animator().alphaValue = 0 } },
@@ -152,7 +194,7 @@ struct OverlayView: View {
     @AppStorage("breathPattern") private var patternID = "settle"
     @AppStorage("guideMe") private var guideMe = false
     @AppStorage("breathStyle") private var styleRaw = BreathStyle.bloom.rawValue
-    @MainActor private var start: Date { BreatheOverlay.shared.startDate }
+    @ObservedObject private var overlay = BreatheOverlay.shared
     private var pattern: BreathPattern { meditation.isActive ? .settle : (BreathPattern.all.first { $0.id == patternID } ?? .settle) }
 
     var body: some View {
@@ -167,7 +209,7 @@ struct OverlayView: View {
             TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
                 // In a guided session the picture follows the voice, holding still through the lead-in.
                 let guided = meditation.isActive
-                let t = guided ? meditation.elapsed(at: ctx.date) : ctx.date.timeIntervalSince(start)
+                let t = guided ? meditation.elapsed(at: ctx.date) : overlay.elapsed(at: ctx.date)
                 let s = t < 0 ? (label: "Get comfortable", scale: 0.0) : pattern.state(at: max(0, t))
                 VStack(spacing: 6) {
                     ZStack {
@@ -200,8 +242,8 @@ struct OverlayView: View {
                         .id(s.label)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.9), value: s.label)
-                    if !BreatheOverlay.guidedMode && t < -0.7 && BreathCueStyle.breathing == .spoken {
-                        Text("Intro · press Space to skip")
+                    if overlay.introPlaying(at: ctx.date) {
+                        Text("Intro")
                             .font(.system(size: 15, weight: .light))
                             .foregroundStyle(.white.opacity(0.5))
                             .frame(minHeight: 48)
@@ -229,13 +271,25 @@ struct OverlayView: View {
             }
             VStack {
                 Spacer()
-                Text("Press Esc or click anywhere to leave")
+                Text(overlay.introPlaying() ? "Space skips the intro. Esc or a click leaves."
+                     : "Space pauses. Esc or a click anywhere leaves.")
                     .font(.footnote).foregroundStyle(.white.opacity(0.55)).padding(.bottom, 28)
             }
         }
         .overlay(alignment: .topTrailing) {
             // Sound controls and a way out, always in the same corner.
             HStack(spacing: 8) {
+                TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
+                    if overlay.introPlaying(at: ctx.date) {
+                        Button("Skip intro") { overlay.skipIntro() }
+                            .buttonStyle(CapsuleButtonStyle(small: true))
+                    } else {
+                        Button { overlay.togglePause() } label: {
+                            Label(overlay.isPaused ? "Resume" : "Pause", systemImage: overlay.isPaused ? "play.fill" : "pause.fill")
+                        }
+                        .buttonStyle(CapsuleButtonStyle(small: true))
+                    }
+                }
                 Menu {
                     ForEach(SoundPreset.all) { p in
                         Button(p.name) { sound.applyPreset(p) }

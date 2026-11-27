@@ -7,16 +7,15 @@ import AVFoundation
 /// through the in-breath and fades away over exactly the out-breath, so the sound shows how long to breathe.
 /// All three last the whole breath and sit in a soft hall reverb. Holds stay silent.
 /// The sounds are made in code, so there is nothing to license. They match Tarn on iPhone.
-/// Spoken: the meditation voice says "Breathe in", "Hold", "Breathe out" at each step (see BreathVoice).
+/// The spoken words are separate (see BreathVoice) and can play together with any of these.
 enum BreathCueStyle: String, CaseIterable, Identifiable {
-    case bell, tone, wash, spoken, off
+    case bell, tone, wash, off
     var id: String { rawValue }
     var label: String {
         switch self {
         case .bell: "Bell"
         case .tone: "Tone"
         case .wash: "Wash"
-        case .spoken: "Spoken"
         case .off: "Off"
         }
     }
@@ -27,7 +26,6 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "Eyes closed? A soft bell marks each breath."
         case .tone: "Eyes closed? A warm tone rises and falls with each breath."
         case .wash: "Eyes closed? A soft wash rises and falls with each breath."
-        case .spoken: "Eyes closed? A calm voice tells you when to breathe in and out."
         case .off: guided ? nil : "Tap the speaker to hear each breath with your eyes closed."
         }
     }
@@ -36,7 +34,6 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
         case .bell: "A soft bell at each breath, fading as you breathe out"
         case .tone: "A warm chord that rises and falls with you"
         case .wash: "A quiet hush that swells and drains away"
-        case .spoken: "A calm voice says breathe in, hold, and breathe out"
         case .off: "Just the picture, no sound"
         }
     }
@@ -47,8 +44,8 @@ enum BreathCueStyle: String, CaseIterable, Identifiable {
     static var breathing: BreathCueStyle { BreatheSettings.breathCue(UserDefaults.standard.string(forKey: BreatheSettings.breathCues)) }
     /// The cue during a guided meditation, off unless you turn it on (the voice already guides you).
     static var meditating: BreathCueStyle { BreatheSettings.meditationCue(UserDefaults.standard.string(forKey: BreatheSettings.meditationCues)) }
-    /// The choices offered under a guided meditation: never Spoken, a second voice would talk over the meditation.
-    static var guidedCases: [BreathCueStyle] { allCases.filter { $0 != .spoken } }
+    /// The tip when the voice speaks the breaths, with or without a sound.
+    static let voiceHint = "Eyes closed? A calm voice tells you when to breathe in and out."
     static var volume: Double {
         let v = UserDefaults.standard.object(forKey: "breathCueVolume") as? Double ?? defaultVolume
         return min(volumeRange.upperBound, max(volumeRange.lowerBound, v))
@@ -98,12 +95,13 @@ extension BreathPattern {
 
 /// The Breathe screen's two modes, chosen with the switch at the top. Matches Tarn on iPhone.
 enum BreatheMode: String, CaseIterable, Identifiable {
-    /// A rhythm, paced by the picture and, if chosen, a sound or the spoken cue.
+    /// Guided breathing: a rhythm, paced by the picture and, if chosen, the voice and a sound.
     case breathe
     /// A recorded guided meditation.
     case guided
     var id: String { rawValue }
-    var label: String { self == .breathe ? "Breathe" : "Guided" }
+    /// The switch and section names. Kept here, so the wording is one change.
+    var label: String { self == .breathe ? "Breathwork" : "Meditation" }
 }
 
 /// Settings keys shared by the Breathe screen and Settings, and the one-time upgrade from earlier versions.
@@ -111,6 +109,8 @@ enum BreatheSettings {
     static let mode = "breatheMode"
     static let breathCues = "breathCues"
     static let meditationCues = "meditationCues"
+    /// Whether a voice says "Breathe in", "Hold", "Breathe out" during guided breathing. Plays with or without a sound.
+    static let spoken = "spokenCues"
     /// One voice for both the guided meditation and the spoken cue. Kept under its 1.0 name so nothing moves.
     static let voice = "meditationVoice"
     /// Whether the spoken cue names the exercise before the first breath.
@@ -127,11 +127,12 @@ enum BreatheSettings {
         raw.flatMap(BreathCueStyle.init(rawValue:)) ?? .bell
     }
 
-    /// The cue under a guided meditation: never Spoken (the meditation already has a voice), unknown is Off.
+    /// The cue under a guided meditation: unknown is Off.
     static func meditationCue(_ raw: String?) -> BreathCueStyle {
-        let s = raw.flatMap(BreathCueStyle.init(rawValue:)) ?? .off
-        return s == .spoken ? .off : s
+        raw.flatMap(BreathCueStyle.init(rawValue:)) ?? .off
     }
+
+    static var spokenOn: Bool { UserDefaults.standard.bool(forKey: spoken) }
 
     static var introOn: Bool { UserDefaults.standard.object(forKey: spokenIntro) as? Bool ?? true }
 
@@ -209,7 +210,7 @@ enum BreathVoice {
     /// How long to wait before the first breath of an unguided session: the intro and a moment of quiet,
     /// or nothing when the spoken cue or its intro is off. The intro does not count toward the session.
     static func leadIn(_ pattern: BreathPattern) -> Double {
-        guard BreathCueStyle.breathing == .spoken, BreatheSettings.introOn, let url = url(voice: chosen, name: intro(pattern)),
+        guard BreatheSettings.spokenOn, BreatheSettings.introOn, let url = url(voice: chosen, name: intro(pattern)),
               let file = try? AVAudioFile(forReading: url) else { return 0 }
         return Double(file.length) / file.processingFormat.sampleRate + afterIntro
     }
@@ -239,7 +240,8 @@ final class BreathCues {
     private let voicePlayer = AVAudioPlayerNode()
     private var voice = ""
     private var clips: [String: AVAudioPCMBuffer] = [:]
-    private var spoken: [String: Int] = [:]
+    private var said: [String: Int] = [:]
+    private var duckTask: Task<Void, Never>?
 
     var isRunning: Bool { engine.isRunning }
 
@@ -276,7 +278,9 @@ final class BreathCues {
         guard wired else { return }
         players.forEach { $0.stop() }
         voicePlayer.stop()
-        spoken = [:]
+        said = [:]
+        duckTask?.cancel(); duckTask = nil
+        bus.outputVolume = 1
         if engine.isRunning { engine.stop() }
     }
 
@@ -304,13 +308,13 @@ final class BreathCues {
     }
 
     /// One short breath in and out, so a style can be heard before choosing it.
-    func preview(_ style: BreathCueStyle, volume: Double) {
+    /// With `spoken`, the voice says "Breathe in" and "Breathe out" over the sound, as in a session.
+    func preview(_ style: BreathCueStyle, volume: Double, spoken: Bool = false) {
         stop()
-        guard style != .off else { return }
+        guard style != .off || spoken else { return }
         wanted = true
         self.volume = volume
-        if style == .spoken {
-            // "Breathe in", then "Breathe out" one short breath later.
+        if spoken {
             say("in-1")
             let ticket = generation
             Task { @MainActor [weak self] in
@@ -318,8 +322,8 @@ final class BreathCues {
                 guard let self, ticket == self.generation else { return }
                 self.say("out-1")
             }
-            return
         }
+        guard style != .off else { return }
         render(style, [(3.5, true), (4.5, false)]) { [weak self] buffers in
             guard let p = self?.players[0] else { return }
             buffers.forEach { p.scheduleBuffer($0, at: nil, options: []) }
@@ -328,16 +332,15 @@ final class BreathCues {
     }
 
     /// Call when the breath moves to a new step. `seconds` is how long that step lasts. Holds make no sound.
-    func play(_ style: BreathCueStyle, step: BreathPattern.Step, seconds: Double, volume: Double) {
+    /// With `spoken`, the voice says the step too, and the sound dips under the word.
+    func play(_ style: BreathCueStyle, step: BreathPattern.Step, seconds: Double, volume: Double, spoken: Bool = false) {
         self.volume = volume
-        if style == .spoken {
-            // A quick step gets a short word or none, so the voice never crowds the breath. Takes rotate.
-            guard let word = BreathVoice.word(for: step, seconds: seconds) else { return }
+        // A quick step gets a short word or none, so the voice never crowds the breath. Takes rotate.
+        if spoken, let word = BreathVoice.word(for: step, seconds: seconds) {
             wanted = true
-            let n = spoken[word, default: 0]
-            spoken[word] = n + 1
+            let n = said[word, default: 0]
+            said[word] = n + 1
             say("\(word)-\(BreathVoice.take(n))")
-            return
         }
         guard style != .off, step != .hold else { return }
         wanted = true
@@ -385,6 +388,22 @@ final class BreathCues {
         voicePlayer.stop()
         voicePlayer.scheduleBuffer(buffer, at: nil, options: [])
         voicePlayer.play()
+        let seconds = Double(buffer.frameLength) / buffer.format.sampleRate
+        duck(for: seconds)
+        AppModel.shared.sound.duck(for: seconds)
+    }
+
+    /// The breath sound sits under the words: it dips quickly as a word starts and comes back gently after.
+    private func duck(for seconds: Double) {
+        duckTask?.cancel()
+        duckTask = Task { @MainActor [weak self] in
+            for v in stride(from: 1.0, through: 0.4, by: -0.1) { self?.bus.outputVolume = Float(v); try? await Task.sleep(for: .milliseconds(25)) }
+            try? await Task.sleep(for: .seconds(max(0, seconds - 0.15)))
+            for v in stride(from: 0.4, through: 1.0, by: 0.05) {
+                guard !Task.isCancelled else { return }
+                self?.bus.outputVolume = Float(v); try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
     }
 
     /// The clips are 44.1 kHz mono, the same as the cue format, so they read straight in.
@@ -413,7 +432,7 @@ final class BreathCues {
         case .bell: bell(seconds: seconds, rising: rising)
         case .tone: tone(seconds: seconds, rising: rising)
         case .wash: wash(seconds: seconds, rising: rising)
-        case .spoken, .off: []
+        case .off: []
         }
     }
 

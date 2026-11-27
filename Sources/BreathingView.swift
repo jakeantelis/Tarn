@@ -84,12 +84,14 @@ struct BreathingView: View {
     /// Breathe or Guided, the switch at the top of the screen.
     @AppStorage(BreatheSettings.mode) private var modeRaw = BreatheMode.breathe.rawValue
     @AppStorage(BreatheSettings.eyesClosedTipSeen) private var tipSeen = false
+    /// The voice says each breath during guided breathing, with or without a sound.
+    @AppStorage(BreatheSettings.spoken) private var voiceOn = false
+    private var speaking: Bool { voiceOn && !guidedMode }
     @AppStorage("breatheSound") private var breatheSound = true
     @AppStorage("meditationSounds") private var soundsUnderMeditation = true
     /// Guided only when the recorded meditations are in the app.
     private var guidedMode: Bool { (modeRaw == BreatheMode.guided.rawValue && Meditation.isAvailable) || meditation.isActive }
-    /// In Guided the speaker edits the guided cue (never Spoken, a second voice would talk over the meditation),
-    /// otherwise the Breathe one. Odd values never mean silence.
+    /// In Meditation the speaker edits the meditation's sound, otherwise the breathing one. Odd values never mean silence.
     private var cueStyle: BreathCueStyle {
         guidedMode ? BreatheSettings.meditationCue(meditationCues) : BreatheSettings.breathCue(breathCues)
     }
@@ -120,7 +122,7 @@ struct BreathingView: View {
     private var activePattern: BreathPattern { meditation.isActive ? .settle : pattern }
     private var isPaused: Bool { meditation.isActive ? meditation.isPaused : pausedAt != nil }
     private var menuTitle: String {
-        if let m = meditation.minutes { return "Guided, \(m) min" }
+        if let m = meditation.minutes { return "Meditation, \(m) min" }
         return coachMinutes == 0 ? "Options" : "\(coachMinutes) min session"
     }
 
@@ -165,7 +167,7 @@ struct BreathingView: View {
             }
             }
             if guidedMode {
-                Section("Guided meditation, with a voice") {
+                Section("Guided meditation") {
                     let voice = Meditation.voice(preferring: voiceSetting)
                     ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
                         Button { beginGuided(m) } label: {
@@ -256,7 +258,7 @@ struct BreathingView: View {
         } else {
             let voice = Meditation.voice(preferring: voiceSetting)
             Menu {
-                Section("Guided meditation, with a voice") {
+                Section("Guided meditation") {
                     ForEach(Meditation.lengths(voice: voice), id: \.self) { m in
                         Button { beginGuided(m) } label: {
                             if markedLength == m { Label("\(m) minutes", systemImage: "checkmark") } else { Text("\(m) minutes") }
@@ -273,7 +275,7 @@ struct BreathingView: View {
                     }
                 }
             } label: {
-                Label("Guided meditation", systemImage: "waveform").frame(maxWidth: .infinity)
+                Label("Start a meditation", systemImage: "waveform").frame(maxWidth: .infinity)
             }
             .menuStyle(.button).buttonStyle(CapsuleButtonStyle(small: true)).menuIndicator(.hidden)
             .help("A recorded voice guides you for 5, 10 or 20 minutes, with sound softly underneath. Best with headphones and your eyes closed.")
@@ -377,7 +379,7 @@ struct BreathingView: View {
 
     /// True while the spoken cue names the exercise before the first breath. A click on the picture skips it.
     private func introPlaying(_ t: Double) -> Bool {
-        !compact && !still && !guidedMode && t < -0.7 && cueStyle == .spoken
+        !compact && !still && speaking && t < -0.7
     }
 
     /// Cuts the spoken intro short; the first breath starts a moment later, unhurried.
@@ -399,7 +401,7 @@ struct BreathingView: View {
                 .onChange(of: modeRaw) { _, v in
                     // Back to Breathe ends a meditation that is playing; the breath carries on from your own rhythm.
                     if v == BreatheMode.breathe.rawValue && meditation.isActive { endGuided() }
-                    // Into Guided during the spoken intro: the intro stops and the breath starts now.
+                    // Into Meditation during the spoken intro: the intro stops and the breath starts now.
                     if v == BreatheMode.guided.rawValue && start > Date() { AppModel.shared.cues.stopVoice(); start = Date() }
                 }
                 .fadesWithChrome(chrome)
@@ -419,7 +421,7 @@ struct BreathingView: View {
                         .accessibilityLabel("Full screen")
                     }
                     Button { cuePickerShown.toggle(); tipSeen = true } label: {
-                        Image(systemName: cueStyle == .off ? "speaker.slash" : "speaker.wave.2")
+                        Image(systemName: cueStyle == .off && !speaking ? "speaker.slash" : "speaker.wave.2")
                             .font(.system(size: 10, weight: .semibold))
                             .padding(7)
                             .background(Circle().fill(Color.secondary.opacity(0.18)))
@@ -427,9 +429,9 @@ struct BreathingView: View {
                     .buttonStyle(.plain)
                     .help("Breath sounds: hear each breath with your eyes closed")
                     .accessibilityLabel("Breath sounds")
-                    .accessibilityValue(cueStyle.label)
+                    .accessibilityValue(speaking ? (cueStyle == .off ? "Voice" : "Voice and \(cueStyle.label)") : cueStyle.label)
                     .popover(isPresented: $cuePickerShown, arrowEdge: .bottom) {
-                        BreathCueQuickPicker(selection: cueBinding, volume: $cueVolume, guided: guidedMode,
+                        BreathCueQuickPicker(selection: cueBinding, volume: $cueVolume, voice: guidedMode ? nil : $voiceOn,
                                              nature: guidedMode ? $soundsUnderMeditation : $breatheSound)
                     }
                 }
@@ -459,7 +461,7 @@ struct BreathingView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard !compact else { return }
-                    if t < 0 && !guidedMode && cueStyle == .spoken && pausedAt == nil { skipIntro(); return }
+                    if t < 0 && speaking && pausedAt == nil { skipIntro(); return }
                     if meditation.isActive {
                         // The voice, the breath and the clock hold together, and the sound with them.
                         if meditation.isPaused {
@@ -556,7 +558,7 @@ struct BreathingView: View {
                     guidedButton.fadesWithChrome(chrome)
                 }
                 // A one-time tip: once someone has opened the sound picker or started a session, they know.
-                if !tipSeen, let hint = cueStyle.hint(guided: guidedMode) {
+                if !tipSeen, let hint = speaking ? BreathCueStyle.voiceHint : cueStyle.hint(guided: guidedMode) {
                     Text(hint)
                         .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
                         .fadesWithChrome(chrome)
@@ -650,8 +652,8 @@ struct FillCanvas: View {
 struct BreathCueQuickPicker: View {
     @Binding var selection: String
     @Binding var volume: Double
-    /// Under a guided meditation the spoken cue is not offered.
-    var guided = false
+    /// The voice switch for guided breathing; nil under a meditation, which already has a voice.
+    var voice: Binding<Bool>? = nil
     /// Nature sound underneath: your sound mix, softly.
     @Binding var nature: Bool
     private var current: BreathCueStyle { BreathCueStyle(rawValue: selection) ?? .off }
@@ -659,10 +661,22 @@ struct BreathCueQuickPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Breath sounds").font(.headline).padding(.bottom, 6)
-            ForEach(guided ? BreathCueStyle.guidedCases : BreathCueStyle.allCases) { style in
+            if let voice {
+                Toggle(isOn: voice) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Voice")
+                        Text("Says breathe in, hold, and breathe out").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch).controlSize(.small)
+                .onChange(of: voice.wrappedValue) { _, on in if on { AppModel.shared.cues.preview(current, volume: volume, spoken: true) } }
+                .padding(.bottom, 6)
+                Text("Sound").font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(BreathCueStyle.allCases) { style in
                 Button {
                     selection = style.rawValue
-                    AppModel.shared.cues.preview(style, volume: volume)
+                    AppModel.shared.cues.preview(style, volume: volume, spoken: voice?.wrappedValue ?? false)
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -678,11 +692,11 @@ struct BreathCueQuickPicker: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(style == current ? .isSelected : [])
             }
-            if current != .off {
+            if current != .off || voice?.wrappedValue == true {
                 HStack(spacing: 8) {
                     Image(systemName: "speaker.fill").foregroundStyle(.secondary).accessibilityHidden(true)
                     Slider(value: $volume, in: BreathCueStyle.volumeRange) { editing in
-                        if !editing { AppModel.shared.cues.preview(current, volume: volume) }
+                        if !editing { AppModel.shared.cues.preview(current, volume: volume, spoken: voice?.wrappedValue ?? false) }
                     }
                     .controlSize(.small)
                     .accessibilityLabel("Breath sound volume")
@@ -692,7 +706,7 @@ struct BreathCueQuickPicker: View {
             }
             Divider().padding(.vertical, 8)
             Toggle("Nature sounds", isOn: $nature)
-                .help(guided ? "Your sound mix plays softly under the voice" : "Your sound mix plays softly while you breathe")
+                .help(voice == nil ? "Your sound mix plays softly under the voice" : "Your sound mix plays softly while you breathe")
         }
         .padding(16)
         .frame(width: 280)
